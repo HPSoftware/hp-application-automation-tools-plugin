@@ -36,6 +36,7 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.util.TimeUnit2;
 import jenkins.model.Jenkins;
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import net.sf.json.JsonConfig;
 import net.sf.json.processors.PropertyNameProcessor;
@@ -45,7 +46,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.*;
 
 
@@ -59,14 +59,17 @@ import java.util.*;
 @Extension
 public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 
-    private static Logger logger = LogManager.getLogger(UftTestDiscoveryDispatcher.class);
+    private final static Logger logger = LogManager.getLogger(UftTestDiscoveryDispatcher.class);
     private final static String TESTS_COLLECTION_NAME = "automated_tests";
     private final static String SCM_RESOURCE_FILES_COLLECTION_NAME = "scm_resource_files";
-
+    private final static String DUPLICATE_ERROR_CODE = "platform.duplicate_entity_error";
     private final static int BULK_SIZE = 100;
+    private final static int MAX_DISPATCH_TRIALS = 5;
+
+    public static final String SCM_REPOSITORY_FIELD = "scm_repository";
+    public static final String RELATIVE_PATH_FIELD = "relative_path";
 
     private UftTestDiscoveryQueue queue;
-    private ConfigurationService configurationService;
 
     public UftTestDiscoveryDispatcher() {
         super("Uft Test Discovery Dispatcher");
@@ -81,7 +84,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
 
         logger.warn("Queue size  " + queue.size());
         ServerConfiguration serverConfiguration = ConfigurationService.getServerConfiguration();
-        MqmRestClient client = configurationService.createClient(serverConfiguration);
+        MqmRestClient client = ConfigurationService.createClient(serverConfiguration);
 
         if (client == null) {
             logger.warn("There are pending discovered UFT tests, but MQM server configuration is not valid, results can't be submitted");
@@ -120,16 +123,15 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         } catch (Exception e) {
             if (item != null) {
                 item.incrementFailCount();
-                int maxTrial = 5;
-                if (item.incrementFailCount() > maxTrial) {
+                if (item.incrementFailCount() > MAX_DISPATCH_TRIALS) {
                     queue.remove();
-                    logger.warn("Failed to  persist discovery of [" + item.getProjectName() + "#" + item.getBuildNumber() + "]  after " + maxTrial + " trials");
+                    logger.warn("Failed to  persist discovery of [" + item.getProjectName() + "#" + item.getBuildNumber() + "]  after " + MAX_DISPATCH_TRIALS + " trials");
                 }
             }
         }
     }
 
-    private void dispatchDetectionResults(ResultQueue.QueueItem item, MqmRestClient client, UFTTestDetectionResult result) throws UnsupportedEncodingException {
+    private static void dispatchDetectionResults(ResultQueue.QueueItem item, MqmRestClient client, UFTTestDetectionResult result) {
         //post new tests
         if (!result.getNewTests().isEmpty()) {
             boolean posted = postTests(client, result.getNewTests(), result.getWorkspaceId(), result.getScmRepositoryId());
@@ -144,7 +146,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
 
         //post test deleted
         if (!result.getDeletedTests().isEmpty()) {
-            boolean updated = setTestsNotExecutable(client, result.getDeletedTests(), result.getWorkspaceId());
+            boolean updated = updateTests(client, result.getDeletedTests(), result.getWorkspaceId(), result.getScmRepositoryId());
             logger.warn("Persistence [" + item.getProjectName() + "#" + item.getBuildNumber() + "] : " + result.getDeletedTests().size() + "  deleted tests set as not executable successfully = " + updated);
         }
 
@@ -162,7 +164,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
 
     }
 
-    private static boolean postTests(MqmRestClient client, List<AutomatedTest> tests, String workspaceId, String scmRepositoryId) throws UnsupportedEncodingException {
+    private static boolean postTests(MqmRestClient client, List<AutomatedTest> tests, String workspaceId, String scmRepositoryId) {
 
         if (!tests.isEmpty()) {
             try {
@@ -180,18 +182,13 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
                     client.postEntities(Long.parseLong(workspaceId), TESTS_COLLECTION_NAME, uftTestJson);
 
                 } catch (RequestErrorException e) {
-                    if (e.getStatusCode() != HttpStatus.CONFLICT.getCode()) {
-                        logger.error("Failed to postTests to Octane : " + e.getMessage());
-                        return false;
-                    }
-
-                    //else :  the test with the same hash code , so do nothing
+                    return checkIfExceptionCanBeIgnoredInPOST(e, "Failed to post tests");
                 }
         }
         return true;
     }
 
-    private static boolean postScmResources(MqmRestClient client, List<ScmResourceFile> resources, String workspaceId, String scmResourceId) throws UnsupportedEncodingException {
+    private static boolean postScmResources(MqmRestClient client, List<ScmResourceFile> resources, String workspaceId, String scmResourceId) {
 
         if (!resources.isEmpty()) {
             try {
@@ -209,15 +206,50 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
                     client.postEntities(Long.parseLong(workspaceId), SCM_RESOURCE_FILES_COLLECTION_NAME, uftTestJson);
 
                 } catch (RequestErrorException e) {
-                    if (e.getStatusCode() != HttpStatus.CONFLICT.getCode()) {
-                        logger.error("Failed to post scm resource files to Octane : " + e.getMessage());
-                        return false;
-                    }
-
-                    //else :  the file with the same hash code , so do nothing
+                    return checkIfExceptionCanBeIgnoredInPOST(e, "Failed to post scm resource files");
                 }
         }
         return true;
+    }
+
+    /**
+     * Entities might be posted while they already exist in Octane, such POST request will fail with general error code will be 409.
+     * The same error code might be received on other validation error.
+     * In this method we check whether exist other exception than duplicate
+     *
+     * @param e
+     * @param errorPrefix
+     * @return
+     */
+    private static boolean checkIfExceptionCanBeIgnoredInPOST(RequestErrorException e, String errorPrefix) {
+        if (e.getStatusCode() == HttpStatus.CONFLICT.getCode() && e.getJsonObject() != null && e.getJsonObject().containsKey("errors")) {
+            JSONObject error = findFirstErrorDifferThan(e.getJsonObject().getJSONArray("errors"), DUPLICATE_ERROR_CODE);
+            String errorMessage = null;
+            if (error != null) {
+                errorMessage = error.getString("description");
+                logger.error(errorPrefix + " : " + errorMessage);
+            }
+            return errorMessage == null;
+        }
+
+        logger.error(errorPrefix + "  :  " + e.getMessage());
+        return false;
+    }
+
+    /**
+     * Search for error code that differ from supplied errorCode.
+     */
+    private static JSONObject findFirstErrorDifferThan(JSONArray errors, String excludeErrorCode) {
+        for (int errorIndex = 0; errorIndex < errors.size(); errorIndex++) {
+            JSONObject error = errors.getJSONObject(errorIndex);
+            String errorCode = error.getString("error_code");
+            if (errorCode.equals(excludeErrorCode)) {
+                continue;
+            } else {
+                return error;
+            }
+        }
+        return null;
     }
 
     private static String convertToJsonString(Object data) {
@@ -235,7 +267,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
                 String result = fieldName;
                 switch (fieldName) {
                     case "scmRepository":
-                        result = "scm_repository";
+                        result = SCM_REPOSITORY_FIELD;
                         break;
                     case "testingToolType":
                         result = "testing_tool_type";
@@ -257,10 +289,10 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
                 String result = fieldName;
                 switch (fieldName) {
                     case "relativePath":
-                        result = "relative_path";
+                        result = RELATIVE_PATH_FIELD;
                         break;
                     case "scmRepository":
-                        result = "scm_repository";
+                        result = SCM_REPOSITORY_FIELD;
                         break;
                     default:
                         break;
@@ -285,80 +317,32 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         return config;
     }
 
-    /*private static void deleteTests(MqmRestClient client, Collection<AutomatedTest> removedTests, String workspaceId) throws UnsupportedEncodingException {
-        List<Long> idsToDelete = new ArrayList<>();
-        long workspaceIdAsLong = Long.parseLong(workspaceId);
-        for (AutomatedTest test : removedTests) {
-            Map<String, String> queryFields = new HashMap<>();
-            queryFields.put("name", test.getName());
-            queryFields.put("package", test.getPackage());
-            PagedList<Test> foundTests = client.getTests(workspaceIdAsLong, queryFields, Arrays.asList("id"));
-            if (foundTests.getItems().size() == 1) {
-                idsToDelete.add(foundTests.getItems().get(0).getId());
-            }
-        }
-
-        int BULK_SIZE = 100;
-        for (int i = 0; i < idsToDelete.size(); i += BULK_SIZE) {
-            client.deleteTests(workspaceIdAsLong, idsToDelete.subList(i, Math.min(i + BULK_SIZE, idsToDelete.size())));
-        }
-    }*/
-
-    private static boolean setTestsNotExecutable(MqmRestClient client, Collection<AutomatedTest> deletedTest, String workspaceId) throws UnsupportedEncodingException {
-        long workspaceIdAsLong = Long.parseLong(workspaceId);
-
-        try {
-            for (AutomatedTest test : deletedTest) {
-                List<String> conditions = new ArrayList<>();
-                conditions.add(QueryHelper.condition("name", test.getName()));
-                conditions.add(QueryHelper.condition("package", test.getPackage()));
-                PagedList<Entity> foundTests = client.getEntities(workspaceIdAsLong, TESTS_COLLECTION_NAME, conditions, Arrays.asList("id"));
-                if (foundTests.getItems().size() == 1) {
-                    Entity foundTest = foundTests.getItems().get(0);
-                    AutomatedTest testForUpdate = new AutomatedTest();
-                    testForUpdate.setExecutable(false);
-                    testForUpdate.setId(foundTest.getId());
-                    String json = convertToJsonString(testForUpdate);
-                    client.updateEntity(Long.parseLong(workspaceId), TESTS_COLLECTION_NAME, foundTests.getItems().get(0).getId(), json);
-                }
-            }
-            return true;
-
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    private static boolean updateTests(MqmRestClient client, Collection<AutomatedTest> updateTests, String workspaceId, String scmRepositoryId) throws UnsupportedEncodingException {
+    private static boolean updateTests(MqmRestClient client, Collection<AutomatedTest> updateTests, String workspaceId, String scmRepositoryId) {
         long workspaceIdAsLong = Long.parseLong(workspaceId);
 
         try {
             List<AutomatedTest> createAsNewTests = new ArrayList<>();
             for (AutomatedTest test : updateTests) {
-                if (StringUtils.isEmpty(test.getDescription())) {
-                    continue;
-                }
-
                 List<String> conditions = new ArrayList<>();
                 conditions.add(QueryHelper.condition("name", test.getName()));
                 conditions.add(QueryHelper.condition("package", test.getPackage()));
-                PagedList<Entity> foundTests = client.getEntities(workspaceIdAsLong, TESTS_COLLECTION_NAME, conditions, Arrays.asList("id"));
-                if (foundTests.getItems().size() == 1) {
-                    Entity foundTest = foundTests.getItems().get(0);
+                List<Entity> foundTests = client.getEntities(workspaceIdAsLong, TESTS_COLLECTION_NAME, conditions, Arrays.asList("id"));
+                if (foundTests.size() == 1) {
+                    Entity foundTest = foundTests.get(0);
                     AutomatedTest testForUpdate = new AutomatedTest();
-                    testForUpdate.setDescription(test.getDescription());
+                    if (test.getDescription() != null) {
+                        testForUpdate.setDescription(test.getDescription());
+                    }
                     testForUpdate.setExecutable(test.getExecutable());
                     testForUpdate.setId(foundTest.getId());
                     String json = convertToJsonString(testForUpdate);
-                    client.updateEntity(Long.parseLong(workspaceId), TESTS_COLLECTION_NAME, foundTests.getItems().get(0).getId(), json);
-                } else if (foundTests.getItems().size() == 0) {
-                    //test not exist in Octane, create it from scratch
+                    client.updateEntity(Long.parseLong(workspaceId), TESTS_COLLECTION_NAME, foundTests.get(0).getId(), json);
+                } else if (foundTests.isEmpty() && test.getExecutable()) {
+                    //test is executable but does not exist in Octane, create it from scratch
                     logger.error(String.format("Test %s\\%s should be updated but wasn't found on Octane, creating test from scratch ", test.getPackage(), test.getName()));
                     createAsNewTests.add(test);
-
                 }
             }
-
 
             if (!createAsNewTests.isEmpty()) {
                 return postTests(client, createAsNewTests, workspaceId, scmRepositoryId);
@@ -366,23 +350,24 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
                 return true;
             }
         } catch (Exception e) {
+            logger.error("Failed to update tests : " + e.getMessage());
             return false;
         }
     }
 
-    private boolean deleteScmResources(MqmRestClient client, List<ScmResourceFile> deletedResourceFiles, String workspaceId, String scmRepositoryId) {
+    private static boolean deleteScmResources(MqmRestClient client, List<ScmResourceFile> deletedResourceFiles, String workspaceId, String scmRepositoryId) {
 
         long workspaceIdAsLong = Long.parseLong(workspaceId);
         Set<Long> deletedIds = new HashSet<>();
         try {
             for (ScmResourceFile scmResource : deletedResourceFiles) {
                 List<String> conditions = new ArrayList<>();
-                conditions.add(QueryHelper.condition("relative_path", scmResource.getRelativePath()));
-                conditions.add(QueryHelper.conditionRef("scm_repository", Long.valueOf(scmRepositoryId)));
+                conditions.add(QueryHelper.condition(RELATIVE_PATH_FIELD, scmResource.getRelativePath()));
+                conditions.add(QueryHelper.conditionRef(SCM_REPOSITORY_FIELD, Long.valueOf(scmRepositoryId)));
 
-                PagedList<Entity> foundResources = client.getEntities(workspaceIdAsLong, SCM_RESOURCE_FILES_COLLECTION_NAME, conditions, Arrays.asList("id, name"));
-                if (foundResources.getItems().size() == 1) {
-                    Entity found = foundResources.getItems().get(0);
+                List<Entity> foundResources = client.getEntities(workspaceIdAsLong, SCM_RESOURCE_FILES_COLLECTION_NAME, conditions, Arrays.asList("id, name"));
+                if (foundResources.size() == 1) {
+                    Entity found = foundResources.get(0);
                     deletedIds.add(found.getId());
                 }
             }
@@ -393,7 +378,6 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         } catch (Exception e) {
             return false;
         }
-
     }
 
     private static void completeTestProperties(MqmRestClient client, long workspaceId, Collection<AutomatedTest> tests, String scmRepositoryId) {
@@ -402,7 +386,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         ListNodeEntity guiTestType = hasTestsByType(tests, UftTestType.GUI) ? getGuiTestType(client, workspaceId) : null;
         ListNodeEntity apiTestType = hasTestsByType(tests, UftTestType.API) ? getApiTestType(client, workspaceId) : null;
 
-        BaseRefEntity scmRepository = StringUtils.isEmpty(scmRepositoryId) ? null : BaseRefEntity.create("scm_repository", Long.valueOf(scmRepositoryId));
+        BaseRefEntity scmRepository = StringUtils.isEmpty(scmRepositoryId) ? null : BaseRefEntity.create(SCM_REPOSITORY_FIELD, Long.valueOf(scmRepositoryId));
         for (AutomatedTest test : tests) {
             test.setTestingToolType(uftTestingTool);
             test.setFramework(uftFramework);
@@ -417,14 +401,14 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
     }
 
     private static void completeScmResourceProperties(List<ScmResourceFile> resources, String scmResourceId) {
-        BaseRefEntity scmRepository = StringUtils.isEmpty(scmResourceId) ? null : BaseRefEntity.create("scm_repository", Long.valueOf(scmResourceId));
+        BaseRefEntity scmRepository = StringUtils.isEmpty(scmResourceId) ? null : BaseRefEntity.create(SCM_REPOSITORY_FIELD, Long.valueOf(scmResourceId));
         for (ScmResourceFile resource : resources) {
             resource.setScmRepository(scmRepository);
         }
     }
 
     private static ListNodeEntity getUftTestingTool(MqmRestClient client, long workspaceId) {
-        PagedList<ListItem> testingTools = client.queryListItems("list_node.testing_tool_type", null, workspaceId, 0, 100);
+        PagedList<ListItem> testingTools = client.queryListItems("list_node.testing_tool_type", null, workspaceId, 0, BULK_SIZE);
         String uftTestingToolLogicalName = "list_node.testing_tool_type.uft";
 
         for (ListItem item : testingTools.getItems()) {
@@ -436,7 +420,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
     }
 
     private static ListNodeEntity getUftFramework(MqmRestClient client, long workspaceId) {
-        PagedList<ListItem> testingTools = client.queryListItems("list_node.je.framework", null, workspaceId, 0, 100);
+        PagedList<ListItem> testingTools = client.queryListItems("list_node.je.framework", null, workspaceId, 0, BULK_SIZE);
         String uftTestingToolLogicalName = "list_node.je.framework.uft";
 
         for (ListItem item : testingTools.getItems()) {
@@ -448,7 +432,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
     }
 
     private static ListNodeEntity getGuiTestType(MqmRestClient client, long workspaceId) {
-        PagedList<ListItem> testingTools = client.queryListItems("list_node.test_type", null, workspaceId, 0, 100);
+        PagedList<ListItem> testingTools = client.queryListItems("list_node.test_type", null, workspaceId, 0, BULK_SIZE);
         String guiLogicalName = "list_node.test_type.gui";
 
         for (ListItem item : testingTools.getItems()) {
@@ -460,7 +444,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
     }
 
     private static ListNodeEntity getApiTestType(MqmRestClient client, long workspaceId) {
-        PagedList<ListItem> testingTools = client.queryListItems("list_node.test_type", null, workspaceId, 0, 100);
+        PagedList<ListItem> testingTools = client.queryListItems("list_node.test_type", null, workspaceId, 0, BULK_SIZE);
         String guiLogicalName = "list_node.test_type.api";
 
         for (ListItem item : testingTools.getItems()) {
@@ -483,11 +467,6 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
     @Inject
     public void setTestResultQueue(UftTestDiscoveryQueue queue) {
         this.queue = queue;
-    }
-
-    @Inject
-    public void setConfigurationService(ConfigurationService configurationService) {
-        this.configurationService = configurationService;
     }
 
     private static boolean hasTestsByType(Collection<AutomatedTest> tests, UftTestType uftTestType) {

@@ -16,7 +16,6 @@
 
 package com.hp.application.automation.tools.octane.executor;
 
-import com.google.inject.Inject;
 import com.hp.application.automation.tools.octane.actions.UFTTestDetectionPublisher;
 import com.hp.application.automation.tools.octane.configuration.ConfigurationService;
 import com.hp.application.automation.tools.octane.configuration.ServerConfiguration;
@@ -45,7 +44,6 @@ import java.util.*;
 public class UftJobCleaner extends AbstractSafeLoggingAsyncPeriodWork {
 
     private static Logger logger = LogManager.getLogger(UftJobCleaner.class);
-    private ConfigurationService configurationService;
     private static String EXECUTORS_COLLECTION_NAME = "executors";
 
     public UftJobCleaner() {
@@ -150,7 +148,7 @@ public class UftJobCleaner extends AbstractSafeLoggingAsyncPeriodWork {
 
         if (!workspace2executorId2DiscoveryJobMap.isEmpty()) {
             ServerConfiguration serverConfiguration = ConfigurationService.getServerConfiguration();
-            MqmRestClient client = configurationService.createClient(serverConfiguration);
+            MqmRestClient client = ConfigurationService.createClient(serverConfiguration);
             if (client != null) {
                 int deleteCounter = 0;
                 for (Long workspaceId : workspace2executorId2DiscoveryJobMap.keySet()) {
@@ -158,9 +156,9 @@ public class UftJobCleaner extends AbstractSafeLoggingAsyncPeriodWork {
                     List<String> conditions = new ArrayList<>();
                     conditions.add(QueryHelper.conditionIn("id", discoveryJobs.keySet(), true));
                     try {
-                        PagedList<Entity> entities = client.getEntities(workspaceId, EXECUTORS_COLLECTION_NAME, conditions, Arrays.asList("id"));
+                        List<Entity> entities = client.getEntities(workspaceId, EXECUTORS_COLLECTION_NAME, conditions, Arrays.asList("id"));
                         Set<Long> octaneExecutorIds = new HashSet<>();
-                        for (Entity executor : entities.getItems()) {
+                        for (Entity executor : entities) {
                             octaneExecutorIds.add(executor.getId());
                         }
                         for (Long jobExecutorId : discoveryJobs.keySet()) {
@@ -210,11 +208,6 @@ public class UftJobCleaner extends AbstractSafeLoggingAsyncPeriodWork {
         }
 
         return null;
-    }
-
-    @Inject
-    public void setConfigurationService(ConfigurationService configurationService) {
-        this.configurationService = configurationService;
     }
 
 }
