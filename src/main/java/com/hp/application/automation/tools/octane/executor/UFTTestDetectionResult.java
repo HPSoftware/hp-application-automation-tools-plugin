@@ -51,6 +51,11 @@ public class UFTTestDetectionResult {
     @XmlElement(name = "dataTable")
     private List<ScmResourceFile> deletedScmResourceFiles = new ArrayList<>();
 
+    @XmlElementWrapper(name = "updatedDataTables")
+    @XmlElement(name = "dataTable")
+    private List<ScmResourceFile> updatedScmResourceFiles = new ArrayList<>();
+
+
     @XmlAttribute
     private String scmRepositoryId;
 
@@ -98,7 +103,7 @@ public class UFTTestDetectionResult {
 
     public boolean hasChanges() {
         return !getNewTests().isEmpty() || !getUpdatedTests().isEmpty() || !getDeletedTests().isEmpty()
-                || !getNewScmResourceFiles().isEmpty();
+                || !getNewScmResourceFiles().isEmpty() || !getDeletedScmResourceFiles().isEmpty();
     }
 
     public List<ScmResourceFile> getNewScmResourceFiles() {
@@ -107,6 +112,10 @@ public class UFTTestDetectionResult {
 
     public List<ScmResourceFile> getDeletedScmResourceFiles() {
         return deletedScmResourceFiles;
+    }
+
+    public List<ScmResourceFile> getUpdatedScmResourceFiles() {
+        return updatedScmResourceFiles;
     }
 
 }

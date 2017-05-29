@@ -92,6 +92,9 @@ public class UFTTestDetectionService {
             result.setFullScan(fullScan);
             sortTests(result.getNewTests());
             sortTests(result.getUpdatedTests());
+            sortTests(result.getDeletedTests());
+            sortDataTables(result.getNewScmResourceFiles());
+            sortDataTables(result.getDeletedScmResourceFiles());
             publishDetectionResults(build, buildListener, result);
 
             if (result.hasChanges()) {
@@ -156,6 +159,15 @@ public class UFTTestDetectionService {
                 } else {
                     return comparePackage;
                 }
+            }
+        });
+    }
+
+    private static void sortDataTables(List<ScmResourceFile> dataTables) {
+        Collections.sort(dataTables, new Comparator<ScmResourceFile>() {
+            @Override
+            public int compare(ScmResourceFile o1, ScmResourceFile o2) {
+                return o1.getRelativePath().compareTo(o2.getRelativePath());
             }
         });
     }
@@ -242,10 +254,9 @@ public class UFTTestDetectionService {
         return result;
     }
 
-    private static AutomatedTest createAutomatedTest(FilePath root, FilePath dirPath, UftTestType testType, boolean executable) throws IOException, InterruptedException {
+    private static AutomatedTest createAutomatedTest(FilePath root, FilePath dirPath, UftTestType testType, boolean executable)  {
         AutomatedTest test = new AutomatedTest();
         test.setName(dirPath.getName());
-
 
         String relativePath = getRelativePath(root, dirPath);
         String packageName = relativePath.length() != dirPath.getName().length() ? relativePath.substring(0, relativePath.length() - dirPath.getName().length() - 1) : "";
@@ -262,12 +273,12 @@ public class UFTTestDetectionService {
         return test;
     }
 
-    private static String getRelativePath(FilePath root, FilePath path) throws IOException, InterruptedException {
+    private static String getRelativePath(FilePath root, FilePath path)  {
         String testPath = path.getRemote();
         String rootPath = root.getRemote();
         String relativePath = testPath.replace(rootPath, "");
         relativePath = StringUtils.strip(relativePath, windowsPathSplitter + linuxPathSplitter);
-        //we want all paths will be in sindows style, because tests are run in windows, therefore we replace all linux splitters (/) by windows one (\)
+        //we want all paths will be in windows style, because tests are run in windows, therefore we replace all linux splitters (/) by windows one (\)
         //http://stackoverflow.com/questions/23869613/how-to-replace-one-or-more-in-string-with-just
         relativePath = relativePath.replaceAll(linuxPathSplitter, windowsPathSplitter + windowsPathSplitter);//str.replaceAll("/", "\\\\");
         return relativePath;
@@ -336,7 +347,7 @@ public class UFTTestDetectionService {
         }
     }
 
-    private static ScmResourceFile createDataTable(FilePath root, FilePath path) throws IOException, InterruptedException {
+    private static ScmResourceFile createDataTable(FilePath root, FilePath path)  {
         ScmResourceFile resourceFile = new ScmResourceFile();
         resourceFile.setName(path.getName());
         resourceFile.setRelativePath(getRelativePath(root, path));
