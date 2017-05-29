@@ -59,9 +59,9 @@ import java.util.*;
  */
 public class TestExecutionJobCreatorService {
 
-
     private static final Logger logger = LogManager.getLogger(TestExecutionJobCreatorService.class);
     public static final String EXECUTOR_ID_PARAMETER_NAME = "executorId";
+    public static final String EXECUTOR_LOGICAL_NAME_PARAMETER_NAME = "executorLogicalName";
     public static final String SUITE_ID_PARAMETER_NAME = "suiteId";
     public static final String SUITE_RUN_ID_PARAMETER_NAME = "suiteRunId";
     public static final String FULL_SCAN_PARAMETER_NAME = "Full Scan";
@@ -233,6 +233,7 @@ public class TestExecutionJobCreatorService {
             "url": "git@github.com:radislavB/UftTests.git"
           },
           "executorId": "1",
+          "executorLogialName": "ABC",
           "workspaceId": "1002",
           "testingToolType": "uft",
           "forceFullDiscovery": true
@@ -255,7 +256,7 @@ public class TestExecutionJobCreatorService {
     private static FreeStyleProject getDiscoveryJob(DiscoveryInfo discoveryInfo) {
 
         try {
-            String discoveryJobName = buildDiscoveryJobName(discoveryInfo.getTestingToolType(), discoveryInfo.getExecutorId());
+            String discoveryJobName = buildDiscoveryJobName(discoveryInfo.getTestingToolType(), discoveryInfo.getExecutorId(), discoveryInfo.getExecutorLogicalName());
             //validate creation of job
             FreeStyleProject proj = (FreeStyleProject) Jenkins.getInstance().getItem(discoveryJobName);
             if (proj == null) {
@@ -268,6 +269,7 @@ public class TestExecutionJobCreatorService {
             setScmRepository(discoveryInfo.getScmRepository(), discoveryInfo.getScmRepositoryCredentialsId(), proj);
             setBuildDiscarder(proj, 20);
             addConstantParameter(proj, EXECUTOR_ID_PARAMETER_NAME, discoveryInfo.getExecutorId(), "Octane executor id");
+            addConstantParameter(proj, EXECUTOR_LOGICAL_NAME_PARAMETER_NAME, discoveryInfo.getExecutorLogicalName(), "Octane executor logical name");
             addBooleanParameter(proj, FULL_SCAN_PARAMETER_NAME, false, "Indicate whether to scan full scm repository to discover all tests or to use changes (Change Sets) to update already existing tests");
 
             //set polling once in two minutes
@@ -298,8 +300,8 @@ public class TestExecutionJobCreatorService {
         }
     }
 
-    private static String buildDiscoveryJobName(TestingToolType testingToolType, String executorId) {
-        String name = String.format("%s test discovery job - executorId %s", testingToolType.toString(), executorId);
+    private static String buildDiscoveryJobName(TestingToolType testingToolType, String executorId, String executorLogicalName) {
+        String name = String.format("%s test discovery job - executorId %s (%s)", testingToolType.toString(), executorId, executorLogicalName);
         return name;
     }
 
@@ -356,43 +358,6 @@ public class TestExecutionJobCreatorService {
         if (parameters.getParameterDefinition(parameterName) == null) {
             ParameterDefinition param = new BooleanParameterDefinition(parameterName, defaultValue, desc);
             parameters.getParameterDefinitions().add(param);
-        }
-    }
-
-    /**
-     * Delete discovery job that related to specific executor in Octane
-     *
-     * @param id
-     */
-    public static void deleteExecutor(String id) {
-        String jobName = buildDiscoveryJobName(TestingToolType.UFT, id);
-        FreeStyleProject proj = (FreeStyleProject) Jenkins.getInstance().getItem(jobName);
-        if (proj != null) {
-            boolean waitBeforeDelete = false;
-
-            if (proj.isBuilding()) {
-                proj.getLastBuild().getExecutor().interrupt();
-                waitBeforeDelete = true;
-            } else if (proj.isInQueue()) {
-                Jenkins.getInstance().getQueue().cancel(proj);
-                waitBeforeDelete = true;
-            }
-
-            if (waitBeforeDelete) {
-                try {
-                    //we cancelled building/queue - wait before deleting the job, so Jenkins will be able to complete some IO actions
-                    Thread.sleep(10000);
-                } catch (InterruptedException e) {
-                    //do nothing
-                }
-            }
-
-            try {
-                logger.warn(String.format("Job '%s' is going to be deleted since matching executor in Octane was deleted", proj.getName()));
-                proj.delete();
-            } catch (IOException | InterruptedException e) {
-                logger.error("Failed to delete job  " + proj.getName() + " : " + e.getMessage());
-            }
         }
     }
 
