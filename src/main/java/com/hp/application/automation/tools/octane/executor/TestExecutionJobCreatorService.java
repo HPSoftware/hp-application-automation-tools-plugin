@@ -177,6 +177,7 @@ public class TestExecutionJobCreatorService {
         /*<Mtbx>
             <Test name="test1" path="c:\tests\APITest1">
 			<Parameter name="A" value="abc" type="string"/>
+			<DataTable path="${WORKSPACE}\aa\bbb.xslx"/>
 			 ….
 			</Test>
 			<Test name="test2" path="${WORKSPACE}\test2">
@@ -196,9 +197,15 @@ public class TestExecutionJobCreatorService {
             for (TestExecutionInfo test : tests) {
                 Element testElement = doc.createElement("test");
                 testElement.setAttribute("name", test.getTestName());
-
                 String path = "${WORKSPACE}" + File.separator + test.getPackageName() + (StringUtils.isEmpty(test.getPackageName()) ? "" : File.separator) + test.getTestName();
                 testElement.setAttribute("path", path);
+
+                if(StringUtils.isNotEmpty(test.getDataTable())){
+                    Element dataTableElement = doc.createElement("dataTable");
+                    dataTableElement.setAttribute("path", test.getDataTable());
+                    testElement.appendChild(dataTableElement);
+                }
+
                 rootElement.appendChild(testElement);
             }
 
