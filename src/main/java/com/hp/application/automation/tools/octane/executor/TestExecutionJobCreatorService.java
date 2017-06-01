@@ -202,7 +202,7 @@ public class TestExecutionJobCreatorService {
 
                 if(StringUtils.isNotEmpty(test.getDataTable())){
                     Element dataTableElement = doc.createElement("dataTable");
-                    dataTableElement.setAttribute("path", test.getDataTable());
+                    dataTableElement.setAttribute("path", "${WORKSPACE}" + File.separator +test.getDataTable());
                     testElement.appendChild(dataTableElement);
                 }
 
