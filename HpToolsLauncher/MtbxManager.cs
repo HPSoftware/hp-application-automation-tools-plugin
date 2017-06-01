@@ -178,8 +178,10 @@ namespace HpToolsLauncher
                     }
 
                     XElement dataTable = GetElement(test, "DataTable");
-                    if(dataTable != null)
+                    if (dataTable != null)
+                    {
                         col.DataTablePath = GetAttribute(dataTable, "path").Value;
+                    }
 
                     retval.Add(col);
                 }
