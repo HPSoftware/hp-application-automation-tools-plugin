@@ -191,18 +191,18 @@ public class TestExecutionJobCreatorService {
             DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
             Document doc = docBuilder.newDocument();
-            Element rootElement = doc.createElement("mtbx");
+            Element rootElement = doc.createElement("Mtbx");
             doc.appendChild(rootElement);
 
             for (TestExecutionInfo test : tests) {
-                Element testElement = doc.createElement("test");
+                Element testElement = doc.createElement("Test");
                 testElement.setAttribute("name", test.getTestName());
-                String path = "${WORKSPACE}" + File.separator + test.getPackageName() + (StringUtils.isEmpty(test.getPackageName()) ? "" : File.separator) + test.getTestName();
+                String path = "${WORKSPACE}" + (StringUtils.isEmpty(test.getPackageName()) ? "" : File.separator + test.getPackageName()) + File.separator + test.getTestName();
                 testElement.setAttribute("path", path);
 
-                if(StringUtils.isNotEmpty(test.getDataTable())){
-                    Element dataTableElement = doc.createElement("dataTable");
-                    dataTableElement.setAttribute("path", "${WORKSPACE}" + File.separator +test.getDataTable());
+                if (StringUtils.isNotEmpty(test.getDataTable())) {
+                    Element dataTableElement = doc.createElement("DataTable");
+                    dataTableElement.setAttribute("path", "${WORKSPACE}" + File.separator + test.getDataTable());
                     testElement.appendChild(dataTableElement);
                 }
 
