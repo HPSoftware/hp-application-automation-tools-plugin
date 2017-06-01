@@ -621,8 +621,11 @@ namespace HpToolsLauncher
                 }
 
                 // specify data table path
-                if(dataTablePath != null)
+                if (dataTablePath != null)
+                {
                     _qtpApplication.Test.Settings.Resources.DataTablePath = dataTablePath;
+                    ConsoleWriter.WriteLine("Using external data table: " + dataTablePath);
+                }
             }
             catch (Exception e)
             {
