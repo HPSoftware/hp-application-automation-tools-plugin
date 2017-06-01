@@ -41,6 +41,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
 
+/**
+ * Service is responsible to detect changes according to SCM change and to put it to queue of UftTestDiscoveryDispatcher
+ */
 public class UFTTestDetectionService {
     private static final Logger logger = LogManager.getLogger(UFTTestDetectionService.class);
     private static final String INITIAL_DETECTION_FILE = "INITIAL_DETECTION_FILE.txt";
