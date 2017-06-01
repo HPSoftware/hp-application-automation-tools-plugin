@@ -1,6 +1,9 @@
 ![HPE LOGO](https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Hewlett_Packard_Enterprise_logo.svg/200px-Hewlett_Packard_Enterprise_logo.svg.png)
 
 # HPE automation plugin for Jenkins CI                        
+
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/5328a4b34692425793dfb4014ac8f0f8)](https://www.codacy.com/app/HPSoftware/hpaa-octane-dev?utm_source=github.com&utm_medium=referral&utm_content=HPSoftware/hpaa-octane-dev&utm_campaign=badger)
+
 ##### The plugin provides the ability to run HPE products with Jenkins during builds.
 
 ## Relevent links
