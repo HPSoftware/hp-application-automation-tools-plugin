@@ -98,7 +98,7 @@ public class UFTTestDetectionService {
             sortTests(result.getDeletedTests());
             sortDataTables(result.getNewScmResourceFiles());
             sortDataTables(result.getDeletedScmResourceFiles());
-            publishDetectionResults(build, buildListener, result);
+            publishDetectionResults(getReportXmlFile(build), buildListener, result);
 
             if (result.hasChanges()) {
                 UftTestDiscoveryDispatcher dispatcher = getExtension(UftTestDiscoveryDispatcher.class);
@@ -395,19 +395,25 @@ public class UFTTestDetectionService {
         return null;
     }
 
-    private static void publishDetectionResults(AbstractBuild<?, ?> build, TaskListener _logger, UFTTestDetectionResult detectionResult) {
+    /**
+     * Serialize detectionResult to file in XML format
+     * @param fileToWriteTo
+     * @param _logger
+     * @param detectionResult
+     */
+    public static void publishDetectionResults(File fileToWriteTo, TaskListener _logger, UFTTestDetectionResult detectionResult) {
 
         try {
-            File file = getReportXmlFile(build);
             JAXBContext jaxbContext = JAXBContext.newInstance(UFTTestDetectionResult.class);
             Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
 
             jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-            jaxbMarshaller.marshal(detectionResult, file);
-            //jaxbMarshaller.marshal(detectionResult, System.out);
+            jaxbMarshaller.marshal(detectionResult, fileToWriteTo);
 
         } catch (JAXBException e) {
-            _logger.error("Failed to persist detection results: " + e);
+            if(_logger!=null) {
+                _logger.error("Failed to persist detection results: " + e);
+            }
         }
     }
 
@@ -417,15 +423,13 @@ public class UFTTestDetectionService {
         try {
             JAXBContext context = JAXBContext.newInstance(UFTTestDetectionResult.class);
             Unmarshaller m = context.createUnmarshaller();
-            UFTTestDetectionResult result = (UFTTestDetectionResult) m.unmarshal(new FileReader(file));
-            return result;
+            return (UFTTestDetectionResult) m.unmarshal(new FileReader(file));
         } catch (JAXBException | FileNotFoundException e) {
             return null;
         }
     }
 
     private static File getReportXmlFile(Run run) {
-        File reportXmlFile = new File(run.getRootDir(), DETECTION_RESULT_FILE);
-        return reportXmlFile;
+        return new File(run.getRootDir(), DETECTION_RESULT_FILE);
     }
 }

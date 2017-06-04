@@ -50,7 +50,7 @@ public class UftJobCleaner extends AbstractSafeLoggingAsyncPeriodWork {
 
     @Override
     public long getRecurrencePeriod() {
-        return HOUR;
+        return DAY;
     }
 
     @Override
