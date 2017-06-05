@@ -21,6 +21,12 @@ package com.hp.application.automation.tools.octane.executor;
  */
 public class OctaneConstants {
 
+    public static class General{
+
+        public static final String WINDOWS_PATH_SPLITTER = "\\";
+        public static final String LINUX_PATH_SPLITTER = "/";
+    }
+
     public static class Base {
         public static final String ID_FIELD = "id";
         public static final String NAME_FIELD = "name";

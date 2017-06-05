@@ -398,10 +398,10 @@ public class UFTTestDetectionService {
     /**
      * Serialize detectionResult to file in XML format
      * @param fileToWriteTo
-     * @param _logger
+     * @param taskListenerLog
      * @param detectionResult
      */
-    public static void publishDetectionResults(File fileToWriteTo, TaskListener _logger, UFTTestDetectionResult detectionResult) {
+    public static void publishDetectionResults(File fileToWriteTo, TaskListener taskListenerLog, UFTTestDetectionResult detectionResult) {
 
         try {
             JAXBContext jaxbContext = JAXBContext.newInstance(UFTTestDetectionResult.class);
@@ -411,9 +411,10 @@ public class UFTTestDetectionService {
             jaxbMarshaller.marshal(detectionResult, fileToWriteTo);
 
         } catch (JAXBException e) {
-            if(_logger!=null) {
-                _logger.error("Failed to persist detection results: " + e);
+            if (taskListenerLog != null) {
+                taskListenerLog.error("Failed to persist detection results: " + e.getMessage());
             }
+            logger.error("Failed to persist detection results: " + e.getMessage());
         }
     }
 

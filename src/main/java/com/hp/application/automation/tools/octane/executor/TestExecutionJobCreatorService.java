@@ -197,12 +197,12 @@ public class TestExecutionJobCreatorService {
             for (TestExecutionInfo test : tests) {
                 Element testElement = doc.createElement("Test");
                 testElement.setAttribute("name", test.getTestName());
-                String path = "${WORKSPACE}" + (StringUtils.isEmpty(test.getPackageName()) ? "" : File.separator + test.getPackageName()) + File.separator + test.getTestName();
+                String path = "${WORKSPACE}" + (StringUtils.isEmpty(test.getPackageName()) ? "" : OctaneConstants.General.WINDOWS_PATH_SPLITTER + test.getPackageName()) + OctaneConstants.General.WINDOWS_PATH_SPLITTER + test.getTestName();
                 testElement.setAttribute("path", path);
 
                 if (StringUtils.isNotEmpty(test.getDataTable())) {
                     Element dataTableElement = doc.createElement("DataTable");
-                    dataTableElement.setAttribute("path", "${WORKSPACE}" + File.separator + test.getDataTable());
+                    dataTableElement.setAttribute("path", "${WORKSPACE}" + OctaneConstants.General.WINDOWS_PATH_SPLITTER + test.getDataTable());
                     testElement.appendChild(dataTableElement);
                 }
 

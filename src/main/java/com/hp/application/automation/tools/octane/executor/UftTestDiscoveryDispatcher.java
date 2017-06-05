@@ -131,7 +131,6 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
     }
 
     private static void dispatchDetectionResults(ResultQueue.QueueItem item, MqmRestClient client, UFTTestDetectionResult result) {
-
         //Check if there is diff in discovery and server status
         //for example : discovery found new test , but it already exist in server , instead of create new tests we will do update test
         if (result.isFullScan()) {
@@ -141,6 +140,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
             validateTestDiscoveryAndCompleteTestIdsForScmChangeDetection(client, result);
             //no need to add validation for dataTables, because there is no DTs update and there is no special delete strategy
         }
+
         //publish final results
         FreeStyleProject project = (FreeStyleProject) Jenkins.getInstance().getItemByFullName(item.getProjectName());
         FilePath subWorkspace = project.getWorkspace().child("_Final_Detection_Results");
