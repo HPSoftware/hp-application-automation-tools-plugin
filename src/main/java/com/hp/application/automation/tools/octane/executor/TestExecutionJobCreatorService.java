@@ -61,8 +61,8 @@ public class TestExecutionJobCreatorService {
     private static final Logger logger = LogManager.getLogger(TestExecutionJobCreatorService.class);
     public static final String EXECUTOR_ID_PARAMETER_NAME = "Connection ID";
     public static final String EXECUTOR_LOGICAL_NAME_PARAMETER_NAME = "Connection logical name";
-    public static final String SUITE_ID_PARAMETER_NAME = "Suite ID";
-    public static final String SUITE_RUN_ID_PARAMETER_NAME = "Suite run ID";
+    public static final String SUITE_ID_PARAMETER_NAME = "suiteId";//"Suite ID";
+    public static final String SUITE_RUN_ID_PARAMETER_NAME = "suiteRunId";//"Suite run ID";
     public static final String FULL_SCAN_PARAMETER_NAME = "Full sync";
 
     public static final String EXECUTION_JOB_MIDDLE_NAME = "test run job - Suite ID";
