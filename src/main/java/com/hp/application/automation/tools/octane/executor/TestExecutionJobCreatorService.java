@@ -121,14 +121,14 @@ public class TestExecutionJobCreatorService {
             FreeStyleProject proj = (FreeStyleProject) Jenkins.getInstance().getItem(projectName);
             if (proj == null) {
                 proj = Jenkins.getInstance().createProject(FreeStyleProject.class, projectName);
-                proj.setDescription(String.format("This job was created by the HPE Application Automation Tools plugin for running %s tests. It is associated with ALM Octane test suite ID %s.",
+                proj.setDescription(String.format("This job was created by the HPE Application Automation Tools plugin for running %s tests. It is associated with ALM Octane test suite #%s.",
                         suiteExecutionInfo.getTestingToolType().toString(), suiteExecutionInfo.getSuiteId()));
             }
 
             setScmRepository(suiteExecutionInfo.getScmRepository(), suiteExecutionInfo.getScmRepositoryCredentialsId(), proj);
             setBuildDiscarder(proj, 40);
             addConstantParameter(proj, SUITE_ID_PARAMETER_NAME, suiteExecutionInfo.getSuiteId(), "ALM Octane test suite ID");
-            addStringParameter(proj, SUITE_RUN_ID_PARAMETER_NAME, "", "The ID of the ALM Octane test suite run that will receive the test run results. Provided by ALM Octane when running a planned suite run. \nOtherwise, leave this parameter empty. A new test suite run is created in ALM Octane for the run results.");
+            addStringParameter(proj, SUITE_RUN_ID_PARAMETER_NAME, "", "The ID of the ALM Octane test suite run to associate with the test run results. Provided by ALM Octane when running a planned suite run.\nOtherwise, leave this parameter empty. ALM Octane creates a new  test suite run for the new results.");
             addAssignedNode(proj);
 
             //add build action
@@ -272,7 +272,7 @@ public class TestExecutionJobCreatorService {
             if (proj == null) {
 
                 proj = Jenkins.getInstance().createProject(FreeStyleProject.class, discoveryJobName);
-                proj.setDescription(String.format("This job was created by the HPE Application Automation Tools plugin for discovery of %s tests. It is associated with ALM Octane connection ID %s.",
+                proj.setDescription(String.format("This job was created by the HPE Application Automation Tools plugin for discovery of %s tests. It is associated with ALM Octane testing tool connection #%s.",
                         discoveryInfo.getTestingToolType().toString(), discoveryInfo.getExecutorId()));
             }
 
