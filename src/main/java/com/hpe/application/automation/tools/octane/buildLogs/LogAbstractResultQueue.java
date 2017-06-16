@@ -23,12 +23,13 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * Created by benmeior on 11/21/2016.
+ * Created by benmeior on 11/21/2016
  */
+
 public class LogAbstractResultQueue extends AbstractResultQueueImpl {
 
-    public LogAbstractResultQueue() throws IOException {
-        File queueFile = new File(Jenkins.getInstance().getRootDir(), "octane-log-result-queue.dat");
-        init(queueFile);
-    }
+	public LogAbstractResultQueue() throws IOException {
+		File queueFile = new File(Jenkins.getInstance().getRootDir(), "octane-log-result-queue.dat");
+		init(queueFile);
+	}
 }
