@@ -80,7 +80,7 @@ public class BdiConfigurationFetcher extends AbstractSafeLoggingAsyncPeriodWork 
 			String loggingMessage = bdiConfiguration == null ? "BDI is not configured in Octane" : "fetched BDI configuration from Octane: " + bdiConfiguration;
 			logger.info(loggingMessage);
 		} catch (Exception e) {
-			logger.error("Failed to fetch BDI configuration from Octane", e);
+			logger.error("failed to fetch BDI configuration from Octane", e);
 		}
 	}
 
