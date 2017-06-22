@@ -25,7 +25,7 @@ import java.io.IOException;
 /**
  * Created by benmeior on 11/21/2016
  *
- * Concrete implementation of queue, based on persisted, file object backed by queue, serving the Logs dispatching logic to BDI when relevant
+ * Queue, based on persisted, file-object backed by base queue, serving the Logs dispatching logic to BDI when relevant
  */
 
 public class LogAbstractResultQueue extends AbstractResultQueueImpl {
