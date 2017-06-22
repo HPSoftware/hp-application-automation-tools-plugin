@@ -25,6 +25,8 @@ import java.io.*;
 
 /**
  * Created by benmeior on 11/21/2016
+ *
+ * Base implementation of ResultQueue: backed up by FileObjectQueue, persisted
  */
 
 public abstract class AbstractResultQueueImpl implements ResultQueue {
@@ -36,7 +38,7 @@ public abstract class AbstractResultQueueImpl implements ResultQueue {
 	private QueueItem currentItem;
 
 	protected void init(File queueFile) throws IOException {
-		queue = new FileObjectQueue<QueueItem>(queueFile, new JsonConverter());
+		queue = new FileObjectQueue<>(queueFile, new JsonConverter());
 	}
 
 	@Override

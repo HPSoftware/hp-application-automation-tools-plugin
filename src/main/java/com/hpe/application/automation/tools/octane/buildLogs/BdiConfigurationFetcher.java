@@ -36,6 +36,8 @@ import java.io.IOException;
 
 /**
  * Created by benmeior on 12/21/2016
+ *
+ * Component, based on Jenkins' AsyncPeriodicWork, to check status of BDI configuration of the tenant configured in plugin in timely, recursive fashion
  */
 
 @Extension

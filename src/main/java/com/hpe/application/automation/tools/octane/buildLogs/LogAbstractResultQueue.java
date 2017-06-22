@@ -24,12 +24,19 @@ import java.io.IOException;
 
 /**
  * Created by benmeior on 11/21/2016
+ *
+ * Concrete implementation of queue, based on persisted, file object backed by queue, serving the Logs dispatching logic to BDI when relevant
  */
 
 public class LogAbstractResultQueue extends AbstractResultQueueImpl {
 
 	public LogAbstractResultQueue() throws IOException {
-		File queueFile = new File(Jenkins.getInstance().getRootDir(), "octane-log-result-queue.dat");
-		init(queueFile);
+		Jenkins jenkinsContainer = Jenkins.getInstance();
+		if (jenkinsContainer != null) {
+			File queueFile = new File(jenkinsContainer.getRootDir(), "octane-log-result-queue.dat");
+			init(queueFile);
+		} else {
+			throw new IllegalStateException("Jenkins container not initialized properly");
+		}
 	}
 }
