@@ -28,6 +28,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class BdiConfiguration {
 	private String host;
 	private String port;
+	private boolean ssl;
 	private Long tenantId;
 	private boolean accessTokenFlavor;
 
@@ -37,6 +38,10 @@ public class BdiConfiguration {
 
 	public String getPort() {
 		return port;
+	}
+
+	public boolean isSsl() {
+		return ssl;
 	}
 
 	public Long getTenantId() {
@@ -56,6 +61,7 @@ public class BdiConfiguration {
 		return "BdiConfiguration: {" +
 				"host: '" + host + "'" +
 				", port: '" + port + "'" +
+				", ssl: " + ssl +
 				", tenantId: " + tenantId +
 				", accessTokenFlavor: " + accessTokenFlavor + "}";
 	}
