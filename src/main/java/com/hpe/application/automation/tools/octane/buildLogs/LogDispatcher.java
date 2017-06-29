@@ -54,6 +54,7 @@ import java.nio.file.Files;
 
 /**
  * Created by benmeior on 11/20/2016
+ * Log dispatcher is responsible for dispatching bdi - octane related log messages to bdi server
  */
 
 @Extension
@@ -83,27 +84,28 @@ public class LogDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 	private void initClient() {
 		closeClient();
 
-		Jenkins jenkins = Jenkins.getInstance();
+        Jenkins jenkins = Jenkins.getInstance();
 		if (jenkins == null) {
 			logger.error("Jenkins container was not properly initialized");
 			return;
-		}
-		BdiConfiguration bdiConfiguration = bdiConfigurationFetcher.obtain();
-		if (bdiConfiguration == null || !bdiConfiguration.isFullyConfigured()) {
-			logger.debug("BDI is not configured in Octane");
-			return;
-		}
-		System.setProperty("bdi_use_ssl", String.valueOf(bdiConfiguration.isSsl()));
+}
+        BdiConfiguration bdiConfiguration = bdiConfigurationFetcher.obtain();
+        if (bdiConfiguration == null || !bdiConfiguration.isFullyConfigured()) {
+            logger.debug("BDI is not configured in Octane");
+            return;
+        }
+System.setProperty("bdi_use_ssl", String.valueOf(bdiConfiguration.isSsl()));
 		this.proxyConfiguration = jenkins.proxy;
-		if (proxyConfiguration == null) {
-			bdiClient = BdiClientFactory.getBdiClientV2(bdiConfiguration.getHost(), bdiConfiguration.getPort());
-			deprecatedClient = BdiClientFactory.getBdiClient(bdiConfiguration.getHost(), bdiConfiguration.getPort());
-		} else {
-			BdiProxyConfiguration bdiProxyConfiguration = new BdiProxyConfiguration(proxyConfiguration.name, proxyConfiguration.port, proxyConfiguration.getUserName(), proxyConfiguration.getPassword());
-			bdiClient = BdiClientFactory.getBdiClientV2(bdiConfiguration.getHost(), bdiConfiguration.getPort(), bdiProxyConfiguration);
-			deprecatedClient = BdiClientFactory.getBdiClient(bdiConfiguration.getHost(), bdiConfiguration.getPort(), bdiProxyConfiguration);
-		}
-	}
+        if (proxyConfiguration == null) {
+            bdiClient = BdiClientFactory.getBdiClientV2(bdiConfiguration.getHost(), bdiConfiguration.getPort());
+			deprecatedClient =BdiClientFactory.getBdiClient(bdiConfiguration.getHost(), bdiConfiguration.getPort());
+        } else {
+            BdiProxyConfiguration bdiProxyConfiguration =
+                    new BdiProxyConfiguration(proxyConfiguration.name, proxyConfiguration.port, proxyConfiguration.getUserName(), proxyConfiguration.getPassword());
+            bdiClient = BdiClientFactory.getBdiClientV2(bdiConfiguration.getHost(), bdiConfiguration.getPort(), bdiProxyConfiguration);
+			deprecatedClient =BdiClientFactory.getBdiClient(bdiConfiguration.getHost(), bdiConfiguration.getPort(), bdiProxyConfiguration);
+        }
+    }
 
 	@Override
 	protected void doExecute(TaskListener listener) {
