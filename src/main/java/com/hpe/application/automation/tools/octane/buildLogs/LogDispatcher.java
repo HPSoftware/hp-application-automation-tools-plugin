@@ -81,7 +81,7 @@ public class LogDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 		super("BDI log dispatcher");
 	}
 
-	private void initClient() {
+	void initClient() {
 		closeClient();
 
 		Jenkins jenkins = Jenkins.getInstance();
