@@ -216,10 +216,10 @@ public class LogDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 		MqmRestClient mqmRestClient = createMqmRestClient();
 		if (mqmRestClient != null) {
 			BdiTokenData bdiTokenData = objectMapper.readValue(mqmRestClient.getBdiTokenData(), BdiTokenData.class);
-			if (bdiTokenData.token != null && !bdiTokenData.token.isEmpty()) {
+			if (bdiTokenData.token != null) {
 				result = bdiTokenData.token;
 			} else {
-				throw new IllegalStateException("invalid access token received from Octane: " + bdiTokenData.token);
+				throw new IllegalStateException("invalid [NULL] access token received from Octane");
 			}
 		} else {
 			throw new IllegalStateException("failed to create RestClient to retrieve access token from Octane");
