@@ -94,7 +94,7 @@ public class LogDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 			logger.debug("BDI is not configured in Octane");
 			return;
 		}
-		System.setProperty("bdi_use_ssl", String.valueOf(bdiConfiguration.isSsl()));
+		System.setProperty("bdi_use_ssl", String.valueOf(bdiConfiguration.isSsl() || "443".equals(bdiConfiguration.getPort())));
 		this.proxyConfiguration = jenkins.proxy;
 		if (proxyConfiguration == null) {
 			bdiClient = BdiClientFactory.getBdiClientV2(bdiConfiguration.getHost(), bdiConfiguration.getPort());
