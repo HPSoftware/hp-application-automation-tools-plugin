@@ -31,6 +31,8 @@ import java.util.Map;
 
 /**
  * Created by gullery on 26/03/2015.
+ *
+ * This class incorporates helper methods for handling Jenkins job parameters.
  */
 
 public enum ParameterProcessors {

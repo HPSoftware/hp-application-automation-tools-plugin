@@ -45,6 +45,9 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
+/**
+ * This class is a proxy between JS UI code and server-side job configuration.
+ */
 public class JobConfigurationProxy {
 	private final static Logger logger = LogManager.getLogger(JobConfigurationProxy.class);
 	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
