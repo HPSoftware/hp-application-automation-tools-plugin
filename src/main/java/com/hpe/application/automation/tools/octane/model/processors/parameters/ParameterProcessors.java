@@ -58,7 +58,7 @@ public enum ParameterProcessors {
 		AbstractParametersProcessor processor;
 		if (job.getProperty(ParametersDefinitionProperty.class) != null) {
 			paramDefinitions = ((ParametersDefinitionProperty) job.getProperty(ParametersDefinitionProperty.class)).getParameterDefinitions();
-			for (int i = 0; i < paramDefinitions.size(); i++) {
+			for (int i = 0; paramDefinitions != null && i < paramDefinitions.size(); i++) {
 				pd = paramDefinitions.get(i);
 				className = pd.getClass().getName();
 				processor = getAppropriate(className);
