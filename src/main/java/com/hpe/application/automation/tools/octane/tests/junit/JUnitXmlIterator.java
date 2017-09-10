@@ -16,12 +16,12 @@
 
 package com.hpe.application.automation.tools.octane.tests.junit;
 
-import com.hpe.application.automation.tools.octane.executor.OctaneConstants;
-import com.hpe.application.automation.tools.octane.tests.HPRunnerType;
-import com.hpe.application.automation.tools.octane.tests.xml.AbstractXmlIterator;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.tests.Property;
 import com.hp.octane.integrations.dto.tests.TestSuite;
+import com.hpe.application.automation.tools.octane.executor.OctaneConstants;
+import com.hpe.application.automation.tools.octane.tests.HPRunnerType;
+import com.hpe.application.automation.tools.octane.tests.xml.AbstractXmlIterator;
 import hudson.FilePath;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -38,9 +38,10 @@ import java.io.InputStream;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.util.List;
+import java.util.Set;
 
 /**
- * JUnit iterator over test result. Enrich test result before sending to server
+ * JUnit result parser and enricher according to HPRunnerType
  */
 public class JUnitXmlIterator extends AbstractXmlIterator<JUnitTestResult> {
 	private static final Logger logger = LogManager.getLogger(JUnitXmlIterator.class);
@@ -64,8 +65,9 @@ public class JUnitXmlIterator extends AbstractXmlIterator<JUnitTestResult> {
 	private String externalURL;
 	private List<ModuleDetection> moduleDetection;
 	private String jenkinsRootUrl;
+	private Object additionalContext;
 
-	public JUnitXmlIterator(InputStream read, List<ModuleDetection> moduleDetection, FilePath workspace, String jobName, String buildId, long buildStarted, boolean stripPackageAndClass, HPRunnerType hpRunnerType, String jenkinsRootUrl) throws XMLStreamException {
+	public JUnitXmlIterator(InputStream read, List<ModuleDetection> moduleDetection, FilePath workspace, String jobName, String buildId, long buildStarted, boolean stripPackageAndClass, HPRunnerType hpRunnerType, String jenkinsRootUrl, Object additionalContext) throws XMLStreamException {
 		super(read);
 		this.stripPackageAndClass = stripPackageAndClass;
 		this.moduleDetection = moduleDetection;
@@ -75,6 +77,7 @@ public class JUnitXmlIterator extends AbstractXmlIterator<JUnitTestResult> {
 		this.buildStarted = buildStarted;
 		this.hpRunnerType = hpRunnerType;
 		this.jenkinsRootUrl = jenkinsRootUrl;
+		this.additionalContext = additionalContext;
 	}
 
 	private static long parseTime(String timeString) {
@@ -147,9 +150,12 @@ public class JUnitXmlIterator extends AbstractXmlIterator<JUnitTestResult> {
 			} else if ("testName".equals(localName)) { // NON-NLS
 				testName = readNextValue();
 
-				if (hpRunnerType.equals(HPRunnerType.UFT)) {
-					packageName = "";
-					className = "";
+                if (hpRunnerType.equals(HPRunnerType.UFT)) {
+                    String myPackageName = packageName;
+                    String myClassName = className;
+                    String myTestName = testName;
+                    packageName = "";
+                    className = "";
 
 					if (testName.startsWith(workspace.getRemote())) {
 						// if workspace is prefix of the method name, cut it off
@@ -168,9 +174,26 @@ public class JUnitXmlIterator extends AbstractXmlIterator<JUnitTestResult> {
 							testName = path;
 						}
 					}
-					externalURL = jenkinsRootUrl + "job/" + jobName + "/" + buildId + "/artifact/UFTReport/" + cleanTestName(testName) + "/run_results.html";
-				}
-			} else if ("duration".equals(localName)) { // NON-NLS
+
+					String cleanedTestName = cleanTestName(testName);
+					boolean testReportCreated = true;
+					if (additionalContext != null && additionalContext instanceof Set) {
+						Set createdTests = (Set) additionalContext;
+						testReportCreated = createdTests.contains(cleanedTestName);
+					}
+
+					workspace.createTextTempFile("build" + buildId + "." + cleanTestName(testName) + ".", "", "Created  " + testReportCreated);
+					if (testReportCreated) {
+						externalURL = jenkinsRootUrl + "job/" + jobName + "/" + buildId + "/artifact/UFTReport/" + cleanTestName(testName) + "/run_results.html";
+					} else {
+						//if UFT didn't created test results page - add reference to Jenkins test results page
+						externalURL = jenkinsRootUrl + "job/" + jobName + "/" + buildId + "/testReport/" + myPackageName + "/" + jenkinsTestClassFormat(myClassName) + "/" + jenkinsTestNameFormat(myTestName) + "/";
+					}
+
+                } else if (hpRunnerType.equals(HPRunnerType.PerformanceCenter)) {
+                    externalURL = jenkinsRootUrl + "job/" + jobName + "/" + buildId + "/artifact/performanceTestsReports/pcRun/Report.html";
+                }
+            } else if ("duration".equals(localName)) { // NON-NLS
 				duration = parseTime(readNextValue());
 			} else if ("skipped".equals(localName)) { // NON-NLS
 				if ("true".equals(readNextValue())) { // NON-NLS
@@ -220,6 +243,23 @@ public class JUnitXmlIterator extends AbstractXmlIterator<JUnitTestResult> {
 		if (testName.contains("\\")) {
 			return testName.substring(testName.lastIndexOf("\\") + 1);
 		}
+		if (testName.contains("/")) {
+			return testName.substring(testName.lastIndexOf("/") + 1);
+		}
 		return testName;
+	}
+
+	private String jenkinsTestNameFormat(String testName) {
+		if (StringUtils.isEmpty(testName)) {
+			return testName;
+		}
+		return testName.trim().replaceAll("[-:\\ ,()/\\[\\]]", "_").replace('#', '_').replace('\\', '_');
+	}
+
+	private String jenkinsTestClassFormat(String className) {
+		if (StringUtils.isEmpty(className)) {
+			return className;
+		}
+		return className.trim().replaceAll("[:/<>]", "_").replace("\\", "_").replace(" ", "%20");
 	}
 }

@@ -38,8 +38,19 @@ import java.util.List;
  */
 public final class AuthenticationTool {
 
+    private static List<Authenticator> authenticators;
+
     private AuthenticationTool() {
-        //Hide the public constructor.
+        // Add the private constructor to hide the implicit public one.
+    }
+
+    static {
+        authenticators = new ArrayList<>();
+        authenticators.add(new RestAuthenticator());
+        /**
+         * Mute RestAuthenticatorSaas for it's redundant after the improvement of RestAuthenticator.
+         * authenticators.add(new RestAuthenticatorSaas());
+         */
     }
 
     /**
@@ -54,10 +65,6 @@ public final class AuthenticationTool {
     }
 
     private static boolean login(Client client, String username, String password, String url, Logger logger) {
-        List<Authenticator> authenticators = new ArrayList<>();
-        authenticators.add(new RestAuthenticator());
-        authenticators.add(new RestAuthenticatorSaas());
-
         boolean result = false;
         for(Authenticator authenticator : authenticators) {
             try {
@@ -81,11 +88,11 @@ public final class AuthenticationTool {
         Response response =
                 client.httpPost(
                         client.build("rest/site-session"),
-                        null,
+                        new byte[1],    // For some server would require post request has a Content-Length.
                         null,
                         ResourceAccessLevel.PUBLIC);
         if (!response.isOk()) {
-            throw new SSEException("Cannot appned QCSession cookies", response.getFailure());
+            throw new SSEException("Cannot append QCSession cookies", response.getFailure());
         }
     }
 }

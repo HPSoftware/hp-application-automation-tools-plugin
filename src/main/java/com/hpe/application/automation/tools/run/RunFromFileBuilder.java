@@ -61,7 +61,6 @@ public class RunFromFileBuilder extends Builder implements SimpleBuildStep {
 	private static final  String HP_TOOLS_LAUNCHER_EXE = "HpToolsLauncher.exe";
 	private static final  String LRANALYSIS_LAUNCHER_EXE = "LRAnalysisLauncher.exe";
 
-
 	/**
 	 * Instantiates a new Run from file builder.
 	 *
@@ -193,7 +192,18 @@ public class RunFromFileBuilder extends Builder implements SimpleBuildStep {
 		runFromFileModel.setMcServerName(mcServerName);
 	}
 
-	/**
+    /**
+     * Sets mc server name.
+     *
+     * @param useSSL the mc server name
+     */
+    @DataBoundSetter
+    public void setuseSSL(boolean useSSL) {
+        runFromFileModel.setUseSSL(useSSL);
+    }
+
+
+    /**
 	 * Sets fs user name.
 	 *
 	 * @param fsUserName the fs user name
@@ -567,6 +577,7 @@ public class RunFromFileBuilder extends Builder implements SimpleBuildStep {
 			load();
 		}
 
+
 		@Override
 		public boolean isApplicable(
 				@SuppressWarnings("rawtypes") Class<? extends AbstractProject> jobType) {
@@ -575,7 +586,7 @@ public class RunFromFileBuilder extends Builder implements SimpleBuildStep {
 
 		/**
 		 * Gets job id.
-		 * If there is already a job created by jenkins plugin, then return this job id,
+		 * If there is already a job created by jenkins plugin, and exists then return this job id,
 		 * otherwise, create a new temp job and return the new job id.
 		 *
 		 * @param mcUrl         the mc url
@@ -590,7 +601,12 @@ public class RunFromFileBuilder extends Builder implements SimpleBuildStep {
 		@JavaScriptMethod
 		public String getJobId(String mcUrl, String mcUserName, String mcPassword, String proxyAddress, String proxyUserName, String proxyPassword, String previousJobId) {
 			if(null != previousJobId && !previousJobId.isEmpty()){
-				return previousJobId;
+                JSONObject jobJSON = instance.getJobById(mcUrl, mcUserName, mcPassword, proxyAddress, proxyUserName, proxyPassword, previousJobId);
+                if(jobJSON != null && previousJobId.equals(jobJSON.getAsString("id"))){
+                    return previousJobId;
+                }else {
+                    return instance.createTempJob(mcUrl, mcUserName, mcPassword, proxyAddress, proxyUserName, proxyPassword);
+                }
 			}
 			return instance.createTempJob(mcUrl, mcUserName, mcPassword, proxyAddress, proxyUserName, proxyPassword);
 		}

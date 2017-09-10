@@ -41,17 +41,19 @@ import org.jenkinsci.remoting.RoleChecker;
 
 import javax.xml.stream.XMLStreamException;
 import java.io.*;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+/**
+ * Converter of Jenkins test report to ALM Octane test report format(junitResult.xml->mqmTests.xml)
+ */
 @Extension
 public class JUnitExtension extends MqmTestsExtension {
 	private static Logger logger = LogManager.getLogger(JUnitExtension.class);
 
 	public static final String STORM_RUNNER = "StormRunner";
 	public static final String LOAD_RUNNER = "LoadRunner";
+	public static final String PERFORMANCE_CENTER_RUNNER = "Performance Center";
+	public static final String PERFORMANCE_TEST_TYPE = "Performance";
 
 	private static final String JUNIT_RESULT_XML = "junitResult.xml"; // NON-NLS
 
@@ -81,15 +83,7 @@ public class JUnitExtension extends MqmTestsExtension {
 		FilePath resultFile = new FilePath(build.getRootDir()).child(JUNIT_RESULT_XML);
 		if (resultFile.exists()) {
 			logger.debug("JUnit result report found");
-			ResultFields detectedFields = null;
-			if (hpRunnerType.equals(HPRunnerType.StormRunner)) {
-				detectedFields = new ResultFields(null, STORM_RUNNER, null);
-			} else if (isLoadRunnerProject) {
-				detectedFields = new ResultFields(null, LOAD_RUNNER, null);
-			} else {
-				//@// TODO: 15/02/2017  - should handle the workflow build
-				detectedFields = resultFieldsDetectionService.getDetectedFields(build);
-			}
+			ResultFields detectedFields = getResultFields(build, hpRunnerType, isLoadRunnerProject);
 			FilePath filePath= BuildHandlerUtils.getWorkspace(build).act(new GetJUnitTestResults(build, Arrays.asList(resultFile), shallStripPackageAndClass(detectedFields), hpRunnerType, jenkinsRootUrl));
 			return new TestResultContainer(new ObjectStreamIterator<TestResult>(filePath, true), detectedFields);
 		} else {
@@ -110,14 +104,7 @@ public class JUnitExtension extends MqmTestsExtension {
 					}
 				}
 				if (!resultFiles.isEmpty()) {
-					ResultFields detectedFields = null;
-					if (hpRunnerType.equals(HPRunnerType.StormRunner)) {
-						detectedFields = new ResultFields(null, STORM_RUNNER, null);
-					} else if (isLoadRunnerProject) {
-						detectedFields = new ResultFields(null, LOAD_RUNNER, null);
-					} else {
-						detectedFields = resultFieldsDetectionService.getDetectedFields(build);
-					}
+					ResultFields detectedFields = getResultFields(build, hpRunnerType, isLoadRunnerProject);
 					FilePath filePath = BuildHandlerUtils.getWorkspace(build).act(new GetJUnitTestResults(build, resultFiles, shallStripPackageAndClass(detectedFields), hpRunnerType, jenkinsRootUrl));
 					return new TestResultContainer(new ObjectStreamIterator<TestResult>(filePath, true), detectedFields);
 				}
@@ -125,6 +112,21 @@ public class JUnitExtension extends MqmTestsExtension {
 			logger.debug("No JUnit result report found");
 			return null;
 		}
+	}
+
+	private ResultFields getResultFields(Run<?, ?> build, HPRunnerType hpRunnerType, boolean isLoadRunnerProject) throws InterruptedException {
+		ResultFields detectedFields;
+		if (hpRunnerType.equals(HPRunnerType.StormRunner)) {
+			detectedFields = new ResultFields(null, STORM_RUNNER, null);
+		} else if (isLoadRunnerProject) {
+			detectedFields = new ResultFields(null, LOAD_RUNNER, null);
+		} else if (hpRunnerType.equals(HPRunnerType.PerformanceCenter)) {
+			detectedFields = new ResultFields(null, PERFORMANCE_CENTER_RUNNER, null, PERFORMANCE_TEST_TYPE);
+		} else {
+			detectedFields = resultFieldsDetectionService.getDetectedFields(build);
+		}
+
+		return detectedFields;
 	}
 
 	private boolean shallStripPackageAndClass(ResultFields resultFields) {
@@ -150,12 +152,16 @@ public class JUnitExtension extends MqmTestsExtension {
 		private final String buildId;
 		private final String jenkinsRootUrl;
 		private final HPRunnerType hpRunnerType;
-		private boolean isUFTProject = false;
 		private FilePath filePath;
 		private List<ModuleDetection> moduleDetection;
 		private long buildStarted;
 		private FilePath workspace;
 		private boolean stripPackageAndClass;
+
+		//this class is run on master and JUnitXmlIterator is runnning on slave.
+		//this object pass some master2slave data
+		private Object additionalContext;
+		private String buildRootDir;
 
 		public GetJUnitTestResults( Run<?, ?> build, List<FilePath> reports, boolean stripPackageAndClass, HPRunnerType hpRunnerType, String jenkinsRootUrl) throws IOException, InterruptedException {
 			this.reports = reports;
@@ -165,13 +171,34 @@ public class JUnitExtension extends MqmTestsExtension {
 			this.stripPackageAndClass = stripPackageAndClass;
 			this.hpRunnerType = hpRunnerType;
 			this.jenkinsRootUrl = jenkinsRootUrl;
+			this.buildRootDir = build.getRootDir().getCanonicalPath();
+
+
 			//AbstractProject project = (AbstractProject)build.getParent();/*build.getProject()*/;
 			this.jobName =build.getParent().getName();// project.getName();
-			this.buildId =BuildHandlerUtils.getBuildId(build);///*build.getProject()*/((AbstractProject)build.getParent()).getBuilds().getLastBuild().getId();
+			this.buildId = BuildHandlerUtils.getBuildId(build);///*build.getProject()*/((AbstractProject)build.getParent()).getBuilds().getLastBuild().getId();
 			moduleDetection =Arrays.asList(
 					new MavenBuilderModuleDetection(build),
 					new MavenSetModuleDetection(build),
 					new ModuleDetection.Default());
+
+
+			if(HPRunnerType.UFT.equals(hpRunnerType)){
+
+				//extract folder names for created tests
+				String reportFolder = buildRootDir + "/archive/UFTReport";
+				Set<String> testFolderNames = new HashSet<>();
+				File reportFolderFile = new File(reportFolder);
+				if (reportFolderFile.exists()) {
+					File[] children = reportFolderFile.listFiles();
+					if (children != null) {
+						for (File child : children) {
+							testFolderNames.add(child.getName());
+						}
+					}
+				}
+				additionalContext = testFolderNames;
+			}
 		}
 
 		@Override
@@ -182,7 +209,7 @@ public class JUnitExtension extends MqmTestsExtension {
 
 			try {
 				for (FilePath report : reports) {
-					JUnitXmlIterator iterator = new JUnitXmlIterator(report.read(), moduleDetection, workspace, jobName, buildId, buildStarted, stripPackageAndClass, hpRunnerType, jenkinsRootUrl);
+					JUnitXmlIterator iterator = new JUnitXmlIterator(report.read(), moduleDetection, workspace, jobName, buildId, buildStarted, stripPackageAndClass, hpRunnerType, jenkinsRootUrl, additionalContext);
 					while (iterator.hasNext()) {
 						oos.writeObject(iterator.next());
 					}

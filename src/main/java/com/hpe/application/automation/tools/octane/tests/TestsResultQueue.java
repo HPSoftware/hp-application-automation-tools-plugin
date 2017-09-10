@@ -14,21 +14,33 @@
  *
  */
 
-package com.hpe.application.automation.tools.octane.buildLogs;
+package com.hpe.application.automation.tools.octane.tests;
 
 import com.hpe.application.automation.tools.octane.AbstractResultQueueImpl;
+import hudson.Extension;
 import jenkins.model.Jenkins;
+import org.springframework.util.Assert;
 
 import java.io.File;
 import java.io.IOException;
 
-/**
- * Created by benmeior on 11/21/2016.
- */
-public class LogAbstractResultQueue extends AbstractResultQueueImpl {
+@Extension
+@SuppressWarnings("squid:S2259")
+public class TestsResultQueue extends AbstractResultQueueImpl {
 
-    public LogAbstractResultQueue() throws IOException {
-        File queueFile = new File(Jenkins.getInstance().getRootDir(), "octane-log-result-queue.dat");
+    public TestsResultQueue() throws IOException {
+        Jenkins instance =Jenkins.getInstance();
+        if(instance==null){
+            Assert.isNull(instance);
+        }
+        File queueFile = new File(instance.getRootDir(), "octane-test-result-queue.dat");
+        init(queueFile);
+    }
+
+    /*
+     * To be used in tests only.
+     */
+    TestsResultQueue(File queueFile) throws IOException {
         init(queueFile);
     }
 }
