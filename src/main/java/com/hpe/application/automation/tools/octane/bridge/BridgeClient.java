@@ -145,18 +145,23 @@ public class BridgeClient {
 				taskProcessingExecutors.execute(new Runnable() {
 					@Override
 					public void run() {
-						TasksProcessor TasksProcessor = OctaneSDK.getInstance().getTasksProcessor();
-						OctaneResultAbridged result = TasksProcessor.execute(task);
-						MqmRestClient restClient = restClientFactory.obtain(
-								mqmConfig.location,
-								mqmConfig.sharedSpace,
-								mqmConfig.username,
-								mqmConfig.password);
-						int submitStatus = restClient.putAbridgedResult(
+						try {
+							TasksProcessor TasksProcessor = OctaneSDK.getInstance().getTasksProcessor();
+							OctaneResultAbridged result = TasksProcessor.execute(task);
+							MqmRestClient restClient = restClientFactory.obtain(
+									mqmConfig.location,
+									mqmConfig.sharedSpace,
+									mqmConfig.username,
+									mqmConfig.password);
+
+							int submitStatus = restClient.putAbridgedResult(
 								serverInstanceId,
 								result.getId(),
 								dtoFactory.dtoToJson(result));
-						logger.info("result for task '" + result.getId() + "' submitted with status " + submitStatus);
+							logger.info("result for task '" + result.getId() + "' submitted with status " + submitStatus);
+						} catch (Exception e) {
+							logger.error("failed to submit task '" + task.getId(), e);
+						}
 					}
 				});
 			}
