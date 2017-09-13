@@ -173,7 +173,7 @@ public class TestExecutionJobCreatorService {
                     RelativeTargetDirectory targetDirectory = new RelativeTargetDirectory(relativeCheckOut);
                     extensions = Arrays.<GitSCMExtension>asList(targetDirectory);
                 }
-                GitSCM scm = new GitSCM(repoLists, Collections.singletonList(new BranchSpec("")), Boolean.valueOf(false), Collections.<SubmoduleConfig>emptyList(), null, null, extensions);
+                GitSCM scm = new GitSCM(repoLists, Collections.singletonList(new BranchSpec("")), false, Collections.<SubmoduleConfig>emptyList(), null, null, extensions);
 
                 //GitSCM scm = new GitSCM(scmRepository.getUrl());
                 proj.setScm(scm);
@@ -209,7 +209,7 @@ public class TestExecutionJobCreatorService {
             for (TestExecutionInfo test : tests) {
                 Element testElement = doc.createElement("Test");
                 testElement.setAttribute("name", test.getTestName());
-                String path = "${WORKSPACE}\\${CHECKOUT_SUBDIR}" +(StringUtils.isEmpty(test.getPackageName()) ? "" : OctaneConstants.General.WINDOWS_PATH_SPLITTER + test.getPackageName()) + OctaneConstants.General.WINDOWS_PATH_SPLITTER + test.getTestName();
+                String path = "${WORKSPACE}\\${CHECKOUT_SUBDIR}" + (StringUtils.isEmpty(test.getPackageName()) ? "" : OctaneConstants.General.WINDOWS_PATH_SPLITTER + test.getPackageName()) + OctaneConstants.General.WINDOWS_PATH_SPLITTER + test.getTestName();
                 testElement.setAttribute("path", path);
 
                 if (StringUtils.isNotEmpty(test.getDataTable())) {
