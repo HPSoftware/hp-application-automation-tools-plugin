@@ -419,8 +419,7 @@ public class TestExecutionJobCreatorService {
         ParametersDefinitionProperty parameters = job.getProperty(ParametersDefinitionProperty.class);
         boolean isExecutorJob = job.getName().contains(TestExecutionJobCreatorService.EXECUTION_JOB_MIDDLE_NAME) &&
                 parameters != null &&
-                parameters.getParameterDefinition(TestExecutionJobCreatorService.SUITE_ID_PARAMETER_NAME) != null &&
-                parameters.getParameterDefinition(TestExecutionJobCreatorService.SUITE_RUN_ID_PARAMETER_NAME) != null;
+                parameters.getParameterDefinition(TestExecutionJobCreatorService.SUITE_ID_PARAMETER_NAME) != null;
 
         return isExecutorJob;
     }
