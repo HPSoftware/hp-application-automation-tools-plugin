@@ -34,28 +34,28 @@ import java.io.IOException;
 @Extension
 public class CheckOutSubDirEnvContributor extends EnvironmentContributor {
 
-    public static final String CHECKOUT_SUBDIR_ENV_NAME  = "CHECKOUT_SUBDIR";
+    public static final String CHECKOUT_SUBDIR_ENV_NAME = "CHECKOUT_SUBDIR";
 
     @Override
     public void buildEnvironmentFor(Job j, EnvVars envs, TaskListener listener) throws IOException, InterruptedException {
-        String dir = getSharedCheckOutDirectory(j);
-        if (dir != null) {
-            envs.put(CHECKOUT_SUBDIR_ENV_NAME, dir);
+        if (j instanceof FreeStyleProject && TestExecutionJobCreatorService.isExecutorJob((FreeStyleProject) j)) {
+            String dir = getSharedCheckOutDirectory(j);
+            if (dir != null) {
+                envs.put(CHECKOUT_SUBDIR_ENV_NAME, dir);
+            }
         }
     }
 
     public static String getSharedCheckOutDirectory(Job j) {
-        if (j instanceof FreeStyleProject) {
-            SCM scm = ((FreeStyleProject) j).getScm();
-            if (scm != null && scm instanceof GitSCM) {
-                GitSCM gitScm = (GitSCM) scm;
-                RelativeTargetDirectory sharedCheckOutDirectory = gitScm.getExtensions().get(RelativeTargetDirectory.class);
-                if (sharedCheckOutDirectory != null) {
-                    return sharedCheckOutDirectory.getRelativeTargetDir();
-                }
+        SCM scm = ((FreeStyleProject) j).getScm();
+        if (scm != null && scm instanceof GitSCM) {
+            GitSCM gitScm = (GitSCM) scm;
+            RelativeTargetDirectory sharedCheckOutDirectory = gitScm.getExtensions().get(RelativeTargetDirectory.class);
+            if (sharedCheckOutDirectory != null) {
+                return sharedCheckOutDirectory.getRelativeTargetDir();
             }
-
         }
+
         return null;
     }
 
