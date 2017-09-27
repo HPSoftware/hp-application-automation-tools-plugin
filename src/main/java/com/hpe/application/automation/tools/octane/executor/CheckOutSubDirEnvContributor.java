@@ -38,21 +38,21 @@ public class CheckOutSubDirEnvContributor extends EnvironmentContributor {
 
     @Override
     public void buildEnvironmentFor(Job j, EnvVars envs, TaskListener listener) throws IOException, InterruptedException {
-        if (j instanceof FreeStyleProject && TestExecutionJobCreatorService.isExecutorJob((FreeStyleProject) j)) {
-            String dir = getSharedCheckOutDirectory(j);
-            if (dir != null) {
-                envs.put(CHECKOUT_SUBDIR_ENV_NAME, dir);
-            }
+        String dir = getSharedCheckOutDirectory(j);
+        if (dir != null) {
+            envs.put(CHECKOUT_SUBDIR_ENV_NAME, dir);
         }
     }
 
     public static String getSharedCheckOutDirectory(Job j) {
-        SCM scm = ((FreeStyleProject) j).getScm();
-        if (scm != null && scm instanceof GitSCM) {
-            GitSCM gitScm = (GitSCM) scm;
-            RelativeTargetDirectory sharedCheckOutDirectory = gitScm.getExtensions().get(RelativeTargetDirectory.class);
-            if (sharedCheckOutDirectory != null) {
-                return sharedCheckOutDirectory.getRelativeTargetDir();
+        if (j instanceof FreeStyleProject && TestExecutionJobCreatorService.isExecutorJob((FreeStyleProject) j)) {
+            SCM scm = ((FreeStyleProject) j).getScm();
+            if (scm != null && scm instanceof GitSCM) {
+                GitSCM gitScm = (GitSCM) scm;
+                RelativeTargetDirectory sharedCheckOutDirectory = gitScm.getExtensions().get(RelativeTargetDirectory.class);
+                if (sharedCheckOutDirectory != null) {
+                    return sharedCheckOutDirectory.getRelativeTargetDir();
+                }
             }
         }
 
