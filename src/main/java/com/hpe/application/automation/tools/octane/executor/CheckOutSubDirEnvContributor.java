@@ -29,7 +29,7 @@ import hudson.scm.SCM;
 import java.io.IOException;
 
 /**
- * Add job environment value for CHECKOUT_SUBDIR
+ * Add job environment value for  CHECKOUT_SUBDIR
  */
 @Extension
 public class CheckOutSubDirEnvContributor extends EnvironmentContributor {
