@@ -24,7 +24,6 @@ import com.hpe.application.automation.tools.octane.tests.detection.UFTExtension;
 import com.hpe.application.automation.tools.octane.tests.xml.TestResultXmlWriter;
 import hudson.Extension;
 import hudson.FilePath;
-import hudson.model.AbstractBuild;
 import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
