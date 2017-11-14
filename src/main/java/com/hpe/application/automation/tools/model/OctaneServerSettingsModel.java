@@ -27,7 +27,6 @@ public class OctaneServerSettingsModel {
     private String location;
     private String sharedSpace;
 
-
     public OctaneServerSettingsModel() {
 
     }

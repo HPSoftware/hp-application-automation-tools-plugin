@@ -37,7 +37,7 @@
                     <f:validateButton title="${%global.config.test.connection}" progress="${%global.config.test.connection.progress}"
                             method="testConnection" with="uiLocation,username,password, impersonatedUser"/>
 
-                    <f:optionalBlock name="showIdentity" field="showIdentity" title="${%global.config.dynamic.instanceId.title}" >
+                    <f:optionalBlock name="showIdentity" field="showIdentity" title="${%global.config.dynamic.instanceId.title}">
                         <f:entry title="${%global.config.instanceId.title}" field="identity" description="${%global.config.instanceId.description}">
                             <f:textbox value="${mqm.identity}" />
                         </f:entry>
