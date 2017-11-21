@@ -142,10 +142,10 @@ public class JUnitExtension extends MqmTestsExtension {
 	private boolean isLoadRunnerProject(Run build) throws IOException, InterruptedException {
 		FilePath performanceReportFolder = new FilePath(build.getRootDir()).child(PERFORMANCE_REPORT);
 		FilePath transactionSummaryFolder = new FilePath(build.getRootDir()).child(TRANSACTION_SUMMARY);
-		if ((performanceReportFolder.exists() && performanceReportFolder.isDirectory()) && (transactionSummaryFolder.exists() && transactionSummaryFolder.isDirectory())) {
-			return true;
-		}
-		return false;
+		return performanceReportFolder.exists() &&
+				performanceReportFolder.isDirectory() &&
+				transactionSummaryFolder.exists() &&
+				transactionSummaryFolder.isDirectory();
 	}
 
 	private static class GetJUnitTestResults implements FilePath.FileCallable<FilePath> {
