@@ -163,8 +163,8 @@ public class LogDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 			boolean status = mqmRestClient.postLogs(
 					parseLong(item.getWorkspace()),
 					ConfigurationService.getModel().getIdentity(),
-					build.getParent().getName(),
-					String.valueOf(build.getNumber()),
+					BuildHandlerUtils.getJobCiId(build),
+					BuildHandlerUtils.getBuildCiId(build),
 					octaneLog.getLogStream(),
 					octaneLog.getFileLength());
 			if (status) {
@@ -186,7 +186,7 @@ public class LogDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 
 	private void reAttempt(String projectName, int buildNumber) {
 		if (!logsQueue.failed()) {
-			logger.warn("maximum number of attempts reached, operation will not be re-attempted for build "+ projectName + " #" + buildNumber);
+			logger.warn("maximum number of attempts reached, operation will not be re-attempted for build " + projectName + " #" + buildNumber);
 			retryModel.success();
 		} else {
 			logger.info("There are pending logs, but we are in quiet period");
@@ -300,7 +300,7 @@ public class LogDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 						parseLong(workspaceId),
 						ConfigurationService.getModel().getIdentity(),
 						BuildHandlerUtils.getJobCiId(build),
-						String.valueOf(build.getNumber()),
+						BuildHandlerUtils.getBuildCiId(build),
 						octaneLog.getLogStream(),
 						octaneLog.getFileLength());
 				if (status) {

@@ -125,7 +125,7 @@ public class CoverageReportsDispatcher extends AbstractSafeLoggingAsyncPeriodWor
 				boolean status = mqmRestClient.postCoverageReports(
 						ConfigurationService.getModel().getIdentity(),
 						BuildHandlerUtils.getJobCiId(build),
-						String.valueOf(build.getNumber()),
+						BuildHandlerUtils.getBuildCiId(build),
 						new FileInputStream(coverageFile),
 						coverageFile.length(), item.getType());
 				if (status) {

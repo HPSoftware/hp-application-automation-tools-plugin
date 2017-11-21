@@ -42,13 +42,13 @@ public class MatrixBuildExtension extends BuildHandlerExtension {
 		return new BuildDescriptor(
 				BuildHandlerUtils.getJobCiId(build),
 				matrixRun.getRootBuild().getProject().getName(),
-				String.valueOf(build.getNumber()),
+				BuildHandlerUtils.getBuildCiId(build),
 				String.valueOf(build.getNumber()),
 				subBuildName);
 	}
 
 	@Override
 	public String getProjectFullName(Run<?, ?> build) {
-		return ((MatrixRun)build).getProject().getFullName();
+		return ((MatrixRun) build).getProject().getFullName();
 	}
 }

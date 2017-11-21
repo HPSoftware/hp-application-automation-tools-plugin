@@ -54,7 +54,6 @@ public class TestResultXmlWriter {
 
 	public TestResultXmlWriter(FilePath targetPath, Run build) {
 		this.targetPath = targetPath;
-		//this.build = build;
 		this.buildDescriptor = BuildHandlerUtils.getBuildType(build);
 	}
 
@@ -90,13 +89,12 @@ public class TestResultXmlWriter {
 			writer.writeStartElement("test_result");
 			writer.writeStartElement("build");
 			writer.writeAttribute("server_id", ConfigurationService.getModel().getIdentity());
-			BuildDescriptor descriptor = this.buildDescriptor;
-			writer.writeAttribute("job_id", descriptor.getJobId());
-			writer.writeAttribute("job_name", descriptor.getJobName());
-			writer.writeAttribute("build_id", descriptor.getBuildId());
-			writer.writeAttribute("build_name", descriptor.getBuildName());
-			if (!StringUtils.isEmpty(descriptor.getSubType())) {
-				writer.writeAttribute("sub_type", descriptor.getSubType());
+			writer.writeAttribute("job_id", buildDescriptor.getJobId());
+			writer.writeAttribute("job_name", buildDescriptor.getJobName());
+			writer.writeAttribute("build_id", buildDescriptor.getBuildId());
+			writer.writeAttribute("build_name", buildDescriptor.getBuildName());
+			if (!StringUtils.isEmpty(buildDescriptor.getSubType())) {
+				writer.writeAttribute("sub_type", buildDescriptor.getSubType());
 			}
 			writer.writeEndElement(); // build
 			writeFields(resultFields);
