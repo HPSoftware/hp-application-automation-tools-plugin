@@ -26,7 +26,7 @@ public class BuildHandlerUtils {
 		return new BuildDescriptor(
 				BuildHandlerUtils.getJobCiId(build),
 				build.getParent().getName(),
-				String.valueOf(build.getNumber()),
+				BuildHandlerUtils.getBuildCiId(build),
 				String.valueOf(build.getNumber()),
 				"");
 	}
@@ -41,7 +41,6 @@ public class BuildHandlerUtils {
 	}
 
 	public static FilePath getWorkspace(Run<?, ?> build) {
-		//this.buildId =/*build.getProject()*/((AbstractProject)build.getParent()).getBuilds().getLastBuild().getId();
 		if (build.getExecutor() != null && build.getExecutor().getCurrentWorkspace() != null) {
 			return build.getExecutor().getCurrentWorkspace();
 		}
@@ -50,11 +49,7 @@ public class BuildHandlerUtils {
 		}
 		if (build instanceof WorkflowBuildAdapter) {
 			return ((WorkflowBuildAdapter) build).getWorkspace();
-//				FilePath filePath = new FilePath(new File(((WorkflowRun) build).getParent().getRootDir().
-//						getAbsolutePath()+File.separator +"workspace"));
-//				return filePath;
 		}
-
 		return null;
 	}
 
@@ -65,7 +60,6 @@ public class BuildHandlerUtils {
 	public static List<Run> getBuildPerWorkspaces(Run build) {
 		if (build instanceof WorkflowRun) {
 			return WorkflowGraphListener.FlowNodeContainer.getFlowNode(build);
-
 		} else {
 			List<Run> runsList = new ArrayList<>();
 			runsList.add(build);
