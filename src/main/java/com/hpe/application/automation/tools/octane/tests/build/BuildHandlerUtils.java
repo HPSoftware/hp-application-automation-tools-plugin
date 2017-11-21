@@ -40,43 +40,41 @@ public class BuildHandlerUtils {
 		return build.getParent().getFullName();
 	}
 
-	public static FilePath getWorkspace(Run<?,?> build){
+	public static FilePath getWorkspace(Run<?, ?> build) {
 		//this.buildId =/*build.getProject()*/((AbstractProject)build.getParent()).getBuilds().getLastBuild().getId();
-			if(build.getExecutor()!=null && build.getExecutor().getCurrentWorkspace()!=null){
-				return build.getExecutor().getCurrentWorkspace();
-			}
-			if (build instanceof AbstractBuild){
-				return ((AbstractBuild) build).getWorkspace();
-			}
-			if(build instanceof WorkflowBuildAdapter){
-				return ((WorkflowBuildAdapter)build).getWorkspace();
+		if (build.getExecutor() != null && build.getExecutor().getCurrentWorkspace() != null) {
+			return build.getExecutor().getCurrentWorkspace();
+		}
+		if (build instanceof AbstractBuild) {
+			return ((AbstractBuild) build).getWorkspace();
+		}
+		if (build instanceof WorkflowBuildAdapter) {
+			return ((WorkflowBuildAdapter) build).getWorkspace();
 //				FilePath filePath = new FilePath(new File(((WorkflowRun) build).getParent().getRootDir().
 //						getAbsolutePath()+File.separator +"workspace"));
 //				return filePath;
-			}
+		}
 
-			return null;
+		return null;
 	}
 
-	public static String getBuildId(Run<?,?> build){
-//		if(build instanceof AbstractBuild){
-//			return ((AbstractProject)build.getParent()).getBuilds().getLastBuild().getId();
-//		}else{
-//			return build.getParent().getLastBuild().getId();
-//		}
+	public static String getLastBuildId(Run<?, ?> build) {
 		return build.getParent().getLastBuild().getId();
 	}
 
 	public static List<Run> getBuildPerWorkspaces(Run build) {
+		if (build instanceof WorkflowRun) {
+			return WorkflowGraphListener.FlowNodeContainer.getFlowNode(build);
 
-		if(build instanceof WorkflowRun){
-			return  WorkflowGraphListener.FlowNodeContainer.getFlowNode(build);
-
-		}else {
+		} else {
 			List<Run> runsList = new ArrayList<>();
 			runsList.add(build);
 			return runsList;
 		}
+	}
+
+	public static String getBuildCiId(Run build) {
+		return build.getNumber() + "_" + build.getStartTimeInMillis();
 	}
 
 	public static String getJobCiId(Run r) {
