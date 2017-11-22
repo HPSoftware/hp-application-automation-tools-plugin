@@ -175,7 +175,7 @@ public class JUnitExtension extends MqmTestsExtension {
 			this.sharedCheckOutDirectory = CheckOutSubDirEnvContributor.getSharedCheckOutDirectory(build.getParent());
 
 			this.jobName = build.getParent().getName();
-			this.buildId = BuildHandlerUtils.getLastBuildId(build); //  [YG] TODO: check with Ayelet about this logic, probably wrong
+			this.buildId = build.getId();
 			moduleDetection = Arrays.asList(
 					new MavenBuilderModuleDetection(build),
 					new MavenSetModuleDetection(build),

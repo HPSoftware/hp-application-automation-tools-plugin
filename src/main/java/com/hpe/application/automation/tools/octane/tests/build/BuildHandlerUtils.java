@@ -57,11 +57,6 @@ public class BuildHandlerUtils {
 		return null;
 	}
 
-	//  [YG] TODO: check if we really need this one
-	public static String getLastBuildId(Run<?, ?> run) {
-		return run.getParent().getLastBuild().getId();
-	}
-
 	public static List<Run> getBuildPerWorkspaces(Run run) {
 		if (run instanceof WorkflowRun) {
 			return WorkflowGraphListener.FlowNodeContainer.getFlowNode(run);
