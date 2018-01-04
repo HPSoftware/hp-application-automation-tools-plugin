@@ -37,7 +37,8 @@ package com.hpe.application.automation.tools.octane.tests;
  * Runner type of test
  */
 public enum HPRunnerType {
-    StormRunner,
+    StormRunnerLoad,
+    StormRunnerFunctional,
     UFT,
     PerformanceCenter,
     NONE
