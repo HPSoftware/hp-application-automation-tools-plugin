@@ -121,7 +121,7 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 						audit(configuration, build, null, true);
 						break;
 					} catch (RequestException e) {
-						logger.warn("Failed to submit test results [" + build.getParent().getName()/*build.getProject().getName()*/ + "#" + build.getNumber() + "]", e);
+						logger.warn("Failed to submit test results [" + build.getParent().getName() + "#" + build.getNumber() + "]", e);
 					}
 
 					if (id != null) {
