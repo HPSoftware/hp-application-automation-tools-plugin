@@ -38,6 +38,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.hp.octane.integrations.OctaneSDK;
+import com.hp.octane.integrations.api.TestsService;
 import com.hp.octane.integrations.dto.configuration.OctaneConfiguration;
 import com.hp.octane.integrations.dto.connectivity.OctaneResponse;
 import com.hpe.application.automation.tools.octane.tests.build.BuildHandlerUtils;
@@ -86,56 +87,57 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 			return;
 		}
 		if (retryModel.isQuietPeriod()) {
-			logger.info("There are pending test results, but we are in quiet period");
+			logger.info("there are pending test results, but we are in quiet period");
 			return;
 		}
 
+		TestsService testsService = OctaneSDK.getInstance().getTestsService();
 		OctaneConfiguration configuration = OctaneSDK.getInstance().getPluginServices().getOctaneConfiguration();
 		ResultQueue.QueueItem item;
 		while ((item = queue.peekFirst()) != null) {
 			Job project = (Job) Jenkins.getInstance().getItemByFullName(item.getProjectName());
 			if (project == null) {
-				logger.warn("Project [" + item.getProjectName() + "] no longer exists, pending test results can't be submitted");
+				logger.warn("job '" + item.getProjectName() + "' no longer exists, pending test results can't be submitted");
 				queue.remove();
 				continue;
 			}
 			Run build = project.getBuildByNumber(item.getBuildNumber());
 			if (build == null) {
-				logger.warn("Build [" + item.getProjectName() + "#" + item.getBuildNumber() + "] no longer exists, pending test results can't be submitted");
+				logger.warn("build '" + item.getProjectName() + " #" + item.getBuildNumber() + "' no longer exists, pending test results won't be submitted");
 				queue.remove();
 				continue;
 			}
 
-			boolean needTestResult = OctaneSDK.getInstance().getTestsService().isTestsResultRelevant(ConfigurationService.getModel().getIdentity(), BuildHandlerUtils.getJobCiId(build));
+			boolean needTestResult = testsService.isTestsResultRelevant(ConfigurationService.getModel().getIdentity(), BuildHandlerUtils.getJobCiId(build));
 
 			if (needTestResult) {
 				try {
 					String id = null;
 					try {
 						File resultFile = new File(build.getRootDir(), TestListener.TEST_RESULT_FILE);
-						OctaneResponse response = OctaneSDK.getInstance().getTestsService().pushTestsResult(new FileInputStream(resultFile));
+						OctaneResponse response = testsService.pushTestsResult(new FileInputStream(resultFile));
 						TestsResultPushResponseDTO responseDTO = objectMapper.readValue(response.getBody(), TestsResultPushResponseDTO.class);
 						id = responseDTO.id;
 					} catch (TemporarilyUnavailableException e) {
-						logger.warn("Server temporarily unavailable, will try later", e);
+						logger.warn("server temporarily unavailable, will try later", e);
 						audit(configuration, build, null, true);
 						break;
 					} catch (RequestException e) {
-						logger.warn("Failed to submit test results [" + build.getParent().getName() + "#" + build.getNumber() + "]", e);
+						logger.warn("failed to push test results of '" + build.getParent().getName() + " #" + build.getNumber() + "'", e);
 					}
 
 					if (id != null) {
-						logger.info("Successfully pushed test results of build [" + item.getProjectName() + "#" + item.getBuildNumber() + "]");
+						logger.info("successfully pushed test results of '" + item.getProjectName() + " #" + item.getBuildNumber() + "'");
 						queue.remove();
 					} else {
-						logger.warn("Failed to push test results of build [" + item.getProjectName() + "#" + item.getBuildNumber() + "]");
+						logger.warn("failed to push test results of '" + item.getProjectName() + " #" + item.getBuildNumber() + "'");
 						if (!queue.failed()) {
-							logger.warn("Maximum number of attempts reached, operation will not be re-attempted for this build");
+							logger.warn("maximum number of attempts reached, operation will not be re-attempted for this build");
 						}
 					}
 					audit(configuration, build, id, false);
 				} catch (FileNotFoundException e) {
-					logger.warn("File no longer exists, failed to push test results of build [" + item.getProjectName() + "#" + item.getBuildNumber() + "]");
+					logger.warn("file no longer exists, failed to push test results of '" + item.getProjectName() + " #" + item.getBuildNumber() + "'");
 					queue.remove();
 				}
 			} else {
