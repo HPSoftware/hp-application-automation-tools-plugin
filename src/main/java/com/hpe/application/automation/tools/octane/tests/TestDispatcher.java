@@ -42,8 +42,6 @@ import com.hp.mqm.client.exception.LoginException;
 import com.hp.mqm.client.exception.RequestException;
 import com.hp.mqm.client.exception.TemporarilyUnavailableException;
 import com.hpe.application.automation.tools.octane.ResultQueue;
-import com.hpe.application.automation.tools.octane.client.EventPublisher;
-import com.hpe.application.automation.tools.octane.client.JenkinsInsightEventPublisher;
 import com.hpe.application.automation.tools.octane.client.JenkinsMqmRestClientFactory;
 import com.hpe.application.automation.tools.octane.client.JenkinsMqmRestClientFactoryImpl;
 import com.hpe.application.automation.tools.octane.client.RetryModel;
@@ -79,8 +77,6 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 
 	private JenkinsMqmRestClientFactory clientFactory;
 
-	private EventPublisher eventPublisher;
-
 	public TestDispatcher() {
 		super("MQM Test Dispatcher");
 	}
@@ -102,10 +98,6 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 				configuration = ConfigurationService.getServerConfiguration();
 				if (StringUtils.isEmpty(configuration.location)) {
 					logger.warn("There are pending test results, but MQM server location is not specified, results can't be submitted");
-					return;
-				}
-				if (eventPublisher.isSuspended()) {
-					logger.warn("There are pending test results, but event dispatching is suspended");
 					return;
 				}
 				logger.info("There are pending test results, connecting to the MQM server");
@@ -226,28 +218,15 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 		this.queue = queue;
 	}
 
-	@Inject
-	public void setEventPublisher(JenkinsInsightEventPublisher eventPublisher) {
-		this.eventPublisher = eventPublisher;
-	}
-
-
 	void _setMqmRestClientFactory(JenkinsMqmRestClientFactory clientFactory) {
 		this.clientFactory = clientFactory;
 	}
-
 
 	void _setTestResultQueue(ResultQueue queue) {
 		this.queue = queue;
 	}
 
-
 	void _setRetryModel(RetryModel retryModel) {
 		this.retryModel = retryModel;
-	}
-
-
-	void _setEventPublisher(EventPublisher eventPublisher) {
-		this.eventPublisher = eventPublisher;
 	}
 }

@@ -38,7 +38,6 @@ import com.google.inject.Inject;
 import com.hp.mqm.client.MqmRestClient;
 import com.hp.mqm.client.exception.RequestErrorException;
 import com.hpe.application.automation.tools.octane.ResultQueue;
-import com.hpe.application.automation.tools.octane.client.JenkinsInsightEventPublisher;
 import com.hpe.application.automation.tools.octane.client.JenkinsMqmRestClientFactory;
 import com.hpe.application.automation.tools.octane.client.JenkinsMqmRestClientFactoryImpl;
 import com.hpe.application.automation.tools.octane.client.RetryModel;
@@ -157,7 +156,7 @@ public class LogDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 						}
 
 						boolean completedResult = latch.await(TIMEOUT, TimeUnit.MINUTES);
-						if (completedResult) {
+						if (!completedResult) {
 							logger.error("timed out sending logs to - " + workspaces.size() + " workspaces.");
 						}
 					}
@@ -265,8 +264,8 @@ public class LogDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 	}
 
 	@Inject
-	public void setEventPublisher(JenkinsInsightEventPublisher eventPublisher) {
-		this.retryModel = new RetryModel(eventPublisher, getQuietPeriodsInMinutes(MAX_RETRIES));
+	public void setEventPublisher() {
+		this.retryModel = new RetryModel(getQuietPeriodsInMinutes(MAX_RETRIES));
 	}
 
 	@Inject

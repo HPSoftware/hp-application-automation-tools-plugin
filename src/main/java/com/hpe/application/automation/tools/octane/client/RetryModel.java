@@ -54,22 +54,15 @@ public class RetryModel implements ConfigurationListener {
     private int periodIndex;
 
     private TimeProvider timeProvider = new SystemTimeProvider();
-    private EventPublisher eventPublisher;
 
     @Inject
     public RetryModel() {
         doSuccess();
     }
 
-    public RetryModel(EventPublisher eventPublisher, long... quietPeriods) {
+    public RetryModel(long... quietPeriods) {
         doSuccess();
-        this.eventPublisher = eventPublisher;
         QUIET_PERIOD = quietPeriods;
-    }
-
-    public RetryModel(EventPublisher eventPublisher) {
-        this();
-        this.eventPublisher = eventPublisher;
     }
 
     public synchronized boolean isQuietPeriod() {
@@ -85,7 +78,6 @@ public class RetryModel implements ConfigurationListener {
 
     public void success() {
         doSuccess();
-        eventPublisher.resume();
     }
 
     private synchronized void doSuccess() {
@@ -97,12 +89,6 @@ public class RetryModel implements ConfigurationListener {
     public void onChanged(ServerConfiguration conf, ServerConfiguration oldConf) {
         doSuccess();
     }
-
-    @Inject
-    public void setEventPublisher(JenkinsInsightEventPublisher eventPublisher) {
-        this.eventPublisher = eventPublisher;
-    }
-
 
     void setTimeProvider(TimeProvider timeProvider) {
         this.timeProvider = timeProvider;
@@ -117,9 +103,6 @@ public class RetryModel implements ConfigurationListener {
     }
 
     interface TimeProvider {
-
         long getTime();
-
     }
-
 }
