@@ -33,20 +33,20 @@
 
 package com.hpe.application.automation.tools.octane.tests;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
+import com.hp.octane.integrations.OctaneSDK;
+import com.hp.octane.integrations.dto.configuration.OctaneConfiguration;
+import com.hp.octane.integrations.dto.connectivity.OctaneResponse;
 import com.hpe.application.automation.tools.octane.tests.build.BuildHandlerUtils;
-import com.hp.mqm.client.MqmRestClient;
-import com.hp.mqm.client.exception.SharedSpaceNotExistException;
 import com.hp.mqm.client.exception.FileNotFoundException;
-import com.hp.mqm.client.exception.LoginException;
 import com.hp.mqm.client.exception.RequestException;
 import com.hp.mqm.client.exception.TemporarilyUnavailableException;
 import com.hpe.application.automation.tools.octane.ResultQueue;
-import com.hpe.application.automation.tools.octane.client.JenkinsMqmRestClientFactory;
-import com.hpe.application.automation.tools.octane.client.JenkinsMqmRestClientFactoryImpl;
 import com.hpe.application.automation.tools.octane.client.RetryModel;
 import com.hpe.application.automation.tools.octane.configuration.ConfigurationService;
-import com.hpe.application.automation.tools.octane.configuration.ServerConfiguration;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.model.*;
@@ -67,6 +67,7 @@ import java.util.Date;
 @Extension(dynamicLoadable = YesNoMaybe.NO)
 public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 	private static Logger logger = LogManager.getLogger(TestDispatcher.class);
+	private static ObjectMapper objectMapper = new ObjectMapper();
 
 	static final String TEST_AUDIT_FILE = "mqmTests_audit.json";
 
@@ -74,8 +75,6 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 	private RetryModel retryModel;
 
 	private ResultQueue queue;
-
-	private JenkinsMqmRestClientFactory clientFactory;
 
 	public TestDispatcher() {
 		super("MQM Test Dispatcher");
@@ -90,40 +89,10 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 			logger.info("There are pending test results, but we are in quiet period");
 			return;
 		}
-		MqmRestClient client = null;
-		ServerConfiguration configuration = null;
+
+		OctaneConfiguration configuration = OctaneSDK.getInstance().getPluginServices().getOctaneConfiguration();
 		ResultQueue.QueueItem item;
 		while ((item = queue.peekFirst()) != null) {
-			if (client == null) {
-				configuration = ConfigurationService.getServerConfiguration();
-				if (StringUtils.isEmpty(configuration.location)) {
-					logger.warn("There are pending test results, but MQM server location is not specified, results can't be submitted");
-					return;
-				}
-				logger.info("There are pending test results, connecting to the MQM server");
-				client = clientFactory.obtain(
-						configuration.location,
-						configuration.sharedSpace,
-						configuration.username,
-						configuration.password);
-				try {
-					client.validateConfigurationWithoutLogin();
-				} catch (SharedSpaceNotExistException e) {
-					logger.warn("Invalid shared space. Pending test results can't be submitted", e);
-					retryModel.failure();
-					return;
-				} catch (LoginException e) {
-					logger.warn("Login failed, pending test results can't be submitted", e);
-					retryModel.failure();
-					return;
-				} catch (RequestException e) {
-					logger.warn("Problem with communication with MQM server. Pending test results can't be submitted", e);
-					retryModel.failure();
-					return;
-				}
-
-				retryModel.success();
-			}
 			Job project = (Job) Jenkins.getInstance().getItemByFullName(item.getProjectName());
 			if (project == null) {
 				logger.warn("Project [" + item.getProjectName() + "] no longer exists, pending test results can't be submitted");
@@ -137,15 +106,16 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 				continue;
 			}
 
-			Boolean needTestResult = client.isTestResultRelevant(
-					ConfigurationService.getModel().getIdentity(), BuildHandlerUtils.getJobCiId(build));
+			boolean needTestResult = OctaneSDK.getInstance().getTestsService().isTestsResultRelevant(ConfigurationService.getModel().getIdentity(), BuildHandlerUtils.getJobCiId(build));
 
 			if (needTestResult) {
 				try {
-					Long id = null;
+					String id = null;
 					try {
 						File resultFile = new File(build.getRootDir(), TestListener.TEST_RESULT_FILE);
-						id = client.postTestResult(resultFile, false);
+						OctaneResponse response = OctaneSDK.getInstance().getTestsService().pushTestsResult(new FileInputStream(resultFile));
+						TestsResultPushResponseDTO responseDTO = objectMapper.readValue(response.getBody(), TestsResultPushResponseDTO.class);
+						id = responseDTO.id;
 					} catch (TemporarilyUnavailableException e) {
 						logger.warn("Server temporarily unavailable, will try later", e);
 						audit(configuration, build, null, true);
@@ -162,7 +132,6 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 						if (!queue.failed()) {
 							logger.warn("Maximum number of attempts reached, operation will not be re-attempted for this build");
 						}
-						client = null;
 					}
 					audit(configuration, build, id, false);
 				} catch (FileNotFoundException e) {
@@ -176,7 +145,7 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 		}
 	}
 
-	private void audit(ServerConfiguration configuration, Run build, Long id, boolean temporarilyUnavailable) throws IOException, InterruptedException {
+	private void audit(OctaneConfiguration octaneConfiguration, Run build, String id, boolean temporarilyUnavailable) throws IOException, InterruptedException {
 		FilePath auditFile = new FilePath(new File(build.getRootDir(), TEST_AUDIT_FILE));
 		JSONArray audit;
 		if (auditFile.exists()) {
@@ -190,8 +159,8 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 		event.put("id", id);
 		event.put("pushed", id != null);
 		event.put("date", DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(new Date()));
-		event.put("location", configuration.location);
-		event.put("sharedSpace", configuration.sharedSpace);
+		event.put("location", octaneConfiguration.getUrl());
+		event.put("sharedSpace", octaneConfiguration.getSharedSpace());
 		if (temporarilyUnavailable) {
 			event.put("temporarilyUnavailable", true);
 		}
@@ -209,17 +178,8 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 	}
 
 	@Inject
-	public void setMqmRestClientFactory(JenkinsMqmRestClientFactoryImpl clientFactory) {
-		this.clientFactory = clientFactory;
-	}
-
-	@Inject
 	public void setTestResultQueue(TestsResultQueue queue) {
 		this.queue = queue;
-	}
-
-	void _setMqmRestClientFactory(JenkinsMqmRestClientFactory clientFactory) {
-		this.clientFactory = clientFactory;
 	}
 
 	void _setTestResultQueue(ResultQueue queue) {
@@ -228,5 +188,14 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 
 	void _setRetryModel(RetryModel retryModel) {
 		this.retryModel = retryModel;
+	}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
+	private static final class TestsResultPushResponseDTO {
+		private String id;
+		private String status;
+		private Boolean fromOlderPush;
+		private String until;
 	}
 }
