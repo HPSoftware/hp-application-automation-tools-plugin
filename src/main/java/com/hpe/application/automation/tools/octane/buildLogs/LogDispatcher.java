@@ -143,7 +143,7 @@ public class LogDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 					if (workspaces.isEmpty()) {
 						logger.info("[" + jobCiId + "] is not part of any Octane pipeline in any workspace, log won't be sent");
 					} else {
-						logger.info("logs of [" + jobCiId + "] found to be relevant to " + workspaces.size() + " workspaces");
+						logger.info("logs of [" + jobCiId + "] found to be relevant to " + workspaces.size() + " workspace/s");
 						CountDownLatch latch = new CountDownLatch(workspaces.size());
 						for (String workspaceId : workspaces) {
 							logDispatcherExecutors.execute(new SendLogsExecutor(
@@ -158,7 +158,7 @@ public class LogDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 
 						boolean completedResult = latch.await(TIMEOUT, TimeUnit.MINUTES);
 						if (!completedResult) {
-							logger.error("timed out sending logs to " + workspaces.size() + " workspaces");
+							logger.error("timed out sending logs to " + workspaces.size() + " workspace/s");
 						}
 					}
 					logsQueue.remove();
@@ -254,7 +254,7 @@ public class LogDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 
 	@Override
 	public long getRecurrencePeriod() {
-		String value = System.getProperty("Octane.LogDispatcher.Period"); // let's us config the recurrence period. default is 10 seconds.
+		String value = System.getProperty("Octane.LogDispatcher.Period");
 		if (!StringUtils.isEmpty(value)) {
 			return Long.valueOf(value);
 		}
