@@ -33,14 +33,11 @@
 
 package com.hpe.application.automation.tools.octane.configuration;
 
-import com.google.inject.Inject;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.configuration.OctaneConfiguration;
 import com.hp.octane.integrations.dto.connectivity.OctaneResponse;
 import com.hpe.application.automation.tools.octane.Messages;
-import com.hpe.application.automation.tools.octane.client.JenkinsMqmRestClientFactory;
-import com.hpe.application.automation.tools.octane.client.JenkinsMqmRestClientFactoryImpl;
 import hudson.Extension;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
