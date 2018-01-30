@@ -31,7 +31,8 @@
   ~
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.jenkins-ci.plugins</groupId>
@@ -44,7 +45,10 @@
 	<version>5.3.2-beta-SNAPSHOT</version>
 	<packaging>hpi</packaging>
 	<name>HPE Application Automation Tools</name>
-	<description>The plugin integrates Jenkins with the following HPE products - Service Virtualization, LoadRunner, Performance Center, Unified Functional Testing, QuickTest Professional, Service Test, Mobile Center, Application Lifecycle Management and Application Lifecycle Management Octane.</description>
+	<description>The plugin integrates Jenkins with the following HPE products - Service Virtualization, LoadRunner,
+		Performance Center, Unified Functional Testing, QuickTest Professional, Service Test, Mobile Center, Application
+		Lifecycle Management and Application Lifecycle Management Octane.
+	</description>
 	<url>https://wiki.jenkins-ci.org/display/JENKINS/HPE+Application+Automation+Tools</url>
 
 	<licenses>
@@ -67,12 +71,12 @@
 
 	<distributionManagement>
 		<repository>
-		  <id>repo.jenkins-ci.org</id>
-		  <url>https://repo.jenkins-ci.org/releases</url>
+			<id>repo.jenkins-ci.org</id>
+			<url>https://repo.jenkins-ci.org/releases</url>
 		</repository>
 		<snapshotRepository>
 			<id>maven.jenkins-ci.org</id>
-		  <url>https://repo.jenkins-ci.org/snapshots</url>
+			<url>https://repo.jenkins-ci.org/snapshots</url>
 		</snapshotRepository>
 	</distributionManagement>
 
@@ -85,7 +89,9 @@
 	</scm>
 	<issueManagement>
 		<system>JIRA</system>
-		<url>https://issues.jenkins-ci.org/issues/?jql=project%20%3D%20JENKINS%20AND%20component%20%3D%20hp-application-automation-tools-plugin</url>
+		<url>
+			https://issues.jenkins-ci.org/issues/?jql=project%20%3D%20JENKINS%20AND%20component%20%3D%20hp-application-automation-tools-plugin
+		</url>
 	</issueManagement>
 
 	<organization>
@@ -189,7 +195,7 @@
 										</goals>
 									</pluginExecutionFilter>
 									<action>
-										<ignore />
+										<ignore/>
 									</action>
 								</pluginExecution>
 							</pluginExecutions>
@@ -259,12 +265,13 @@
 							<skip>true</skip>
 							<executable>java</executable>
 							<arguments>
-								<argument> -jar</argument>
+								<argument>-jar</argument>
 								<argument>${env.JENKINS_HOME}war\WEB-INF\jenkins-cli.jar</argument>
 								<argument>-s</argument>
 								<argument>http://localhost:8080</argument>
 								<argumnet>install-plugin</argumnet>
-								<argumnet>${project.build.directory}\${project.build.finalName}.${project.packaging}</argumnet>
+								<argumnet>${project.build.directory}\${project.build.finalName}.${project.packaging}
+								</argumnet>
 								<argument>-name</argument>
 								<argument>"${project.artifactId}"</argument>
 								<!-- <argument>-deploy</argument> -->
@@ -433,9 +440,9 @@
 		<dependency>
 			<artifactId>integrations-sdk</artifactId>
 			<groupId>com.hpe.adm.octane.ciplugins</groupId>
-			<version>1.4-SNAPSHOT</version>
+			<version>1.5.0</version>
 		</dependency>
-		
+
 		<!-- Obsolete TO BE REMOVED -->
 		<dependency>
 			<artifactId>mqm-rest-client</artifactId>
