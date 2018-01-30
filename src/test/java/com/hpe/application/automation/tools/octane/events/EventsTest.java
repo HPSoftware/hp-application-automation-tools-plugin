@@ -34,7 +34,6 @@
 package com.hpe.application.automation.tools.octane.events;
 
 import com.hpe.application.automation.tools.model.OctaneServerSettingsModel;
-import com.hpe.application.automation.tools.octane.tests.ExtensionUtil;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hpe.application.automation.tools.octane.configuration.ConfigurationService;
 import com.hpe.application.automation.tools.octane.configuration.ServerConfiguration;
@@ -49,7 +48,6 @@ import org.json.JSONObject;
 import org.junit.*;
 import org.jvnet.hudson.test.JenkinsRule;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -69,7 +67,7 @@ import static org.junit.Assert.*;
  * Time: 22:05
  * To change this template use File | Settings | File Templates.
  */
-@SuppressWarnings({"squid:S2699","squid:S3658","squid:S2259","squid:S1872","squid:S2925","squid:S109","squid:S1607","squid:S2701","squid:S2698"})
+@SuppressWarnings({"squid:S2699", "squid:S3658", "squid:S2259", "squid:S1872", "squid:S2925", "squid:S109", "squid:S1607", "squid:S2701", "squid:S2698"})
 public class EventsTest {
 	private static final Logger logger = Logger.getLogger(EventsTest.class.getName());
 
@@ -116,15 +114,6 @@ public class EventsTest {
 	public void testEventsA() throws Exception {
 		configurePlugin();
 
-		EventsService eventsService = ExtensionUtil.getInstance(rule, EventsService.class);
-		assertNotNull(eventsService.getClient());
-		assertEquals("http://127.0.0.1:" + testingServerPort, eventsService.getClient().getLocation());
-		assertEquals(sharedSpaceId, eventsService.getClient().getSharedSpace());
-		logger.info("EVENTS TEST: event client configuration is: " +
-				eventsService.getClient().getLocation() + " - " +
-				eventsService.getClient().getSharedSpace() + " - " +
-				eventsService.getClient().getUsername());
-
 		FreeStyleProject p = rule.createFreeStyleProject(projectName);
 
 		assertEquals(0, p.getBuilds().toArray().length);
@@ -147,7 +136,7 @@ public class EventsTest {
 
 			assertFalse(l.isNull("server"));
 			tmp = l.getJSONObject("server");
-			assertTrue(rule.getInstance().getRootUrl().startsWith(tmp.getString("url")));
+			assertTrue(rule.getInstance().getRootUrl() != null && rule.getInstance().getRootUrl().startsWith(tmp.getString("url")));
 			assertEquals("jenkins", tmp.getString("type"));
 			assertEquals(ConfigurationService.getModel().getIdentity(), tmp.getString("instanceId"));
 
@@ -168,10 +157,10 @@ public class EventsTest {
 		private final List<JSONObject> eventsLists = new ArrayList<>();
 
 		@Override
-		public void handle(String s, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+		public void handle(String s, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
 			logger.info("EVENTS TEST: server mock requested: " + baseRequest.getMethod() + " " + baseRequest.getPathInfo());
 
-			String body = "";
+			StringBuilder body = new StringBuilder();
 			byte[] buffer;
 			int len;
 			if (request.getPathInfo().equals("/authentication/sign_in")) {
@@ -188,12 +177,12 @@ public class EventsTest {
 			} else if (request.getPathInfo().equals("/internal-api/shared_spaces/" + sharedSpaceId + "/analytics/ci/events")) {
 				buffer = new byte[1024];
 
-				GZIPInputStream gzis = new GZIPInputStream( request.getInputStream() );
-				while ((len = gzis.read(buffer, 0, 1024)) > 0) {
-					body += new String(buffer, 0, len);
+				GZIPInputStream gzip = new GZIPInputStream(request.getInputStream());
+				while ((len = gzip.read(buffer, 0, 1024)) > 0) {
+					body.append(new String(buffer, 0, len));
 				}
 				try {
-					eventsLists.add(new JSONObject(body));
+					eventsLists.add(new JSONObject(body.toString()));
 				} catch (JSONException e) {
 					logger.warning("EVENTS TEST: response wasn't JSON compatible");
 				}
@@ -208,9 +197,9 @@ public class EventsTest {
 		}
 	}
 
-	private void configurePlugin() throws Exception {
+	private void configurePlugin() {
 		OctaneServerSettingsModel
-                model = new OctaneServerSettingsModel("http://127.0.0.1:" + testingServerPort + "/ui?p=" + sharedSpaceId,
+				model = new OctaneServerSettingsModel("http://127.0.0.1:" + testingServerPort + "/ui?p=" + sharedSpaceId,
 				username,
 				Secret.fromString(password),
 				"");

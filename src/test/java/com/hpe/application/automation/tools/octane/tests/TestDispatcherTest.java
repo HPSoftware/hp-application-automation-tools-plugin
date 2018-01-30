@@ -35,7 +35,6 @@ package com.hpe.application.automation.tools.octane.tests;
 
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import com.hpe.application.automation.tools.octane.client.TestEventPublisher;
 import com.hp.mqm.client.MqmRestClient;
 import com.hp.mqm.client.exception.*;
 import com.hpe.application.automation.tools.octane.client.JenkinsMqmRestClientFactory;
@@ -66,14 +65,13 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 
-@SuppressWarnings({"squid:S2699","squid:S3658","squid:S2259","squid:S1872","squid:S2925","squid:S109","squid:S1607","squid:S2698"})
+@SuppressWarnings({"squid:S2699", "squid:S3658", "squid:S2259", "squid:S1872", "squid:S2925", "squid:S109", "squid:S1607", "squid:S2698"})
 public class TestDispatcherTest {
 
 	private TestQueue queue;
 	private TestDispatcher testDispatcher;
 	private JenkinsMqmRestClientFactory clientFactory;
 	private MqmRestClient restClient;
-	private TestEventPublisher testEventPublisher;
 
 	@Rule
 	final public JenkinsRule rule = new JenkinsRule();
@@ -91,22 +89,18 @@ public class TestDispatcherTest {
 		clientFactory = Mockito.mock(JenkinsMqmRestClientFactory.class);
 		Mockito.when(clientFactory.obtain(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.<Secret>any())).thenReturn(restClient);
 		testDispatcher = ExtensionUtil.getInstance(rule, TestDispatcher.class);
-		testDispatcher._setMqmRestClientFactory(clientFactory);
 		queue = new TestQueue();
 		testDispatcher._setTestResultQueue(queue);
 		queue.waitForTicks(1); // needed to avoid occasional interaction with the client we just overrode (race condition)
 
-		testEventPublisher = new TestEventPublisher();
-		RetryModel retryModel = new RetryModel(testEventPublisher);
+		RetryModel retryModel = new RetryModel();
 		testDispatcher._setRetryModel(retryModel);
-		testDispatcher._setEventPublisher(testEventPublisher);
 
 		project = rule.createFreeStyleProject("TestDispatcher");
 		Maven.MavenInstallation mavenInstallation = ToolInstallations.configureMaven3();
-		//Maven.MavenInstallation mavenInstallation = new Maven.MavenInstallation("default-system-maven", System.getenv("MAVEN_HOME"), JenkinsRule.NO_PROPERTIES);
 
 		project.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" install -Dmaven.repo.local=%s\\m2-temp",
-				System.getenv("MAVEN_HOME"),System.getenv("TEMP")), mavenInstallation.getName(), null, null, "-Dmaven.test.failure.ignore=true"));
+				System.getenv("MAVEN_HOME"), System.getenv("TEMP")), mavenInstallation.getName(), null, null, "-Dmaven.test.failure.ignore=true"));
 		project.getPublishersList().add(new JUnitResultArchiver("**/target/surefire-reports/*.xml"));
 		project.setScm(new CopyResourceSCM("/helloWorldRoot"));
 
@@ -176,8 +170,7 @@ public class TestDispatcherTest {
 		verifyRestClient(restClient, build, false);
 		verifyAudit(build);
 
-
-		//quite period 10 sewconds
+		//quite period 10 seconds
 		mockRestClient(restClient, false);
 		executeBuild();
 		queue.waitForTicks(5);
@@ -186,7 +179,6 @@ public class TestDispatcherTest {
 		verifyRestClient(restClient, build, false);
 		verifyAudit(build);
 
-
 		Mockito.reset(restClient);
 		//quite period 2 minutes
 		executeBuild();
@@ -194,7 +186,6 @@ public class TestDispatcherTest {
 
 		//System.out.println(String.format("Entring validation", testDispatcher._getTestResultQueue().periodIndex));
 		//enter long quite period
-
 
 		Mockito.verifyNoMoreInteractions(restClient);
 		Assert.assertEquals(4, queue.size());
@@ -255,28 +246,14 @@ public class TestDispatcherTest {
 	}
 
 	@Test
-	public void testDispatcherSuspended() throws Exception {
-		testEventPublisher.setSuspended(true);
-
-		executeBuild();
-
-		queue.waitForTicks(2);
-
-		// events suspended
-		Mockito.verifyNoMoreInteractions(restClient);
-		Assert.assertEquals(1, queue.size());
-	}
-
-	@Test
 	public void testDispatchMatrixBuild() throws Exception {
 		MatrixProject matrixProject = rule.createProject(MatrixProject.class, "TestDispatcherMatrix");
 		matrixProject.setAxes(new AxisList(new Axis("osType", "Linux", "Windows")));
 
 		Maven.MavenInstallation mavenInstallation = ToolInstallations.configureMaven3();
-		//Maven.MavenInstallation mavenInstallation = new Maven.MavenInstallation("default-system-maven", System.getenv("MAVEN_HOME"), JenkinsRule.NO_PROPERTIES);
 
 		matrixProject.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" install -Dmaven.repo.local=%s\\m2-temp",
-				System.getenv("MAVEN_HOME"),System.getenv("TEMP")), mavenInstallation.getName(), null, null, "-Dmaven.test.failure.ignore=true"));
+				System.getenv("MAVEN_HOME"), System.getenv("TEMP")), mavenInstallation.getName(), null, null, "-Dmaven.test.failure.ignore=true"));
 		matrixProject.getPublishersList().add(new JUnitResultArchiver("**/target/surefire-reports/*.xml"));
 		matrixProject.setScm(new CopyResourceSCM("/helloWorldRoot"));
 
@@ -365,7 +342,7 @@ public class TestDispatcherTest {
 		}
 	}
 
-	private void mockRestClient(MqmRestClient restClient, boolean sharedSpace) throws IOException {
+	private void mockRestClient(MqmRestClient restClient, boolean sharedSpace) {
 		Mockito.reset(restClient);
 		Mockito.when(restClient.isTestResultRelevant(Mockito.anyString(), Mockito.anyString())).thenReturn(true);
 		if (!sharedSpace) {
@@ -375,7 +352,7 @@ public class TestDispatcherTest {
 		}
 	}
 
-	private void verifyRestClient(MqmRestClient restClient, AbstractBuild build, boolean body) throws IOException {
+	private void verifyRestClient(MqmRestClient restClient, AbstractBuild build, boolean body) {
 		Mockito.verify(restClient).validateConfigurationWithoutLogin();
 
 		if (body) {

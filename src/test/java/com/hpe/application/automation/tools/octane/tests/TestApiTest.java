@@ -36,7 +36,6 @@ package com.hpe.application.automation.tools.octane.tests;
 import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import com.hpe.application.automation.tools.octane.client.TestEventPublisher;
 import com.hp.mqm.client.LogOutput;
 import com.hp.mqm.client.MqmRestClient;
 import com.hpe.application.automation.tools.octane.actions.BuildActions;
@@ -61,7 +60,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringReader;
-@SuppressWarnings({"squid:S2699","squid:S3658","squid:S2259","squid:S1872","squid:S2925","squid:S109","squid:S1607","squid:S2698"})
+
+@SuppressWarnings({"squid:S2699", "squid:S3658", "squid:S2259", "squid:S1872", "squid:S2925", "squid:S109", "squid:S1607", "squid:S2698"})
 public class TestApiTest {
 
 	private static JenkinsMqmRestClientFactory clientFactory;
@@ -77,7 +77,7 @@ public class TestApiTest {
 	@BeforeClass
 	public static void init() throws Exception {
 		restClient = Mockito.mock(MqmRestClient.class);
-		Mockito.when(restClient.postTestResult(Mockito.<File>any(), Mockito.eq(false))).thenReturn(10001l);
+		Mockito.when(restClient.postTestResult(Mockito.<File>any(), Mockito.eq(false))).thenReturn(10001L);
 		Mockito.doAnswer(new Answer() {
 			@Override
 			public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
@@ -88,7 +88,7 @@ public class TestApiTest {
 				os.flush();
 				return null;
 			}
-		}).when(restClient).getTestResultLog(Mockito.eq(10001l), Mockito.<LogOutput>any());
+		}).when(restClient).getTestResultLog(Mockito.eq(10001L), Mockito.<LogOutput>any());
 
 		clientFactory = Mockito.mock(JenkinsMqmRestClientFactory.class);
 		Mockito.when(clientFactory.obtain(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.<Secret>any())).thenReturn(restClient);
@@ -97,17 +97,14 @@ public class TestApiTest {
 		buildActions._setMqmRestClientFactory(clientFactory);
 
 		testDispatcher = ExtensionUtil.getInstance(rule, TestDispatcher.class);
-		testDispatcher._setMqmRestClientFactory(clientFactory);
 		queue = new TestQueue();
 		testDispatcher._setTestResultQueue(queue);
 		TestListener testListener = ExtensionUtil.getInstance(rule, TestListener.class);
 		testListener._setTestResultQueue(queue);
 		queue.waitForTicks(1); // needed to avoid occasional interaction with the client we just overrode (race condition)
 
-		TestEventPublisher testEventPublisher = new TestEventPublisher();
-		RetryModel retryModel = new RetryModel(testEventPublisher);
+		RetryModel retryModel = new RetryModel();
 		testDispatcher._setRetryModel(retryModel);
-		testDispatcher._setEventPublisher(testEventPublisher);
 		Mockito.when(restClient.isTestResultRelevant(Mockito.anyString(), Mockito.anyString())).thenReturn(true);
 
 		// server needs to be configured in order for the processing to happen
@@ -121,9 +118,8 @@ public class TestApiTest {
 
 		FreeStyleProject project = rule.createFreeStyleProject("test-api-test");
 		Maven.MavenInstallation mavenInstallation = ToolInstallations.configureMaven3();
-		//Maven.MavenInstallation mavenInstallation = new Maven.MavenInstallation("default-system-maven", System.getenv("MAVEN_HOME"), JenkinsRule.NO_PROPERTIES);
 		project.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" test -Dmaven.repo.local=%s\\m2-temp",
-				System.getenv("MAVEN_HOME"),System.getenv("TEMP")), mavenInstallation.getName(), "helloWorld/pom.xml", null, "-Dmaven.test.failure.ignore=true"));
+				System.getenv("MAVEN_HOME"), System.getenv("TEMP")), mavenInstallation.getName(), "helloWorld/pom.xml", null, "-Dmaven.test.failure.ignore=true"));
 		project.getPublishersList().add(new JUnitResultArchiver("**/target/surefire-reports/*.xml"));
 		project.setScm(new CopyResourceSCM("/helloWorldRoot"));
 		build = TestUtils.runAndCheckBuild(project);
@@ -144,7 +140,7 @@ public class TestApiTest {
 		JSONArray audits = JSONArray.fromObject(auditLog.getWebResponse().getContentAsString());
 		Assert.assertEquals(1, audits.size());
 		JSONObject audit = audits.getJSONObject(0);
-		Assert.assertEquals(10001l, audit.getLong("id"));
+		Assert.assertEquals(10001L, audit.getLong("id"));
 		Assert.assertTrue(audit.getBoolean("pushed"));
 		Assert.assertEquals("http://localhost:8008", audit.getString("location"));
 		Assert.assertEquals("1001", audit.getString("sharedSpace"));

@@ -63,7 +63,6 @@ public class ConfigurationServiceTest {
 		client = Mockito.mock(MqmRestClient.class);
 		clientFactory = Mockito.mock(JenkinsMqmRestClientFactory.class);
 		configurationParser = ExtensionUtil.getInstance(rule, ConfigurationParser.class);
-		configurationParser._setMqmRestClientFactory(clientFactory);
 		password = Secret.fromString("password");
 
 		HtmlPage configPage = jClient.goTo("configure");
@@ -76,7 +75,7 @@ public class ConfigurationServiceTest {
 	}
 
 	@Test
-	public void testGetServerConfiguration() throws Exception {
+	public void testGetServerConfiguration() {
 		ServerConfiguration configuration = ConfigurationService.getServerConfiguration();
 		Assert.assertEquals("http://localhost:8008", configuration.location);
 		Assert.assertEquals("1001", configuration.sharedSpace);
