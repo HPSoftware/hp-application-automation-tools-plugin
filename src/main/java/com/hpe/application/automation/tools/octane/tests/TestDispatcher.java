@@ -199,5 +199,15 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 		private String status;
 		private Boolean fromOlderPush;
 		private String until;
+
+		@Override
+		public String toString() {
+			return "TestsResultPushResponseDTO{" +
+					"id='" + id + '\'' +
+					", status='" + status + '\'' +
+					", fromOlderPush=" + fromOlderPush +
+					", until='" + until + '\'' +
+					'}';
+		}
 	}
 }
