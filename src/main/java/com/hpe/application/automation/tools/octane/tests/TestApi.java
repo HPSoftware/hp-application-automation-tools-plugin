@@ -49,11 +49,11 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.export.Flavor;
 
-import javax.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+
 @SuppressWarnings({"squid:S2699","squid:S3658","squid:S2259","squid:S1872","squid:S2925","squid:S109","squid:S1607"})
 public class TestApi {
 
@@ -65,18 +65,18 @@ public class TestApi {
         this.clientFactory = clientFactory;
     }
 
-    public void doAudit(StaplerRequest req, StaplerResponse res) throws IOException, ServletException, InterruptedException {
+    public void doAudit(StaplerRequest req, StaplerResponse res) throws IOException, InterruptedException {
         // audit log contains possibly sensitive information (location, domain and project): require configure permission
         build.getProject().getACL().checkPermission(Item.CONFIGURE);
         serveFile(res, TestDispatcher.TEST_AUDIT_FILE, Flavor.JSON);
     }
 
-    public void doXml(StaplerRequest req, StaplerResponse res) throws IOException, ServletException, InterruptedException {
+    public void doXml(StaplerRequest req, StaplerResponse res) throws IOException, InterruptedException {
         build.getACL().checkPermission(Item.READ);
         serveFile(res, TestListener.TEST_RESULT_FILE, Flavor.XML);
     }
 
-    public void doLog(StaplerRequest req, final StaplerResponse res) throws IOException, ServletException, InterruptedException {
+    public void doLog(StaplerRequest req, final StaplerResponse res) throws IOException, InterruptedException {
         build.getACL().checkPermission(Item.READ);
         FilePath auditFile = new FilePath(new File(build.getRootDir(), TestDispatcher.TEST_AUDIT_FILE));
         if (!auditFile.exists()) {

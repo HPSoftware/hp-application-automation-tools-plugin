@@ -66,7 +66,6 @@
 		<jenkins.version>1.642.4</jenkins.version>
 		<workflow.version>2.2</workflow.version>
 		<maven.exec.skip>false</maven.exec.skip>
-		<bdi.version>1.0.4a</bdi.version>
 	</properties>
 
 	<distributionManagement>
@@ -171,6 +170,12 @@
 			<roles>
 				<role>ALM/Upload test result to ALM (External Test)</role>
 			</roles>
+		</developer>
+		<developer>
+			<id>gullerya</id>
+			<name>Yuri Guller</name>
+			<email>gullerya@gmail.com</email>
+			<organization>MicroFocus - ALM Octane</organization>
 		</developer>
 	</developers>
 
@@ -443,7 +448,6 @@
 			<groupId>org.jenkins-ci.plugins</groupId>
 			<artifactId>junit</artifactId>
 			<version>1.19</version>
-			<!--version>1.6</version-->
 		</dependency>
 
 
@@ -625,13 +629,11 @@
 			<version>2.0</version>
 			<scope>test</scope>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.glassfish.jersey.core/jersey-common -->
 		<dependency>
 			<groupId>org.glassfish.jersey.core</groupId>
 			<artifactId>jersey-common</artifactId>
 			<version>2.9</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.glassfish.jersey.core/jersey-common -->
 		<dependency>
 			<groupId>org.glassfish.jersey.media</groupId>
 			<artifactId>jersey-media-sse</artifactId>
