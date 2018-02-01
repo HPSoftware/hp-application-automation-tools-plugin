@@ -49,7 +49,7 @@ import org.jvnet.hudson.test.ToolInstallations;
 
 import java.util.HashMap;
 
-@SuppressWarnings({"squid:S2699","squid:S3658","squid:S2259","squid:S1872","squid:S2925","squid:S109","squid:S1607","squid:S2701"})
+@SuppressWarnings({"squid:S2699", "squid:S3658", "squid:S2259", "squid:S1872", "squid:S2925", "squid:S109", "squid:S1607", "squid:S2701"})
 public class BuildHandlerUtilsTest {
 
 	@ClassRule
@@ -88,7 +88,7 @@ public class BuildHandlerUtilsTest {
 		Maven.MavenInstallation mavenInstallation = ToolInstallations.configureMaven3();
 
 		project.setMaven(mavenInstallation.getName());
-		project.setGoals(String.format("clean test --settings %s\\conf\\settings.xml -Dmaven.repo.local=%s\\m2-temp -Dmaven.test.failure.ignore=true",System.getenv("MAVEN_HOME"),System.getenv("TEMP")));
+		project.setGoals(String.format("clean test --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=\"%s\\m2-temp\" -Dmaven.test.failure.ignore=true", System.getenv("MAVEN_HOME"), System.getenv("TEMP")));
 		project.setScm(new CopyResourceSCM("/helloWorldRoot"));
 		MavenModuleSetBuild build = (MavenModuleSetBuild) TestUtils.runAndCheckBuild(project);
 
