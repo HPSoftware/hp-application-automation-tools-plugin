@@ -48,6 +48,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.logging.Logger;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings({"squid:S2699", "squid:S3658", "squid:S2259", "squid:S1872", "squid:S2925", "squid:S109", "squid:S1607", "squid:S2701", "squid:S2698"})
@@ -78,10 +79,10 @@ public class ConfigurationServiceTest {
 	@Test
 	public void testGetServerConfiguration() {
 		ServerConfiguration configuration = ConfigurationService.getServerConfiguration();
-		Assert.assertEquals("http://localhost:8008", configuration.location);
-		Assert.assertEquals("1001", configuration.sharedSpace);
-		Assert.assertEquals("username", configuration.username);
-		Assert.assertEquals(password, configuration.password);
+		assertEquals("http://localhost:8008", configuration.location);
+		assertEquals("1001", configuration.sharedSpace);
+		assertEquals("username", configuration.username);
+		assertEquals(password, configuration.password);
 	}
 
 	@Test
@@ -89,10 +90,10 @@ public class ConfigurationServiceTest {
 		HtmlForm formIn = jClient.goTo("configure").getFormByName("config");
 		rule.submit(formIn);
 		HtmlForm formOut = jClient.goTo("configure").getFormByName("config");
-		Assert.assertEquals(formIn.getInputByName("_.uiLocation").getValueAttribute(), formOut.getInputByName("_.uiLocation").getValueAttribute());
-		Assert.assertEquals(formIn.getInputByName("_.username").getValueAttribute(), formOut.getInputByName("_.username").getValueAttribute());
+		assertEquals(formIn.getInputByName("_.uiLocation").getValueAttribute(), formOut.getInputByName("_.uiLocation").getValueAttribute());
+		assertEquals(formIn.getInputByName("_.username").getValueAttribute(), formOut.getInputByName("_.username").getValueAttribute());
 		// NOTE: password is actually empty (bug or security feature?)
-		Assert.assertEquals(formIn.getInputByName("_.password").getValueAttribute(), formOut.getInputByName("_.password").getValueAttribute());
+		assertEquals(formIn.getInputByName("_.password").getValueAttribute(), formOut.getInputByName("_.password").getValueAttribute());
 	}
 
 	@Test
@@ -108,26 +109,26 @@ public class ConfigurationServiceTest {
 		// valid configuration
 		testHandler.desiredStatus = HttpServletResponse.SC_OK;
 		FormValidation validation = configurationParser.checkConfiguration("http://localhost:" + serverMock.getPort(), "1001", "username1", password);
-		Assert.assertEquals(FormValidation.Kind.OK, validation.kind);
-		Assert.assertTrue(validation.getMessage().contains("Connection successful"));
+		assertEquals(FormValidation.Kind.OK, validation.kind);
+		assertTrue(validation.getMessage().contains("Connection successful"));
 
 		// authentication failed
 		testHandler.desiredStatus = HttpServletResponse.SC_UNAUTHORIZED;
 		validation = configurationParser.checkConfiguration("http://localhost:" + serverMock.getPort(), "1001", "username1", password);
-		Assert.assertEquals(FormValidation.Kind.ERROR, validation.kind);
-		Assert.assertTrue(validation.getMessage().contains(Messages.AuthenticationFailure()));
+		assertEquals(FormValidation.Kind.ERROR, validation.kind);
+		assertTrue(validation.getMessage().contains(Messages.AuthenticationFailure()));
 
 		// authorization failed
 		testHandler.desiredStatus = HttpServletResponse.SC_FORBIDDEN;
 		validation = configurationParser.checkConfiguration("http://localhost:" + serverMock.getPort(), "1001", "username1", password);
-		Assert.assertEquals(FormValidation.Kind.ERROR, validation.kind);
-		Assert.assertTrue(validation.getMessage().contains(Messages.AuthorizationFailure()));
+		assertEquals(FormValidation.Kind.ERROR, validation.kind);
+		assertTrue(validation.getMessage().contains(Messages.AuthorizationFailure()));
 
 		// domain project does not exists
 		testHandler.desiredStatus = HttpServletResponse.SC_NOT_FOUND;
 		validation = configurationParser.checkConfiguration("http://localhost:" + serverMock.getPort(), "1001", "username1", password);
-		Assert.assertEquals(FormValidation.Kind.ERROR, validation.kind);
-		Assert.assertTrue(validation.getMessage().contains(Messages.ConnectionSharedSpaceInvalid()));
+		assertEquals(FormValidation.Kind.ERROR, validation.kind);
+		assertTrue(validation.getMessage().contains(Messages.ConnectionSharedSpaceInvalid()));
 
 		serverMock.removeTestSpecificHandler(testHandler);
 	}
