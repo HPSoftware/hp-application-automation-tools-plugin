@@ -35,20 +35,17 @@ package com.hpe.application.automation.tools.octane.events;
 
 import com.hpe.application.automation.tools.model.OctaneServerSettingsModel;
 import com.hp.octane.integrations.dto.events.CIEventType;
+import com.hpe.application.automation.tools.octane.OctaneServerMock;
 import com.hpe.application.automation.tools.octane.configuration.ConfigurationService;
-import com.hpe.application.automation.tools.octane.configuration.ServerConfiguration;
 import hudson.model.FreeStyleProject;
 import hudson.util.Secret;
 import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.*;
 import org.jvnet.hudson.test.JenkinsRule;
 
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -56,7 +53,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Logger;
-import java.util.zip.GZIPInputStream;
 
 import static org.junit.Assert.*;
 
@@ -71,49 +67,33 @@ import static org.junit.Assert.*;
 public class EventsTest {
 	private static final Logger logger = Logger.getLogger(EventsTest.class.getName());
 
-	static final private String projectName = "root-job-events-case";
-	static final private int DEFAULT_TESTING_SERVER_PORT = 9999;
-	static final private String sharedSpaceId = "1007";
-	static final private String username = "some";
-	static final private String password = "pass";
-
-	static private Server server;
-	static private int testingServerPort = DEFAULT_TESTING_SERVER_PORT;
-	static private EventsHandler eventsHandler;
+	private static final String projectName = "root-job-events-case";
+	private static final String sharedSpaceId = "1007";
+	private static final String username = "some";
+	private static final String password = "pass";
+	private static final EventsTestHandler eventsTestHandler = new EventsTestHandler();
 
 	@ClassRule
 	public static final JenkinsRule rule = new JenkinsRule();
 
 	@BeforeClass
-	static public void beforeClass() throws Exception {
-		String p = System.getProperty("testingServerPort");
-		try {
-			if (p != null) {
-				testingServerPort = Integer.parseInt(p);
-			}
-		} catch (NumberFormatException nfe) {
-			logger.info("EVENTS TEST: bad port number format, default port will be used: " + testingServerPort);
-		}
-		logger.info("EVENTS TEST: port chosen for mock Octane server: " + testingServerPort);
+	public static void beforeClass() {
+		//  ensure server mock is up
+		OctaneServerMock serverMock = OctaneServerMock.getInstance();
+		assertTrue(serverMock.isRunning());
+		serverMock.addTestSpecificHandler(eventsTestHandler);
 
-		eventsHandler = new EventsHandler();
-		server = new Server(testingServerPort);
-		server.setHandler(eventsHandler);
-		server.start();
-		logger.info("EVENTS TEST: mock Octane server started on local port " + testingServerPort);
-	}
-
-	@AfterClass
-	static public void afterClass() throws Exception {
-		logger.info("EVENTS TEST: stopping and destroying mock Octane server");
-		server.stop();
-		server.destroy();
+		//  configure plugin for the server
+		OctaneServerSettingsModel model = new OctaneServerSettingsModel(
+				"http://127.0.0.1:" + serverMock.getPort() + "/ui?p=" + sharedSpaceId,
+				username,
+				Secret.fromString(password),
+				"");
+		ConfigurationService.configurePlugin(model);
 	}
 
 	@Test
 	public void testEventsA() throws Exception {
-		configurePlugin();
-
 		FreeStyleProject p = rule.createFreeStyleProject(projectName);
 
 		assertEquals(0, p.getBuilds().toArray().length);
@@ -125,7 +105,7 @@ public class EventsTest {
 		Thread.sleep(5000);
 
 		List<CIEventType> eventsOrder = new ArrayList<>(Arrays.asList(CIEventType.STARTED, CIEventType.FINISHED));
-		List<JSONObject> eventsLists = eventsHandler.getResults();
+		List<JSONObject> eventsLists = eventsTestHandler.getResults();
 		JSONObject tmp;
 		JSONArray events;
 		logger.info(eventsLists.toString());
@@ -153,62 +133,29 @@ public class EventsTest {
 		assertEquals(0, eventsOrder.size());
 	}
 
-	private static final class EventsHandler extends AbstractHandler {
+	private static final class EventsTestHandler extends OctaneServerMock.TestSpecificHandler {
 		private final List<JSONObject> eventsLists = new ArrayList<>();
 
 		@Override
 		public void handle(String s, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
-			logger.info("EVENTS TEST: server mock requested: " + baseRequest.getMethod() + " " + baseRequest.getPathInfo());
+			String requestBody = getBodyAsString(baseRequest);
 
-			StringBuilder body = new StringBuilder();
-			byte[] buffer;
-			int len;
-			if (request.getPathInfo().equals("/authentication/sign_in")) {
-				response.addCookie(new Cookie("LWSSO_COOKIE_KEY", "some_dummy_security_token"));
-				response.setStatus(HttpServletResponse.SC_OK);
-			} else if (request.getPathInfo().endsWith("/tasks")) {
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException ie) {
-					//  do nothing here
-				} finally {
-					response.setStatus(HttpServletResponse.SC_OK);
-				}
-			} else if (request.getPathInfo().equals("/internal-api/shared_spaces/" + sharedSpaceId + "/analytics/ci/events")) {
-				buffer = new byte[1024];
-
-				GZIPInputStream gzip = new GZIPInputStream(request.getInputStream());
-				while ((len = gzip.read(buffer, 0, 1024)) > 0) {
-					body.append(new String(buffer, 0, len));
-				}
-				try {
-					eventsLists.add(new JSONObject(body.toString()));
-				} catch (JSONException e) {
-					logger.warning("EVENTS TEST: response wasn't JSON compatible");
-				}
-				logger.info("EVENTS TEST: server mock events list length " + eventsLists.size());
-				response.setStatus(HttpServletResponse.SC_OK);
+			try {
+				eventsLists.add(new JSONObject(requestBody));
+			} catch (JSONException e) {
+				logger.warning("EVENTS TEST: response wasn't JSON compatible");
 			}
-			baseRequest.setHandled(true);
+			logger.info("EVENTS TEST: server mock events list length " + eventsLists.size());
+			response.setStatus(HttpServletResponse.SC_OK);
 		}
 
 		List<JSONObject> getResults() {
 			return eventsLists;
 		}
-	}
 
-	private void configurePlugin() {
-		OctaneServerSettingsModel
-				model = new OctaneServerSettingsModel("http://127.0.0.1:" + testingServerPort + "/ui?p=" + sharedSpaceId,
-				username,
-				Secret.fromString(password),
-				"");
-		ConfigurationService.configurePlugin(model);
-
-		ServerConfiguration serverConfiguration = ConfigurationService.getServerConfiguration();
-		assertNotNull(serverConfiguration);
-		assertEquals("http://127.0.0.1:" + testingServerPort, serverConfiguration.location);
-		assertEquals(sharedSpaceId, serverConfiguration.sharedSpace);
-		logger.info("EVENTS TEST: plugin configured with the following server configuration: " + serverConfiguration);
+		@Override
+		public String getPathStartsWith() {
+			return "/internal-api/shared_spaces/" + sharedSpaceId + "/analytics/ci/events";
+		}
 	}
 }
