@@ -137,13 +137,13 @@ public class ConfigurationServiceTest {
 		private int desiredStatus = HttpServletResponse.SC_OK;
 
 		@Override
-		public void handle(String s, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
-			response.setStatus(desiredStatus);
+		public boolean ownsUrlToProcess(String url) {
+			return "/authentication/sign_in".equals(url);
 		}
 
 		@Override
-		public String getPathStartsWith() {
-			return "/authentication/sign_in";
+		public void handle(String s, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
+			response.setStatus(desiredStatus);
 		}
 	}
 }

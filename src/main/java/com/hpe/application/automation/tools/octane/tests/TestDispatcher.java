@@ -33,9 +33,6 @@
 
 package com.hpe.application.automation.tools.octane.tests;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.api.TestsService;
@@ -68,7 +65,6 @@ import java.util.Date;
 @Extension(dynamicLoadable = YesNoMaybe.NO)
 public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 	private static Logger logger = LogManager.getLogger(TestDispatcher.class);
-	private static ObjectMapper objectMapper = new ObjectMapper();
 
 	static final String TEST_AUDIT_FILE = "mqmTests_audit.json";
 
@@ -95,7 +91,11 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 		OctaneConfiguration configuration = OctaneSDK.getInstance().getPluginServices().getOctaneConfiguration();
 		ResultQueue.QueueItem item;
 		while ((item = queue.peekFirst()) != null) {
-			Job project = (Job) Jenkins.getInstance().getItemByFullName(item.getProjectName());
+			Jenkins jenkinsInstance = Jenkins.getInstance();
+			Job project = null;
+			if (jenkinsInstance != null) {
+				project = (Job) jenkinsInstance.getItemByFullName(item.getProjectName());
+			}
 			if (project == null) {
 				logger.warn("job '" + item.getProjectName() + "' no longer exists, pending test results can't be submitted");
 				queue.remove();
@@ -112,12 +112,11 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 
 			if (needTestResult) {
 				try {
-					String id = null;
+					String testsPushRequestId = null;
 					try {
 						File resultFile = new File(build.getRootDir(), TestListener.TEST_RESULT_FILE);
 						OctaneResponse response = testsService.pushTestsResult(new FileInputStream(resultFile));
-						TestsResultPushResponseDTO responseDTO = objectMapper.readValue(response.getBody(), TestsResultPushResponseDTO.class);
-						id = responseDTO.id;
+						testsPushRequestId = response.getBody();
 					} catch (TemporarilyUnavailableException e) {
 						logger.warn("server temporarily unavailable, will try later", e);
 						audit(configuration, build, null, true);
@@ -126,7 +125,7 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 						logger.warn("failed to push test results of '" + build.getParent().getName() + " #" + build.getNumber() + "'", e);
 					}
 
-					if (id != null) {
+					if (testsPushRequestId != null) {
 						logger.info("successfully pushed test results of '" + item.getProjectName() + " #" + item.getBuildNumber() + "'");
 						queue.remove();
 					} else {
@@ -135,7 +134,7 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 							logger.warn("maximum number of attempts reached, operation will not be re-attempted for this build");
 						}
 					}
-					audit(configuration, build, id, false);
+					audit(configuration, build, testsPushRequestId, false);
 				} catch (FileNotFoundException e) {
 					logger.warn("file no longer exists, failed to push test results of '" + item.getProjectName() + " #" + item.getBuildNumber() + "'");
 					queue.remove();
@@ -190,24 +189,5 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 
 	void _setRetryModel(RetryModel retryModel) {
 		this.retryModel = retryModel;
-	}
-
-	@JsonIgnoreProperties(ignoreUnknown = true)
-	@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
-	private static final class TestsResultPushResponseDTO {
-		private String id;
-		private String status;
-		private Boolean fromOlderPush;
-		private String until;
-
-		@Override
-		public String toString() {
-			return "TestsResultPushResponseDTO{" +
-					"id='" + id + '\'' +
-					", status='" + status + '\'' +
-					", fromOlderPush=" + fromOlderPush +
-					", until='" + until + '\'' +
-					'}';
-		}
 	}
 }

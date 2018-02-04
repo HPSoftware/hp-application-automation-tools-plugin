@@ -70,41 +70,6 @@ public final class OctaneServerMock {
 		if (testSpecificHandler == null) {
 			throw new IllegalArgumentException("test specific handler for Octane Mock Server MUST NOT be null");
 		}
-		if (testSpecificHandler.getPathStartsWith() == null || testSpecificHandler.getPathStartsWith().isEmpty()) {
-			throw new IllegalArgumentException("test specific handler's 'pathStartsWith' MUST NOT be null nor empty");
-		}
-
-		//  validating the interfering handlers
-		for (TestSpecificHandler tmpHandler : testSpecificHandlers) {
-			if (tmpHandler.getPathStartsWith().startsWith(testSpecificHandler.getPathStartsWith()) ||
-					testSpecificHandler.getPathStartsWith().startsWith(tmpHandler.getPathStartsWith())) {
-				throw new IllegalStateException("newly added test specific handlers 'pathStartsWith' interferes with already registered handler having path " + tmpHandler.getPathStartsWith() +
-						"; if you'd like to override an existing one use 'replaceTestSpecificHandler' method");
-			}
-		}
-
-		testSpecificHandlers.add(testSpecificHandler);
-	}
-
-	public void replaceTestSpecificHandler(TestSpecificHandler testSpecificHandler) {
-		if (testSpecificHandler == null) {
-			throw new IllegalArgumentException("test specific handler for Octane Mock Server MUST NOT be null");
-		}
-		if (testSpecificHandler.getPathStartsWith() == null || testSpecificHandler.getPathStartsWith().isEmpty()) {
-			throw new IllegalArgumentException("test specific handler's 'pathStartsWith' MUST NOT be null nor empty");
-		}
-
-		//  removing the interfering handlers
-		List<TestSpecificHandler> interferingHandlersToRemove = new LinkedList<>();
-		for (TestSpecificHandler tmpHandler : testSpecificHandlers) {
-			if (tmpHandler.getPathStartsWith().startsWith(testSpecificHandler.getPathStartsWith()) ||
-					testSpecificHandler.getPathStartsWith().startsWith(tmpHandler.getPathStartsWith())) {
-				logger.log(Level.WARNING, "newly added test specific handlers 'pathStartsWith' interferes with already registered handler having path " + tmpHandler.getPathStartsWith() +
-						"; the second one will be removed in favor of the newly added one");
-				interferingHandlersToRemove.add(tmpHandler);
-			}
-		}
-		testSpecificHandlers.removeAll(interferingHandlersToRemove);
 
 		testSpecificHandlers.add(testSpecificHandler);
 	}
@@ -114,7 +79,7 @@ public final class OctaneServerMock {
 	}
 
 	abstract public static class TestSpecificHandler extends AbstractHandler {
-		abstract public String getPathStartsWith();
+		abstract public boolean ownsUrlToProcess(String url);
 
 		protected String getBodyAsString(Request request) throws IOException {
 			StringBuilder body = new StringBuilder();
@@ -136,7 +101,8 @@ public final class OctaneServerMock {
 		public void handle(String s, Request request, HttpServletRequest httpServletRequest, HttpServletResponse response) throws IOException, ServletException {
 			logger.log(Level.INFO, "accepted request " + request.getMethod() + " " + request.getPathInfo());
 			for (TestSpecificHandler testSpecificHandler : testSpecificHandlers) {
-				if (request.getPathInfo().startsWith(testSpecificHandler.getPathStartsWith())) {
+				if (testSpecificHandler.ownsUrlToProcess(request.getPathInfo())) {
+					logger.log(Level.INFO, request.getMethod() + " " + request.getPathInfo() + " picked up by " + testSpecificHandler);
 					testSpecificHandler.handle(s, request, httpServletRequest, response);
 					request.setHandled(true);
 					break;

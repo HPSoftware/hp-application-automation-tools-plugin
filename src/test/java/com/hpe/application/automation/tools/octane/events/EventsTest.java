@@ -51,6 +51,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -105,7 +106,7 @@ public class EventsTest {
 		Thread.sleep(5000);
 
 		List<CIEventType> eventsOrder = new ArrayList<>(Arrays.asList(CIEventType.STARTED, CIEventType.FINISHED));
-		List<JSONObject> eventsLists = eventsTestHandler.getResults();
+		List<JSONObject> eventsLists = eventsTestHandler.eventsLists;
 		JSONObject tmp;
 		JSONArray events;
 		logger.info(eventsLists.toString());
@@ -133,7 +134,12 @@ public class EventsTest {
 	}
 
 	private static final class EventsTestHandler extends OctaneServerMock.TestSpecificHandler {
-		private final List<JSONObject> eventsLists = new ArrayList<>();
+		private final List<JSONObject> eventsLists = new LinkedList<>();
+
+		@Override
+		public boolean ownsUrlToProcess(String url) {
+			return ("/internal-api/shared_spaces/" + sharedSpaceId + "/analytics/ci/events").equals(url);
+		}
 
 		@Override
 		public void handle(String s, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -146,15 +152,6 @@ public class EventsTest {
 			}
 			logger.info("EVENTS TEST: server mock events list length " + eventsLists.size());
 			response.setStatus(HttpServletResponse.SC_OK);
-		}
-
-		List<JSONObject> getResults() {
-			return eventsLists;
-		}
-
-		@Override
-		public String getPathStartsWith() {
-			return "/internal-api/shared_spaces/" + sharedSpaceId + "/analytics/ci/events";
 		}
 	}
 }
