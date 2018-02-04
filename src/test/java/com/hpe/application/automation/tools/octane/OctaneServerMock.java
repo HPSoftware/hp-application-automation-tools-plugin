@@ -150,20 +150,32 @@ public final class OctaneServerMock {
 					response.addCookie(new Cookie("LWSSO_COOKIE_KEY", "some_dummy_security_token"));
 					request.setHandled(true);
 				} else if (request.getMethod().equals("GET") && request.getPathInfo().endsWith("tasks")) {
-					logger.log(Level.INFO, "found GET 'tasks' request, will respond with default Mock handler");
-					try {
-						Thread.sleep(10 * 1000);
-					} catch (InterruptedException ie) {
-						;
-					}
-					response.setStatus(HttpServletResponse.SC_OK);
-					request.setHandled(true);
+					defaultGetTasksHandler(request, response);
+				} else if (request.getMethod().equals("GET") && request.getPathInfo().startsWith("/internal-api/shared_spaces/") && request.getPathInfo().endsWith("/workspaceId")) {
+					defaultGetWorkspaceFoLogsHandler(request, response);
 				} else {
 					logger.info("will respond with 200 and empty content");
 					response.setStatus(HttpServletResponse.SC_OK);
 					request.setHandled(true);
 				}
 			}
+		}
+
+		private void defaultGetTasksHandler(Request request, HttpServletResponse response) {
+			logger.log(Level.INFO, "found GET 'tasks' request, will respond with default Mock handler");
+			try {
+				Thread.sleep(10 * 1000);
+			} catch (InterruptedException ie) {
+				logger.log(Level.FINE, "interrupted while delaying default GET tasks response");
+			}
+			response.setStatus(HttpServletResponse.SC_OK);
+			request.setHandled(true);
+		}
+
+		private void defaultGetWorkspaceFoLogsHandler(Request request, HttpServletResponse response) {
+			logger.log(Level.INFO, "found GET 'workspaceId' for build logs request, will respond with default Mock handler");
+			response.setStatus(HttpServletResponse.SC_NO_CONTENT);
+			request.setHandled(true);
 		}
 	}
 }

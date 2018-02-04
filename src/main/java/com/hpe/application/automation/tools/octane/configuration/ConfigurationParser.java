@@ -110,7 +110,7 @@ public class ConfigurationParser {
 		} else if (checkResponse.getStatus() == 403) {
 			return FormValidation.errorWithMarkup(markup("red", Messages.AuthorizationFailure()));
 		} else if (checkResponse.getStatus() == 404) {
-			return FormValidation.errorWithMarkup(markup("red", Messages.UnexpectedSharedSpace()));
+			return FormValidation.errorWithMarkup(markup("red", Messages.ConnectionSharedSpaceInvalid()));
 		} else {
 			return FormValidation.errorWithMarkup(markup("red", Messages.UnexpectedFailure() + ": " + checkResponse.getStatus()));
 		}

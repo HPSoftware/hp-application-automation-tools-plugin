@@ -109,7 +109,6 @@ public class EventsTest {
 		JSONObject tmp;
 		JSONArray events;
 		logger.info(eventsLists.toString());
-		System.out.print(eventsLists.toString());
 		logger.info("EVENTS TEST: server mock received " + eventsLists.size() + " list/s of events");
 		for (JSONObject l : eventsLists) {
 			assertEquals(2, l.length());
