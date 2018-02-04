@@ -59,6 +59,7 @@ import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.util.Date;
 
@@ -117,15 +118,16 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 						File resultFile = new File(build.getRootDir(), TestListener.TEST_RESULT_FILE);
 						OctaneResponse response = testsService.pushTestsResult(new FileInputStream(resultFile));
 						testsPushRequestId = response.getBody();
-					} catch (TemporarilyUnavailableException e) {
-						logger.warn("server temporarily unavailable, will try later", e);
-						audit(configuration, build, null, true);
-						break;
+						if (response.getStatus() == 503) {
+							logger.warn("server temporarily unavailable, will try later");
+							audit(configuration, build, null, true);
+							break;
+						}
 					} catch (RequestException e) {
 						logger.warn("failed to push test results of '" + build.getParent().getName() + " #" + build.getNumber() + "'", e);
 					}
 
-					if (testsPushRequestId != null) {
+					if (testsPushRequestId != null && !testsPushRequestId.isEmpty()) {
 						logger.info("successfully pushed test results of '" + item.getProjectName() + " #" + item.getBuildNumber() + "'");
 						queue.remove();
 					} else {
@@ -158,7 +160,7 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 		}
 		JSONObject event = new JSONObject();
 		event.put("id", id);
-		event.put("pushed", id != null);
+		event.put("pushed", id != null && !id.isEmpty());
 		event.put("date", DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(new Date()));
 		event.put("location", octaneConfiguration.getUrl());
 		event.put("sharedSpace", octaneConfiguration.getSharedSpace());
