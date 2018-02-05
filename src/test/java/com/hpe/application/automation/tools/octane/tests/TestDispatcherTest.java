@@ -359,9 +359,9 @@ public class TestDispatcherTest {
 	}
 
 	private static abstract class TDTHandlersBase extends OctaneServerMock.TestSpecificHandler {
-		volatile int dispatchesCounterForWait;
+		protected volatile int dispatchesCounterForWait;
 
-		void resetAndWaitForNextDispatches(int numberOfDispatches, int maxMillisToWait) {
+		protected void resetAndWaitForNextDispatches(int numberOfDispatches, int maxMillisToWait) {
 			dispatchesCounterForWait = 0;
 			long startTime = System.currentTimeMillis();
 			while (dispatchesCounterForWait < numberOfDispatches && maxMillisToWait > System.currentTimeMillis() - startTime) {
