@@ -72,6 +72,7 @@ import java.util.concurrent.ExecutionException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings({"squid:S2699", "squid:S3658", "squid:S2259", "squid:S1872", "squid:S2925", "squid:S109", "squid:S1607", "squid:S2698"})
@@ -236,8 +237,8 @@ public class TestDispatcherTest {
 		Thread.sleep(2000);
 		verifyAudit(false, build, false, true);
 
-		Assert.assertEquals(0, queue.size());
-		Assert.assertEquals(0, queue.getDiscards());
+		assertEquals(0, queue.size());
+		assertEquals(0, queue.getDiscards());
 
 		// body post fails for two consecutive times
 		//
@@ -252,8 +253,8 @@ public class TestDispatcherTest {
 		assertEquals(0, testApiPushTestsResultHandler.testResults.size());
 		verifyAudit(false, build, false, false);
 
-		Assert.assertEquals(0, queue.size());
-		Assert.assertEquals(1, queue.getDiscards());
+		assertEquals(0, queue.size());
+		assertEquals(1, queue.getDiscards());
 	}
 
 	@Test
@@ -287,7 +288,7 @@ public class TestDispatcherTest {
 			verifyAudit(false, run, true);
 		}
 
-		Assert.assertEquals(0, queue.size());
+		assertEquals(0, queue.size());
 
 		project = tmp;
 	}
@@ -320,7 +321,7 @@ public class TestDispatcherTest {
 		Thread.sleep(1000);//sleep allows to all audits to be written
 		verifyAudit(true, build2, false, false, false, false, false, true);
 
-		Assert.assertEquals(0, queue.size());
+		assertEquals(0, queue.size());
 	}
 
 	private FreeStyleBuild executeBuild() throws ExecutionException, InterruptedException {
@@ -341,21 +342,21 @@ public class TestDispatcherTest {
 			assertFalse(auditFile.exists());
 			audits = new JSONArray();
 		}
-		Assert.assertEquals(statuses.length, audits.size());
+		assertEquals(statuses.length, audits.size());
 		for (int i = 0; i < statuses.length; i++) {
 			JSONObject audit = audits.getJSONObject(i);
-			Assert.assertEquals("http://127.0.0.1:" + octaneServerMockPort, audit.getString("location"));
-			Assert.assertEquals(sharedSpaceId, audit.getString("sharedSpace"));
-			Assert.assertEquals(statuses[i], audit.getBoolean("pushed"));
+			assertEquals("http://127.0.0.1:" + octaneServerMockPort, audit.getString("location"));
+			assertEquals(sharedSpaceId, audit.getString("sharedSpace"));
+			assertEquals(statuses[i], audit.getBoolean("pushed"));
 			if (statuses[i]) {
-				Assert.assertEquals(1L, audit.getLong("id"));
+				assertEquals(1L, audit.getLong("id"));
 			}
 			if (!statuses[i] && unavailableIfFailed) {
 				assertTrue(audit.getBoolean("temporarilyUnavailable"));
 			} else {
 				assertFalse(audit.containsKey("temporarilyUnavailable"));
 			}
-			Assert.assertNotNull(audit.getString("date"));
+			assertNotNull(audit.getString("date"));
 		}
 	}
 
