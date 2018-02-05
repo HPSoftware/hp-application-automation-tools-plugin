@@ -40,7 +40,6 @@ import com.hp.octane.integrations.dto.configuration.OctaneConfiguration;
 import com.hp.octane.integrations.dto.connectivity.OctaneResponse;
 import com.hpe.application.automation.tools.octane.tests.build.BuildHandlerUtils;
 import com.hp.mqm.client.exception.FileNotFoundException;
-import com.hp.mqm.client.exception.RequestException;
 import com.hpe.application.automation.tools.octane.ResultQueue;
 import com.hpe.application.automation.tools.octane.client.RetryModel;
 import com.hpe.application.automation.tools.octane.configuration.ConfigurationService;
@@ -77,7 +76,7 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 	}
 
 	@Override
-	protected void doExecute(TaskListener listener) throws IOException, InterruptedException {
+	protected void doExecute(TaskListener listener) {
 		if (queue.peekFirst() == null) {
 			return;
 		}
@@ -85,93 +84,112 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 			logger.info("there are pending test results, but we are in quiet period");
 			return;
 		}
+		Jenkins jenkinsInstance = Jenkins.getInstance();
+		if (jenkinsInstance == null) {
+			logger.error("can't obtain Jenkins instance - major failure, test dispatching won't run");
+			return;
+		}
 
 		TestsService testsService = OctaneSDK.getInstance().getTestsService();
 		OctaneConfiguration configuration = OctaneSDK.getInstance().getPluginServices().getOctaneConfiguration();
 		ResultQueue.QueueItem item;
+
+		//  iterate and dispatch all the pending test results
 		while ((item = queue.peekFirst()) != null) {
-			Jenkins jenkinsInstance = Jenkins.getInstance();
-			Job project = null;
-			if (jenkinsInstance != null) {
-				project = (Job) jenkinsInstance.getItemByFullName(item.getProjectName());
-			}
-			if (project == null) {
-				logger.warn("job '" + item.getProjectName() + "' no longer exists, pending test results can't be submitted");
-				queue.remove();
-				continue;
-			}
-			Run build = project.getBuildByNumber(item.getBuildNumber());
-			if (build == null) {
-				logger.warn("build '" + item.getProjectName() + " #" + item.getBuildNumber() + "' no longer exists, pending test results won't be submitted");
+			Job job = (Job) jenkinsInstance.getItemByFullName(item.getProjectName());
+			if (job == null) {
+				logger.warn("job '" + item.getProjectName() + "' no longer exists, its test results won't be pushed to Octane");
 				queue.remove();
 				continue;
 			}
 
-			boolean needTestResult = testsService.isTestsResultRelevant(ConfigurationService.getModel().getIdentity(), BuildHandlerUtils.getJobCiId(build));
+			Run run = job.getBuildByNumber(item.getBuildNumber());
+			if (run == null) {
+				logger.warn("build '" + item.getProjectName() + " #" + item.getBuildNumber() + "' no longer exists, its test results won't be pushed to Octane");
+				queue.remove();
+				continue;
+			}
 
-			if (needTestResult) {
-				try {
-					String testsPushRequestId = null;
-					try {
-						File resultFile = new File(build.getRootDir(), TestListener.TEST_RESULT_FILE);
-						OctaneResponse response = testsService.pushTestsResult(new FileInputStream(resultFile));
-						testsPushRequestId = response.getBody();
-						if (response.getStatus() == 503) {
-							logger.warn("server temporarily unavailable, will try later");
-							audit(configuration, build, null, true);
-							break;
-						}
-					} catch (RequestException e) {
-						logger.warn("failed to push test results of '" + build.getParent().getName() + " #" + build.getNumber() + "'", e);
-					}
+			File resultFile;
+			try {
+				resultFile = new File(run.getRootDir(), TestListener.TEST_RESULT_FILE);
+			} catch (FileNotFoundException e) {
+				logger.error("'" + TestListener.TEST_RESULT_FILE + "' file no longer exists, test results of '" + item.getProjectName() + " #" + item.getBuildNumber() + "' won't be pushed to Octane");
+				queue.remove();
+				continue;
+			}
 
-					if (testsPushRequestId != null && !testsPushRequestId.isEmpty()) {
-						logger.info("successfully pushed test results of '" + item.getProjectName() + " #" + item.getBuildNumber() + "'");
-						queue.remove();
-					} else {
-						logger.warn("failed to push test results of '" + item.getProjectName() + " #" + item.getBuildNumber() + "'");
-						if (!queue.failed()) {
-							logger.warn("maximum number of attempts reached, operation will not be re-attempted for this build");
-						}
-					}
-					audit(configuration, build, testsPushRequestId, false);
-				} catch (FileNotFoundException e) {
-					logger.warn("file no longer exists, failed to push test results of '" + item.getProjectName() + " #" + item.getBuildNumber() + "'");
+			try {
+				boolean needTestResult = testsService.isTestsResultRelevant(ConfigurationService.getModel().getIdentity(), BuildHandlerUtils.getJobCiId(run));
+				if (!needTestResult) {
+					logger.info("test results of '" + item.getProjectName() + " #" + item.getBuildNumber() + "' are NOT needed, won't be pushed to Octane");
+					queue.remove();
+					continue;
+				}
+			} catch (IOException ioe) {
+				logger.error("pre-flight request failed - server temporarily unavailable, will retry later", ioe);
+				retryModel.failure();
+				break;
+			}
+
+			try {
+				String testsPushRequestId;
+				OctaneResponse response = testsService.pushTestsResult(new FileInputStream(resultFile));
+				testsPushRequestId = response.getBody();
+				if (response.getStatus() == 200 && testsPushRequestId != null && !testsPushRequestId.isEmpty()) {
+					logger.info("successfully pushed test results of '" + item.getProjectName() + " #" + item.getBuildNumber() + "'");
+					audit(configuration, run, testsPushRequestId, false);
+					queue.remove();
+				} else if (response.getStatus() == 503) {
+					logger.error("server temporarily unavailable, will retry later");
+					audit(configuration, run, null, true);
+					retryModel.failure();
+					break;
+				} else {
+					logger.error("unexpected result while pushing test results of '" + item.getProjectName() + " #" + item.getBuildNumber() + "': " +
+							response.getStatus() + " - " + response.getBody());
+					audit(configuration, run, null, false);
 					queue.remove();
 				}
-			} else {
-				logger.info("Test result not needed for build [" + item.getProjectName() + "#" + item.getBuildNumber() + "]");
-				queue.remove();
+			} catch (IOException ioe) {
+				logger.error("push test results failed - server temporarily unavailable, will retry later", ioe);
+				audit(configuration, run, null, true);
+				retryModel.failure();
+				break;
 			}
 		}
 	}
 
-	private void audit(OctaneConfiguration octaneConfiguration, Run build, String id, boolean temporarilyUnavailable) throws IOException, InterruptedException {
-		FilePath auditFile = new FilePath(new File(build.getRootDir(), TEST_AUDIT_FILE));
-		JSONArray audit;
-		if (auditFile.exists()) {
-			InputStream is = auditFile.read();
-			audit = JSONArray.fromObject(IOUtils.toString(is, "UTF-8"));
-			IOUtils.closeQuietly(is);
-		} else {
-			audit = new JSONArray();
+	private void audit(OctaneConfiguration octaneConfiguration, Run run, String id, boolean temporarilyUnavailable) {
+		try {
+			FilePath auditFile = new FilePath(new File(run.getRootDir(), TEST_AUDIT_FILE));
+			JSONArray audit;
+			if (auditFile.exists()) {
+				InputStream is = auditFile.read();
+				audit = JSONArray.fromObject(IOUtils.toString(is, "UTF-8"));
+				IOUtils.closeQuietly(is);
+			} else {
+				audit = new JSONArray();
+			}
+			JSONObject event = new JSONObject();
+			event.put("id", id);
+			event.put("pushed", id != null && !id.isEmpty());
+			event.put("date", DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(new Date()));
+			event.put("location", octaneConfiguration.getUrl());
+			event.put("sharedSpace", octaneConfiguration.getSharedSpace());
+			if (temporarilyUnavailable) {
+				event.put("temporarilyUnavailable", true);
+			}
+			audit.add(event);
+			auditFile.write(audit.toString(), "UTF-8");
+		} catch (IOException | InterruptedException e) {
+			logger.error("failed to create audit entry for  " + octaneConfiguration + "; " + run);
 		}
-		JSONObject event = new JSONObject();
-		event.put("id", id);
-		event.put("pushed", id != null && !id.isEmpty());
-		event.put("date", DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(new Date()));
-		event.put("location", octaneConfiguration.getUrl());
-		event.put("sharedSpace", octaneConfiguration.getSharedSpace());
-		if (temporarilyUnavailable) {
-			event.put("temporarilyUnavailable", true);
-		}
-		audit.add(event);
-		auditFile.write(audit.toString(), "UTF-8");
 	}
 
 	@Override
 	public long getRecurrencePeriod() {
-		String value = System.getProperty("MQM.TestDispatcher.Period");
+		String value = System.getProperty("Octane.TestDispatcher.Period");
 		if (!StringUtils.isEmpty(value)) {
 			return Long.valueOf(value);
 		}

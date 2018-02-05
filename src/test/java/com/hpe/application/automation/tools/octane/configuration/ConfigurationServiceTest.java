@@ -46,6 +46,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static org.junit.Assert.assertEquals;
@@ -64,6 +65,8 @@ public class ConfigurationServiceTest {
 
 	@Before
 	public void init() throws Exception {
+		logger.log(Level.FINE, "initializing configuration for test");
+
 		configurationParser = ExtensionUtil.getInstance(rule, ConfigurationParser.class);
 		password = Secret.fromString("password");
 

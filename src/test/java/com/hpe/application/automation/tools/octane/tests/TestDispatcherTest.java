@@ -69,6 +69,8 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -77,21 +79,25 @@ import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings({"squid:S2699", "squid:S3658", "squid:S2259", "squid:S1872", "squid:S2925", "squid:S109", "squid:S1607", "squid:S2698"})
 public class TestDispatcherTest {
+	private static final Logger logger = Logger.getLogger(TestDispatcherTest.class.getName());
 
 	private static int octaneServerMockPort;
 	private static String sharedSpaceId = TestDispatcherTest.class.getSimpleName();
 	private static TestApiPreflightHandler testApiPreflightHandler = new TestApiPreflightHandler();
 	private static TestApiPushTestsResultHandler testApiPushTestsResultHandler = new TestApiPushTestsResultHandler();
 	private static AbstractProject project;
+	private static TestDispatcher testDispatcher;
 	private static TestQueue queue;
 
 	@ClassRule
 	public static final JenkinsRule rule = new JenkinsRule();
 
+	static {
+		System.setProperty("Octane.TestDispatcher.Period", "1000");
+	}
 
 	@BeforeClass
 	public static void initClass() throws Exception {
-		System.setProperty("MQM.TestDispatcher.Period", "1000");
 
 		//  prepare project
 		Maven.MavenInstallation mavenInstallation = ToolInstallations.configureMaven3();
@@ -115,13 +121,7 @@ public class TestDispatcherTest {
 				"");
 		ConfigurationService.configurePlugin(model);
 
-		TestDispatcher testDispatcher = ExtensionUtil.getInstance(rule, TestDispatcher.class);
-		queue = new TestQueue();
-		testDispatcher._setTestResultQueue(queue);
-		queue.waitForTicks(1); // needed to avoid occasional interaction with the client we just overrode (race condition)
-
-		RetryModel retryModel = new RetryModel();
-		testDispatcher._setRetryModel(retryModel);
+		testDispatcher = ExtensionUtil.getInstance(rule, TestDispatcher.class);
 	}
 
 	@AfterClass
@@ -131,16 +131,25 @@ public class TestDispatcherTest {
 		octaneServerMock.removeTestSpecificHandler(testApiPushTestsResultHandler);
 	}
 
+	@Before
+	public void prepareForTest() {
+		RetryModel retryModel = new RetryModel();
+		testDispatcher._setRetryModel(retryModel);
+
+		queue = new TestQueue();
+		testDispatcher._setTestResultQueue(queue);
+	}
+
 	@Test
 	public void testDispatcher() throws Exception {
-		testApiPreflightHandler.respondWithError = false;
+		testApiPreflightHandler.respondWithNegative = false;
 		testApiPreflightHandler.lastSessionHits = 0;
 		testApiPushTestsResultHandler.respondWithErrorFailsNumber = 0;
 		testApiPushTestsResultHandler.lastSessionHits = 0;
 		testApiPushTestsResultHandler.testResults.clear();
 
 		FreeStyleBuild build = executeBuild();
-		queue.waitForTicks(4);
+		testApiPushTestsResultHandler.resetAndWaitForNextDispatches(1, 10000);
 		assertEquals(1, testApiPreflightHandler.lastSessionHits);
 		assertEquals(testApiPushTestsResultHandler.testResults.get(0), IOUtils.toString(new FileInputStream(new File(build.getRootDir(), "mqmTests.xml"))));
 		verifyAudit(false, build, true);
@@ -148,7 +157,7 @@ public class TestDispatcherTest {
 		testApiPreflightHandler.lastSessionHits = 0;
 
 		FreeStyleBuild build2 = executeBuild();
-		queue.waitForTicks(4);
+		testApiPushTestsResultHandler.resetAndWaitForNextDispatches(1, 10000);
 		assertEquals(1, testApiPreflightHandler.lastSessionHits);
 		assertEquals(testApiPushTestsResultHandler.testResults.get(0), IOUtils.toString(new FileInputStream(new File(build2.getRootDir(), "mqmTests.xml"))));
 		verifyAudit(false, build2, true);
@@ -163,7 +172,7 @@ public class TestDispatcherTest {
 		FreeStyleBuild build2 = ((FreeStyleProject) project).scheduleBuild2(0).get();
 		FreeStyleBuild build3 = ((FreeStyleProject) project).scheduleBuild2(0).get();
 		queue.add(Arrays.asList(build1, build2, build3));
-		queue.waitForTicks(6);
+		testApiPushTestsResultHandler.resetAndWaitForNextDispatches(3, 20000);
 
 		assertEquals(3, testApiPreflightHandler.lastSessionHits);
 		assertEquals(testApiPushTestsResultHandler.testResults.get(0), IOUtils.toString(new FileInputStream(new File(build1.getRootDir(), "mqmTests.xml"))));
@@ -180,43 +189,33 @@ public class TestDispatcherTest {
 	}
 
 	@Test
-	public void testDispatcherSharedSpaceFailure() throws Exception {
+	public void testDispatcherTemporaryFailureRetryTest() throws Exception {
 		testApiPreflightHandler.lastSessionHits = 0;
-		testApiPreflightHandler.respondWithError = true;
+		testApiPushTestsResultHandler.respondWithErrorFailsNumber = 6;
+
 		FreeStyleBuild build = executeBuild();
-		queue.waitForTicks(4);
-		//System.out.println(String.format("OUR PRINT OUT 3 seconds: %s", testDispatcher._getTestResultQueue().periodIndex));
-		assertEquals(1, testApiPreflightHandler.lastSessionHits);
-		verifyAudit(false, build);
-		// starting quite period 3 seconds
+		testApiPushTestsResultHandler.resetAndWaitForNextDispatches(1, 5000);
+		assertEquals(1, testApiPushTestsResultHandler.lastSessionHits);
+		verifyAudit(true, build, false);
+
+		//  starting quite period of 3 seconds
 
 		executeBuild();
-		queue.waitForTicks(4);
-		//System.out.println(String.format("OUR PRINT OUT (tarting quite period 10 seconds): %s", testDispatcher._getTestResultQueue().periodIndex));
+		testApiPushTestsResultHandler.resetAndWaitForNextDispatches(1, 10000);
 
-		assertEquals(2, testApiPreflightHandler.lastSessionHits);
-		verifyAudit(false, build);
+		//  entering quite period of 10 seconds
 
-		//quite period 10 seconds
 		executeBuild();
-		queue.waitForTicks(4);
-		//System.out.println(String.format("OUR PRINT OUT (quite period  2 minutes): %s", testDispatcher._getTestResultQueue().periodIndex));
+
+		executeBuild();
+
+		//  entering quite period of 60 seconds
 
 		assertEquals(3, testApiPreflightHandler.lastSessionHits);
-		verifyAudit(false, build);
-
-		//quite period 2 minutes
-		executeBuild();
-		queue.waitForTicks(4);
-
-		//System.out.println(String.format("Entering validation", testDispatcher._getTestResultQueue().periodIndex));
-		//enter long quite period
-
-		assertEquals(4, testApiPreflightHandler.lastSessionHits);
-		//assertEquals(4, queue.size());
+		assertEquals(4, queue.size());
 
 		testApiPreflightHandler.lastSessionHits = 0;
-		testApiPreflightHandler.respondWithError = false;
+		testApiPreflightHandler.respondWithNegative = false;
 		testApiPushTestsResultHandler.testResults.clear();
 	}
 
@@ -224,18 +223,18 @@ public class TestDispatcherTest {
 	public void testDispatcherBodyFailure() throws Exception {
 		// body post fails for the first time, succeeds afterwards
 		//
-		testApiPreflightHandler.respondWithError = false;
+		testApiPreflightHandler.respondWithNegative = false;
 		testApiPreflightHandler.lastSessionHits = 0;
 		testApiPushTestsResultHandler.lastSessionHits = 0;
 		testApiPushTestsResultHandler.respondWithErrorFailsNumber = 1;
 		testApiPushTestsResultHandler.testResults.clear();
+
 		FreeStyleBuild build = executeBuild();
-		queue.waitForTicks(4);
+		testApiPushTestsResultHandler.resetAndWaitForNextDispatches(2, 10000);
 		assertEquals(2, testApiPreflightHandler.lastSessionHits);
 		assertEquals(2, testApiPushTestsResultHandler.lastSessionHits);
 		assertEquals(testApiPushTestsResultHandler.testResults.get(0), IOUtils.toString(new FileInputStream(new File(build.getRootDir(), "mqmTests.xml"))));
-		Thread.sleep(2000);
-		verifyAudit(false, build, false, true);
+		verifyAudit(true, build, false, true);
 
 		assertEquals(0, queue.size());
 		assertEquals(0, queue.getDiscards());
@@ -247,14 +246,13 @@ public class TestDispatcherTest {
 		testApiPushTestsResultHandler.respondWithErrorFailsNumber = 2;
 		testApiPushTestsResultHandler.testResults.clear();
 		build = executeBuild();
-		queue.waitForTicks(4);
+		testApiPushTestsResultHandler.resetAndWaitForNextDispatches(2, 15000);
 		assertEquals(2, testApiPreflightHandler.lastSessionHits);
 		assertEquals(2, testApiPushTestsResultHandler.lastSessionHits);
 		assertEquals(0, testApiPushTestsResultHandler.testResults.size());
-		verifyAudit(false, build, false, false);
+		verifyAudit(true, build, false, false);
 
-		assertEquals(0, queue.size());
-		assertEquals(1, queue.getDiscards());
+		assertEquals(1, queue.size());
 	}
 
 	@Test
@@ -270,7 +268,7 @@ public class TestDispatcherTest {
 		((MatrixProject) project).getPublishersList().add(new JUnitResultArchiver("**/target/surefire-reports/*.xml"));
 		project.setScm(new CopyResourceSCM("/helloWorldRoot"));
 
-		testApiPreflightHandler.respondWithError = false;
+		testApiPreflightHandler.respondWithNegative = false;
 		testApiPreflightHandler.lastSessionHits = 0;
 		testApiPushTestsResultHandler.respondWithErrorFailsNumber = 0;
 		testApiPushTestsResultHandler.lastSessionHits = 0;
@@ -280,7 +278,7 @@ public class TestDispatcherTest {
 		for (MatrixRun run : matrixBuild.getExactRuns()) {
 			queue.add("TestDispatcherMatrix/" + run.getParent().getName(), run.getNumber());
 		}
-		queue.waitForTicks(4);
+		testApiPushTestsResultHandler.resetAndWaitForNextDispatches(2, 10000);
 		for (int i = 0; i < matrixBuild.getExactRuns().size(); i++) {
 			MatrixRun run = matrixBuild.getExactRuns().get(i);
 			assertEquals(2, testApiPreflightHandler.lastSessionHits);
@@ -294,31 +292,31 @@ public class TestDispatcherTest {
 	}
 
 	@Test
-	@Ignore
 	public void testDispatcherTemporarilyUnavailable() throws Exception {
-		testApiPreflightHandler.respondWithError = false;
+		testApiPreflightHandler.respondWithNegative = false;
 		testApiPreflightHandler.lastSessionHits = 0;
 		testApiPushTestsResultHandler.respondWithErrorFailsNumber = 0;
 		testApiPushTestsResultHandler.lastSessionHits = 0;
 		testApiPushTestsResultHandler.testResults.clear();
-		queue.waitForTicks(1);
+
+		RetryModel retryModel = new RetryModel(2, 2, 2, 2, 2, 2, 2, 2, 2);
+		testDispatcher._setRetryModel(retryModel);
 
 		//  one successful push
 		FreeStyleBuild build1 = executeBuild();
-		queue.waitForTicks(4);
+		testApiPushTestsResultHandler.resetAndWaitForNextDispatches(1, 10000);
 
 		//  session of failures
 		testApiPushTestsResultHandler.respondWithErrorFailsNumber = 5;
 		FreeStyleBuild build2 = executeBuild();
-		queue.waitForTicks(4);
+		testApiPushTestsResultHandler.resetAndWaitForNextDispatches(6, 50000);
 
-		assertEquals(3, testApiPreflightHandler.lastSessionHits);           // actually should be 7
+		assertEquals(7, testApiPreflightHandler.lastSessionHits);
+		assertEquals(7, testApiPushTestsResultHandler.lastSessionHits);
+
 		assertEquals(testApiPushTestsResultHandler.testResults.get(0), IOUtils.toString(new FileInputStream(new File(build1.getRootDir(), "mqmTests.xml"))));
 		verifyAudit(false, build1, true);
-
-		assertEquals(7, testApiPushTestsResultHandler.lastSessionHits);
 		assertEquals(testApiPushTestsResultHandler.testResults.get(1), IOUtils.toString(new FileInputStream(new File(build2.getRootDir(), "mqmTests.xml"))));
-		Thread.sleep(1000);//sleep allows to all audits to be written
 		verifyAudit(true, build2, false, false, false, false, false, true);
 
 		assertEquals(0, queue.size());
@@ -360,9 +358,27 @@ public class TestDispatcherTest {
 		}
 	}
 
-	private static final class TestApiPreflightHandler extends OctaneServerMock.TestSpecificHandler {
+	private static abstract class TDTHandlersBase extends OctaneServerMock.TestSpecificHandler {
+		volatile int dispatchesCounterForWait;
+
+		void resetAndWaitForNextDispatches(int numberOfDispatches, int maxMillisToWait) {
+			dispatchesCounterForWait = 0;
+			long startTime = System.currentTimeMillis();
+			while (dispatchesCounterForWait < numberOfDispatches && maxMillisToWait > System.currentTimeMillis() - startTime) {
+				try {
+					Thread.sleep(200);
+				} catch (InterruptedException ie) {
+					logger.log(Level.WARNING, "interrupted during a wait for dispatches");
+				}
+			}
+			assertEquals("verifying that reached the desired number of dispatches", numberOfDispatches, dispatchesCounterForWait);
+			logger.log(Level.INFO, numberOfDispatches + " dispatch round/s reached in ~" + (System.currentTimeMillis() - startTime) + "ms");
+		}
+	}
+
+	private static final class TestApiPreflightHandler extends TDTHandlersBase {
 		private int lastSessionHits = 0;
-		private boolean respondWithError = false;
+		private boolean respondWithNegative = false;
 
 		@Override
 		public boolean ownsUrlToProcess(String url) {
@@ -375,7 +391,7 @@ public class TestDispatcherTest {
 			if (baseRequest.getPathInfo().endsWith("/analytics/ci/servers/tests-result-preflight-base64")) {
 				response.setStatus(HttpServletResponse.SC_OK);
 			} else if (baseRequest.getPathInfo().endsWith("/jobs/" + Base64.encodeBase64String(project.getName().getBytes()) + "/tests-result-preflight")) {
-				if (respondWithError) {
+				if (respondWithNegative) {
 					response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 				} else {
 					response.setStatus(HttpServletResponse.SC_OK);
@@ -383,10 +399,14 @@ public class TestDispatcherTest {
 				}
 				lastSessionHits++;
 			}
+			synchronized (this) {
+				dispatchesCounterForWait++;
+			}
 		}
+
 	}
 
-	private static final class TestApiPushTestsResultHandler extends OctaneServerMock.TestSpecificHandler {
+	private static final class TestApiPushTestsResultHandler extends TDTHandlersBase {
 		private List<String> testResults = new LinkedList<>();
 		private int lastSessionHits = 0;
 		private int respondWithErrorFailsNumber = 0;
@@ -403,10 +423,13 @@ public class TestDispatcherTest {
 				response.setStatus(HttpServletResponse.SC_OK);
 				response.getWriter().write(String.valueOf(1L));
 			} else {
-				response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+				response.setStatus(503);
 				respondWithErrorFailsNumber--;
 			}
 			lastSessionHits++;
+			synchronized (this) {
+				dispatchesCounterForWait++;
+			}
 		}
 	}
 }

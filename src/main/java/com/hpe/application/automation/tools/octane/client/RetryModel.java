@@ -41,68 +41,68 @@ import hudson.util.TimeUnit2;
 
 @Extension
 public class RetryModel implements ConfigurationListener {
+	private static final long[] QUIET_PERIOD_DURATION = {3, 10, 60, 120};
 
-    private static final long[] QUIET_PERIOD_DURATION = { 3, 10, 2 };
+	private long[] QUIET_PERIOD = {
+			TimeUnit2.SECONDS.toMillis(QUIET_PERIOD_DURATION[0]),
+			TimeUnit2.SECONDS.toMillis(QUIET_PERIOD_DURATION[1]),
+			TimeUnit2.SECONDS.toMillis(QUIET_PERIOD_DURATION[2]),
+			TimeUnit2.SECONDS.toMillis(QUIET_PERIOD_DURATION[3])
+	};
 
-    private long[] QUIET_PERIOD = {
-            TimeUnit2.SECONDS.toMillis(QUIET_PERIOD_DURATION[0]),
-            TimeUnit2.SECONDS.toMillis(QUIET_PERIOD_DURATION[1]),
-            TimeUnit2.MINUTES.toMillis(QUIET_PERIOD_DURATION[2])
-    };
+	private long boundary;
+	private int periodIndex;
 
-    private long boundary;
-    private int periodIndex;
+	private TimeProvider timeProvider = new SystemTimeProvider();
 
-    private TimeProvider timeProvider = new SystemTimeProvider();
+	@Inject
+	public RetryModel() {
+		doSuccess();
+	}
 
-    @Inject
-    public RetryModel() {
-        doSuccess();
-    }
+	public RetryModel(long... quietPeriods) {
+		doSuccess();
+		QUIET_PERIOD = quietPeriods;
+	}
 
-    public RetryModel(long... quietPeriods) {
-        doSuccess();
-        QUIET_PERIOD = quietPeriods;
-    }
+	public synchronized boolean isQuietPeriod() {
+		return timeProvider.getTime() < boundary;
+	}
 
-    public synchronized boolean isQuietPeriod() {
-        return timeProvider.getTime() < boundary;
-    }
+	public synchronized void failure() {
+		if (periodIndex < QUIET_PERIOD.length - 1) {
+			periodIndex++;
+		}
+		boundary = timeProvider.getTime() + QUIET_PERIOD[periodIndex];
+	}
 
-    public synchronized void failure() {
-        if (periodIndex < QUIET_PERIOD.length - 1) {
-            periodIndex++;
-        }
-        boundary = timeProvider.getTime() + QUIET_PERIOD[periodIndex];
-    }
+	public void success() {
+		doSuccess();
+	}
 
-    public void success() {
-        doSuccess();
-    }
+	private synchronized void doSuccess() {
+		periodIndex = -1;
+		boundary = 0;
+	}
 
-    private synchronized void doSuccess() {
-        periodIndex = -1;
-        boundary = 0;
-    }
+	@Override
+	public void onChanged(ServerConfiguration conf, ServerConfiguration oldConf) {
+		doSuccess();
+	}
 
-    @Override
-    public void onChanged(ServerConfiguration conf, ServerConfiguration oldConf) {
-        doSuccess();
-    }
+	void setTimeProvider(TimeProvider timeProvider) {
+		this.timeProvider = timeProvider;
+	}
 
-    void setTimeProvider(TimeProvider timeProvider) {
-        this.timeProvider = timeProvider;
-    }
+	private static class SystemTimeProvider implements TimeProvider {
 
-    private static class SystemTimeProvider implements TimeProvider {
+		@Override
+		public long getTime() {
+			return System.currentTimeMillis();
+		}
+	}
 
-        @Override
-        public long getTime() {
-            return System.currentTimeMillis();
-        }
-    }
-
-    interface TimeProvider {
-        long getTime();
-    }
+	interface TimeProvider {
+		long getTime();
+	}
 }
