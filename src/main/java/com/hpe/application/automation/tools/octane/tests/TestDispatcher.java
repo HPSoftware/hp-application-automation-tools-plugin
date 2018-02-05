@@ -41,7 +41,6 @@ import com.hp.octane.integrations.dto.connectivity.OctaneResponse;
 import com.hpe.application.automation.tools.octane.tests.build.BuildHandlerUtils;
 import com.hp.mqm.client.exception.FileNotFoundException;
 import com.hp.mqm.client.exception.RequestException;
-import com.hp.mqm.client.exception.TemporarilyUnavailableException;
 import com.hpe.application.automation.tools.octane.ResultQueue;
 import com.hpe.application.automation.tools.octane.client.RetryModel;
 import com.hpe.application.automation.tools.octane.configuration.ConfigurationService;
@@ -59,7 +58,6 @@ import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.util.Date;
 
