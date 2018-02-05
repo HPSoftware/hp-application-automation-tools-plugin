@@ -233,6 +233,7 @@ public class TestDispatcherTest {
 		assertEquals(2, testApiPreflightHandler.lastSessionHits);
 		assertEquals(2, testApiPushTestsResultHandler.lastSessionHits);
 		assertEquals(testApiPushTestsResultHandler.testResults.get(0), IOUtils.toString(new FileInputStream(new File(build.getRootDir(), "mqmTests.xml"))));
+		Thread.sleep(2000);
 		verifyAudit(false, build, false, true);
 
 		Assert.assertEquals(0, queue.size());
