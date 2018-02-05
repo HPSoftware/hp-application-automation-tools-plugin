@@ -191,10 +191,12 @@ public class TestDispatcherTest {
 	@Test
 	public void testDispatcherTemporaryFailureRetryTest() throws Exception {
 		testApiPreflightHandler.lastSessionHits = 0;
+		testApiPushTestsResultHandler.lastSessionHits = 0;
 		testApiPushTestsResultHandler.respondWithErrorFailsNumber = 6;
 
 		FreeStyleBuild build = executeBuild();
 		testApiPushTestsResultHandler.resetAndWaitForNextDispatches(1, 5000);
+		assertEquals(1, testApiPreflightHandler.lastSessionHits);
 		assertEquals(1, testApiPushTestsResultHandler.lastSessionHits);
 		verifyAudit(true, build, false);
 
@@ -212,10 +214,11 @@ public class TestDispatcherTest {
 		//  entering quite period of 60 seconds
 
 		assertEquals(3, testApiPreflightHandler.lastSessionHits);
+		assertEquals(3, testApiPushTestsResultHandler.lastSessionHits);
 		assertEquals(4, queue.size());
 
 		testApiPreflightHandler.lastSessionHits = 0;
-		testApiPreflightHandler.respondWithNegative = false;
+		testApiPushTestsResultHandler.lastSessionHits = 0;
 		testApiPushTestsResultHandler.testResults.clear();
 	}
 
