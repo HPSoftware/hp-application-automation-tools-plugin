@@ -94,8 +94,8 @@
 	</issueManagement>
 
 	<organization>
-		<name>HPE</name>
-		<url>http://www.hpe.com</url>
+		<name>Micro Focus</name>
+		<url>http://www.microfocus.com</url>
 	</organization>
 
 	<developers>
@@ -324,7 +324,6 @@
 					</excludes>
 				</configuration>
 			</plugin>
-
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>animal-sniffer-maven-plugin</artifactId>
@@ -337,7 +336,6 @@
 					</signature>
 				</configuration>
 			</plugin>
-
 		</plugins>
 
 	</build>
