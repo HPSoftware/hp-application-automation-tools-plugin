@@ -419,7 +419,7 @@ public class TestDispatcherTest {
 		public void handle(String s, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
 			if (respondWithErrorFailsNumber == 0) {
 				testResults.add(getBodyAsString(baseRequest));
-				response.setStatus(HttpServletResponse.SC_OK);
+				response.setStatus(HttpServletResponse.SC_ACCEPTED);
 				response.getWriter().write(String.valueOf(1L));
 			} else {
 				response.setStatus(503);

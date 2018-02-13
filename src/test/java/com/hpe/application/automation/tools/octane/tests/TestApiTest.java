@@ -185,7 +185,7 @@ public class TestApiTest {
 		@Override
 		public void handle(String s, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
 			testResults.add(getBodyAsString(baseRequest));
-			response.setStatus(HttpServletResponse.SC_OK);
+			response.setStatus(HttpServletResponse.SC_ACCEPTED);
 			response.getWriter().write(String.valueOf(pushTestResultId));
 		}
 	}
