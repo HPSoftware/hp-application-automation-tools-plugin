@@ -33,7 +33,6 @@
 
 package com.hpe.application.automation.tools.octane.tests;
 
-import com.hp.octane.integrations.util.CIPluginSDKUtils;
 import com.hpe.application.automation.tools.model.OctaneServerSettingsModel;
 import com.hpe.application.automation.tools.octane.OctaneServerMock;
 import com.hpe.application.automation.tools.octane.client.RetryModel;
@@ -53,7 +52,6 @@ import hudson.tasks.junit.JUnitResultArchiver;
 import hudson.util.Secret;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.jetty.server.Request;
 import org.junit.*;
@@ -386,12 +384,12 @@ public class TestDispatcherTest {
 
 		@Override
 		public boolean ownsUrlToProcess(String url) {
-			return url.endsWith("/jobs/" + CIPluginSDKUtils.urlEncodePathParam(project.getName()) + "/tests-result-preflight");
+			return url.endsWith("/jobs/" + project.getName() + "/tests-result-preflight");
 		}
 
 		@Override
 		public void handle(String s, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
-			if (baseRequest.getPathInfo().endsWith("/jobs/" + CIPluginSDKUtils.urlEncodePathParam(project.getName()) + "/tests-result-preflight")) {
+			if (baseRequest.getPathInfo().endsWith("/jobs/" + project.getName() + "/tests-result-preflight")) {
 				if (respondWithNegative) {
 					response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 				} else {
