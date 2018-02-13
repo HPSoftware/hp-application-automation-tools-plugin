@@ -136,7 +136,7 @@ public class TestDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
 				String testsPushRequestId;
 				OctaneResponse response = testsService.pushTestsResult(new FileInputStream(resultFile));
 				testsPushRequestId = response.getBody();
-				if (response.getStatus() == 200 && testsPushRequestId != null && !testsPushRequestId.isEmpty()) {
+				if (response.getStatus() == 202 && testsPushRequestId != null && !testsPushRequestId.isEmpty()) {
 					logger.info("successfully pushed test results of '" + item.getProjectName() + " #" + item.getBuildNumber() + "'");
 					audit(configuration, run, testsPushRequestId, false);
 					queue.remove();
