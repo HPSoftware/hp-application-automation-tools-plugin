@@ -33,7 +33,9 @@
 
 package com.hpe.application.automation.tools.octane.tests;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gargoylesoftware.htmlunit.Page;
+import com.hp.octane.integrations.api.RestService;
 import com.hpe.application.automation.tools.model.OctaneServerSettingsModel;
 import com.hpe.application.automation.tools.octane.OctaneServerMock;
 import com.hpe.application.automation.tools.octane.client.RetryModel;
@@ -179,14 +181,17 @@ public class TestApiTest {
 
 		@Override
 		public boolean ownsUrlToProcess(String url) {
-			return ("/internal-api/shared_spaces/" + sharedSpaceId + "/analytics/ci/test-results").equals(url);
+			return (RestService.SHARED_SPACE_INTERNAL_API_PATH_PART + sharedSpaceId + RestService.ANALYTICS_CI_PATH_PART + "test-results").equals(url);
 		}
 
 		@Override
 		public void handle(String s, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
 			testResults.add(getBodyAsString(baseRequest));
+			TestDispatcher.TestsPushResponseDTO body = new TestDispatcher.TestsPushResponseDTO();
+			body.id = String.valueOf(pushTestResultId);
+			body.status = "queued";
 			response.setStatus(HttpServletResponse.SC_ACCEPTED);
-			response.getWriter().write(String.valueOf(pushTestResultId));
+			response.getWriter().write(new ObjectMapper().writeValueAsString(body));
 		}
 	}
 
@@ -194,7 +199,7 @@ public class TestApiTest {
 
 		@Override
 		public boolean ownsUrlToProcess(String url) {
-			return ("/internal-api/shared_spaces/" + sharedSpaceId + "/analytics/ci/test-results/" + pushTestResultId + "/log").equals(url);
+			return (RestService.SHARED_SPACE_INTERNAL_API_PATH_PART + sharedSpaceId + RestService.ANALYTICS_CI_PATH_PART + "test-results/" + pushTestResultId + "/log").equals(url);
 		}
 
 		@Override

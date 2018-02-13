@@ -33,6 +33,8 @@
 
 package com.hpe.application.automation.tools.octane.tests;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hp.octane.integrations.api.RestService;
 import com.hpe.application.automation.tools.model.OctaneServerSettingsModel;
 import com.hpe.application.automation.tools.octane.OctaneServerMock;
 import com.hpe.application.automation.tools.octane.client.RetryModel;
@@ -412,15 +414,19 @@ public class TestDispatcherTest {
 
 		@Override
 		public boolean ownsUrlToProcess(String url) {
-			return ("/internal-api/shared_spaces/" + sharedSpaceId + "/analytics/ci/test-results").equals(url);
+			return (RestService.SHARED_SPACE_INTERNAL_API_PATH_PART + sharedSpaceId + RestService.ANALYTICS_CI_PATH_PART + "test-results").equals(url);
 		}
 
 		@Override
 		public void handle(String s, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
 			if (respondWithErrorFailsNumber == 0) {
 				testResults.add(getBodyAsString(baseRequest));
+				TestDispatcher.TestsPushResponseDTO body = new TestDispatcher.TestsPushResponseDTO();
+				body.id = String.valueOf(1);
+				body.status = "queued";
 				response.setStatus(HttpServletResponse.SC_ACCEPTED);
-				response.getWriter().write(String.valueOf(1L));
+				response.getWriter().write(new ObjectMapper().writeValueAsString(body));
+
 			} else {
 				response.setStatus(503);
 				respondWithErrorFailsNumber--;
