@@ -99,19 +99,11 @@ import java.util.regex.Pattern;
 public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 	private static final Logger logger = LogManager.getLogger(CIJenkinsServicesImpl.class);
 	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
-	private final Jenkins jenkins;
-
-	public CIJenkinsServicesImpl() {
-		jenkins = Jenkins.getInstance();
-		if (jenkins == null) {
-			throw new IllegalStateException("Jenkins instance is unexpectedly unavailable");
-		}
-	}
 
 	@Override
 	public CIServerInfo getServerInfo() {
 		CIServerInfo result = dtoFactory.newDTO(CIServerInfo.class);
-		String serverUrl = jenkins.getRootUrl();
+		String serverUrl = getJenkins().getRootUrl();
 		if (serverUrl != null && serverUrl.endsWith("/")) {
 			serverUrl = serverUrl.substring(0, serverUrl.length() - 1);
 		}
@@ -145,7 +137,7 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 
 	@Override
 	public File getAllowedOctaneStorage() {
-		return new File(jenkins.getRootDir(), "userContent");
+		return new File(getJenkins().getRootDir(), "userContent");
 	}
 
 	@Override
@@ -166,7 +158,7 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 	@Override
 	public CIProxyConfiguration getProxyConfiguration(String targetHost) {
 		CIProxyConfiguration result = null;
-		ProxyConfiguration proxy = jenkins.proxy;
+		ProxyConfiguration proxy = getJenkins().proxy;
 		if (proxy != null) {
 			boolean noProxyHost = false;
 			for (Pattern pattern : proxy.getNoProxyHostPatterns()) {
@@ -194,14 +186,14 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 		TopLevelItem tmpItem;
 		List<PipelineNode> list = new ArrayList<>();
 		try {
-			boolean hasReadPermission = jenkins.hasPermission(Item.READ);
+			boolean hasReadPermission = getJenkins().hasPermission(Item.READ);
 			if (!hasReadPermission) {
 				stopImpersonation(securityContext);
 				throw new PermissionException(403);
 			}
-			List<String> itemNames = (List<String>) jenkins.getTopLevelItemNames();
+			List<String> itemNames = (List<String>) getJenkins().getTopLevelItemNames();
 			for (String name : itemNames) {
-				tmpItem = jenkins.getItem(name);
+				tmpItem = getJenkins().getItem(name);
 
 				if (tmpItem == null) {
 					continue;
@@ -262,7 +254,7 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 	public PipelineNode getPipeline(String rootJobCiId) {
 		PipelineNode result;
 		SecurityContext securityContext = startImpersonation();
-		boolean hasRead = jenkins.hasPermission(Item.READ);
+		boolean hasRead = getJenkins().hasPermission(Item.READ);
 		if (!hasRead) {
 			stopImpersonation(securityContext);
 			throw new PermissionException(403);
@@ -364,6 +356,7 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 	}
 
 	@Override
+	@Deprecated
 	public BuildHistory getHistoryPipeline(String jobCiId, String originalBody) {
 		SecurityContext securityContext = startImpersonation();
 		BuildHistory buildHistory = dtoFactory.newDTO(BuildHistory.class);
@@ -564,7 +557,7 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 	private TopLevelItem getTopLevelItem(String jobRefId) {
 		TopLevelItem item;
 		try {
-			item = jenkins.getItem(jobRefId);
+			item = getJenkins().getItem(jobRefId);
 		} catch (AccessDeniedException e) {
 			String user = ConfigurationService.getModel().getImpersonatedUser();
 			if (user != null && !user.isEmpty()) {
@@ -625,6 +618,14 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 		} finally {
 			stopImpersonation(securityContext);
 		}
+	}
+
+	private Jenkins getJenkins() {
+		Jenkins result = Jenkins.getInstance();
+		if (result == null) {
+			throw new IllegalStateException("Jenkins instance is not available");
+		}
+		return result;
 	}
 
 }
