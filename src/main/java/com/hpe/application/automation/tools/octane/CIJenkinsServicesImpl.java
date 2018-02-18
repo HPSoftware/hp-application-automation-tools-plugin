@@ -236,7 +236,6 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 					}
 				} catch (Throwable e) {
 					logger.error("Failed to add job '" + name + "' to JobList  : " + e.getClass().getCanonicalName() + " - " + e.getMessage(), e);
-					//throw e;
 				}
 
 			}
