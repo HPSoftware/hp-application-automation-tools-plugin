@@ -107,6 +107,13 @@ public class UFTTestDetectionService {
                 printToConsole(buildListener, String.format("Found %s deleted data tables", result.getDeletedScmResourceFiles().size()));
             }
 
+            if (result.isHasQuotedPaths()) {
+                printToConsole(buildListener, "This run may not have discovered all updated tests. \n" +
+                        "It seems that the changes in this build included filenames with Unicode characters, which Git did not list correctly.\n" +
+                        "To make sure Git can properly list such file names, configure Git as follows : git config --global core.quotepath false\n" +
+                        "To discover the updated tests that were missed in this run and send them to ALM Octane, run this job manually with the \"Full sync\" parameter selected.\n");
+            }
+
             result.setScmRepositoryId(scmRepositoryId);
             result.setWorkspaceId(workspaceId);
             result.setFullScan(fullScan);
@@ -231,6 +238,9 @@ public class UFTTestDetectionService {
         for (int i = 0; i < changeSetItems.length; i++) {
             GitChangeSet changeSet = (GitChangeSet) changeSetItems[i];
             for (GitChangeSet.Path path : changeSet.getPaths()) {
+                if(path.getPath().startsWith("\"")){
+                    result.setHasQuotedPaths(true);
+                }
                 String fileFullPath = workspace + File.separator + path.getPath();
                 if (isTestMainFilePath(path.getPath())) {
 
