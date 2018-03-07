@@ -87,7 +87,7 @@ public class ExecutorConnectivityService {
             BaseStandardCredentials credentials = null;
             if (StringUtils.isNotEmpty(testConnectivityInfo.getUsername()) && testConnectivityInfo.getPassword() != null) {
                 credentials = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, null, null, testConnectivityInfo.getUsername(), testConnectivityInfo.getPassword());
-            } else if (StringUtils.isEmpty(testConnectivityInfo.getCredentialsId())) {
+            } else if (StringUtils.isNotEmpty(testConnectivityInfo.getCredentialsId())) {
                 credentials = getCredentialsById(testConnectivityInfo.getCredentialsId());
             }
 
