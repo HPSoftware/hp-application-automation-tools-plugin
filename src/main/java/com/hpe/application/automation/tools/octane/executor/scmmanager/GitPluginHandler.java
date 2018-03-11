@@ -71,7 +71,7 @@ public class GitPluginHandler implements ScmPluginHandler {
             RelativeTargetDirectory targetDirectory = new RelativeTargetDirectory(relativeCheckOut);
             extensions = Arrays.<GitSCMExtension>asList(targetDirectory);
         }
-        GitSCM scm = new GitSCM(repoLists, Collections.singletonList(new BranchSpec("refs/heads/master")), false, Collections.<SubmoduleConfig>emptyList(), null, null, extensions);
+        GitSCM scm = new GitSCM(repoLists, Collections.singletonList(new BranchSpec("*/master")), false, Collections.<SubmoduleConfig>emptyList(), null, null, extensions);
         proj.setScm(scm);
     }
 
