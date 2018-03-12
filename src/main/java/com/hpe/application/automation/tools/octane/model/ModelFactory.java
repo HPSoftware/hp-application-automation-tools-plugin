@@ -123,10 +123,10 @@ public class ModelFactory {
 			AbstractProjectProcessor flowProcessor = JobProcessorFactory.getFlowProcessor(build.getParent());
 			List<PipelinePhase> tmpPipelinePhasesInternals = flowProcessor.getInternals();
 			List<PipelinePhase> tmpPipelinePhasesPostBuilds = flowProcessor.getPostBuilds();
-			ArrayList<String> invokeesNames = new ArrayList<>();
+			List<String> invokeesNames = new ArrayList<>();
 			appendInvokeesNames(invokeesNames, tmpPipelinePhasesInternals);
 			appendInvokeesNames(invokeesNames, tmpPipelinePhasesPostBuilds);
-			Map<String, ArrayList<Run>> invokedBuilds = getInvokedBuilds(build, invokeesNames);
+			Map<String, List<Run>> invokedBuilds = getInvokedBuilds(build, invokeesNames);
 			snapshotNode.setPhasesInternal((inflatePhases(tmpPipelinePhasesInternals, invokedBuilds)));
 			snapshotNode.setPhasesPostBuild(inflatePhases(tmpPipelinePhasesPostBuilds, invokedBuilds));
 		}
@@ -162,7 +162,7 @@ public class ModelFactory {
 		return snapshotNode;
 	}
 
-	private static void appendInvokeesNames(ArrayList<String> list, List<PipelinePhase> phases) {
+	private static void appendInvokeesNames(List<String> list, List<PipelinePhase> phases) {
 		for (PipelinePhase phase : phases) {
 			for (PipelineNode item : phase.getJobs()) {
 				if (item != null) {
@@ -174,8 +174,8 @@ public class ModelFactory {
 		}
 	}
 
-	private static Map<String, ArrayList<Run>> getInvokedBuilds(Run self, ArrayList<String> invokeesNames) {
-		Map<String, ArrayList<Run>> result = new HashMap<>();
+	private static Map<String, List<Run>> getInvokedBuilds(Run self, List<String> invokeesNames) {
+		Map<String, List<Run>> result = new HashMap<>();
 		Job run;
 		for (String invokeeName : invokeesNames) {
 			run = (Job) Jenkins.getInstance().getItem(invokeeName);
@@ -185,8 +185,8 @@ public class ModelFactory {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static ArrayList<Run> getInvokees(Run invoker, Job job) {
-		ArrayList<Run> result = new ArrayList<>();
+	private static List<Run> getInvokees(Run invoker, Job job) {
+		List<Run> result = new ArrayList<>();
 		Cause.UpstreamCause tmpCause;
 		for (Object o : job.getBuilds()) {
 			Run tmpRun = (Run) o;
@@ -204,7 +204,7 @@ public class ModelFactory {
 		return result;
 	}
 
-	private static List<SnapshotPhase> inflatePhases(List<PipelinePhase> structures, Map<String, ArrayList<Run>> invokedBuilds) {
+	private static List<SnapshotPhase> inflatePhases(List<PipelinePhase> structures, Map<String, List<Run>> invokedBuilds) {
 		List<SnapshotPhase> phases = new ArrayList<>();
 		for (int i = 0; i < structures.size(); i++) {
 			phases.add(i, createSnapshotPhase(structures.get(i), invokedBuilds));
@@ -212,7 +212,7 @@ public class ModelFactory {
 		return phases;
 	}
 
-	private static SnapshotPhase createSnapshotPhase(PipelinePhase pipelinePhase, Map<String, ArrayList<Run>> invokedBuilds) {
+	private static SnapshotPhase createSnapshotPhase(PipelinePhase pipelinePhase, Map<String, List<Run>> invokedBuilds) {
 		SnapshotPhase snapshotPhase = dtoFactory.newDTO(SnapshotPhase.class);
 		snapshotPhase.setName(pipelinePhase.getName());
 		snapshotPhase.setBlocking(pipelinePhase.isBlocking());
@@ -284,7 +284,6 @@ public class ModelFactory {
 
 		return ciParameter;
 	}
-
 
 	public static CIParameter createParameterInstance(CIParameter pc, Object rawValue) {
 		String value = rawValue == null ? null : rawValue.toString();
