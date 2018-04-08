@@ -36,7 +36,10 @@ package com.hpe.application.automation.tools.octane.executor;
 import hudson.model.Cause;
 
 /**
- * Representing FullSyncRequiredCause
+ * FullSyncRequiredCause
+ * Informational class for full sync case.
+ * Used for SVN SCM delete action : in this case we don't receive inforamtion about deleted files,
+ * therefore full sync required to update ALM Octane entities correctly 
  */
 public class FullSyncRequiredCause extends Cause {
 
