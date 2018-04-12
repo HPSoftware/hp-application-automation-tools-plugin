@@ -49,7 +49,9 @@ public class WorkFlowUtils {
                 return CIBuildResult.UNSTABLE;
             case ABORTED:
                 return CIBuildResult.ABORTED;
+            default:
+                return CIBuildResult.UNAVAILABLE;
         }
-        return CIBuildResult.UNAVAILABLE;
+
     }
 }
