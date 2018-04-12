@@ -35,7 +35,6 @@ package com.hpe.application.automation.tools.octane.workflow;
 
 
 import com.cloudbees.workflow.rest.external.StageNodeExt;
-import com.cloudbees.workflow.rest.external.StatusExt;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.causes.CIEventCause;
 import com.hp.octane.integrations.dto.causes.CIEventCauseType;
@@ -43,7 +42,6 @@ import com.hp.octane.integrations.dto.causes.CIEventCauseType;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.PhaseType;
-import com.hp.octane.integrations.dto.snapshots.CIBuildResult;
 import com.hpe.application.automation.tools.octane.events.EventsService;
 import com.hpe.application.automation.tools.octane.model.CIEventCausesFactory;
 import com.hpe.application.automation.tools.octane.tests.build.BuildHandlerUtils;
@@ -142,7 +140,7 @@ public class WorkflowGraphListener implements GraphListener {
                     .setCauses(getCauses(parentRun))
                     .setDuration(previousStageNode.getDurationMillis())
                     .setEstimatedDuration(previousStageNode.getDurationMillis())
-                    .setResult(convertStatus(previousStageNode.getStatus()));
+                    .setResult(WorkFlowUtils.convertStatus(previousStageNode.getStatus()));
 
             EventsService.getExtensionInstance().dispatchEvent(event);
             this.previousStage = null;
@@ -150,21 +148,6 @@ public class WorkflowGraphListener implements GraphListener {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    private CIBuildResult convertStatus(StatusExt status) {
-
-        switch (status) {
-            case FAILED:
-                return CIBuildResult.FAILURE;
-            case SUCCESS:
-                return CIBuildResult.SUCCESS;
-            case UNSTABLE:
-                return CIBuildResult.UNSTABLE;
-            case ABORTED:
-                return CIBuildResult.ABORTED;
-        }
-        return CIBuildResult.UNAVAILABLE;
     }
 
     private List<CIEventCause> getCauses(WorkflowRun parentRun) {
