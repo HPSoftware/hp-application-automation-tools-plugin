@@ -35,6 +35,7 @@ package com.hpe.application.automation.tools.octane.workflow;
 
 
 import com.cloudbees.workflow.rest.external.StageNodeExt;
+import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.causes.CIEventCause;
 import com.hp.octane.integrations.dto.causes.CIEventCauseType;
@@ -42,7 +43,6 @@ import com.hp.octane.integrations.dto.causes.CIEventCauseType;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.PhaseType;
-import com.hpe.application.automation.tools.octane.events.EventsService;
 import com.hpe.application.automation.tools.octane.model.CIEventCausesFactory;
 import com.hpe.application.automation.tools.octane.tests.build.BuildHandlerUtils;
 import hudson.Extension;
@@ -142,7 +142,7 @@ public class WorkflowGraphListener implements GraphListener {
                     .setEstimatedDuration(previousStageNode.getDurationMillis())
                     .setResult(WorkFlowUtils.convertStatus(previousStageNode.getStatus()));
 
-            EventsService.getExtensionInstance().dispatchEvent(event);
+            OctaneSDK.getInstance().getEventsService().publishEvent(event);
             this.previousStage = null;
 
         } catch (IOException e) {
@@ -178,7 +178,7 @@ public class WorkflowGraphListener implements GraphListener {
                     .setBuildCiId(BuildHandlerUtils.getBuildCiId(parentRun))
                     .setCauses(getCauses(parentRun));
 
-            EventsService.getExtensionInstance().dispatchEvent(event);
+            OctaneSDK.getInstance().getEventsService().publishEvent(event);
             previousStage = stageNode;
         } catch (IOException e) {
             e.printStackTrace();

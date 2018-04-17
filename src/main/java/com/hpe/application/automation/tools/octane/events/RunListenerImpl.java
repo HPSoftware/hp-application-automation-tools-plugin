@@ -45,7 +45,6 @@ import com.hp.octane.integrations.dto.pipelines.PipelinePhase;
 import com.hp.octane.integrations.dto.snapshots.CIBuildResult;
 import com.hpe.application.automation.tools.octane.configuration.ConfigurationService;
 import com.hpe.application.automation.tools.octane.model.CIEventCausesFactory;
-import com.hpe.application.automation.tools.octane.model.processors.builders.WorkFlowRunProcessor;
 import com.hpe.application.automation.tools.octane.model.processors.parameters.ParameterProcessors;
 import com.hpe.application.automation.tools.octane.model.processors.projects.JobProcessorFactory;
 import com.hpe.application.automation.tools.octane.model.processors.scm.SCMProcessor;
