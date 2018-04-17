@@ -34,17 +34,22 @@
 package com.hpe.application.automation.tools.octane.events;
 
 import com.google.inject.Inject;
+import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
+import com.hp.octane.integrations.dto.events.MultiBranchType;
 import com.hp.octane.integrations.dto.events.PhaseType;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.pipelines.PipelinePhase;
 import com.hp.octane.integrations.dto.snapshots.CIBuildResult;
 import com.hpe.application.automation.tools.octane.configuration.ConfigurationService;
 import com.hpe.application.automation.tools.octane.model.CIEventCausesFactory;
+import com.hpe.application.automation.tools.octane.model.processors.builders.WorkFlowRunProcessor;
 import com.hpe.application.automation.tools.octane.model.processors.parameters.ParameterProcessors;
 import com.hpe.application.automation.tools.octane.model.processors.projects.JobProcessorFactory;
+import com.hpe.application.automation.tools.octane.model.processors.scm.SCMProcessor;
+import com.hpe.application.automation.tools.octane.model.processors.scm.SCMProcessors;
 import com.hpe.application.automation.tools.octane.tests.TestListener;
 import com.hpe.application.automation.tools.octane.tests.build.BuildHandlerUtils;
 import hudson.Extension;
@@ -52,7 +57,9 @@ import hudson.matrix.MatrixConfiguration;
 import hudson.matrix.MatrixRun;
 import hudson.model.*;
 import hudson.model.listeners.RunListener;
+import hudson.scm.SCM;
 import jenkins.model.Jenkins;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -69,7 +76,7 @@ import java.util.concurrent.TimeUnit;
 
 @Extension
 @SuppressWarnings({"squid:S2259", "squid:S1872", "squid:S1698", "squid:S1132"})
-public final class RunListenerImpl extends RunListener<Run> {	
+public final class RunListenerImpl extends RunListener<Run> {
 	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
 	private ExecutorService executor = new ThreadPoolExecutor(0, 5, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
 
@@ -96,7 +103,15 @@ public final class RunListenerImpl extends RunListener<Run> {
 					.setPhaseType(PhaseType.POST)
 					.setEstimatedDuration(r.getEstimatedDuration())
 					.setCauses(CIEventCausesFactory.processCauses(extractCauses(r)));
-			EventsService.getExtensionInstance().dispatchEvent(event);
+
+			if (r.getParent().getParent() != null && r.getParent().getParent().getClass().getName().equals(JobProcessorFactory.WORKFLOW_MULTI_BRANCH_JOB_NAME)) {
+				event
+						.setParentCiId(r.getParent().getParent().getFullName())
+						.setMultiBranchType(MultiBranchType.MULTI_BRANCH_CHILD)
+						.setProjectDisplayName(r.getParent().getFullName());
+			}
+
+			OctaneSDK.getInstance().getEventsService().publishEvent(event);
 			//events on the internal stages of the workflowRun are handled in this place:
 			// com.hpe.application.automation.tools.octane.workflow.WorkflowGraphListener
 
@@ -117,7 +132,7 @@ public final class RunListenerImpl extends RunListener<Run> {
 				} else {
 					event.setPhaseType(PhaseType.POST);
 				}
-				EventsService.getExtensionInstance().dispatchEvent(event);
+				OctaneSDK.getInstance().getEventsService().publishEvent(event);
 			} else if (r instanceof AbstractBuild) {
 				event = dtoFactory.newDTO(CIEvent.class)
 						.setEventType(CIEventType.STARTED)
@@ -134,22 +149,52 @@ public final class RunListenerImpl extends RunListener<Run> {
 				} else {
 					event.setPhaseType(PhaseType.POST);
 				}
-				EventsService.getExtensionInstance().dispatchEvent(event);
+				OctaneSDK.getInstance().getEventsService().publishEvent(event);
 			}
 		}
 	}
 
 	@Override
 	public void onFinalized(Run r) {
-		if (!ConfigurationService.getServerConfiguration().isValid()) {
-			return;
-		}
-		if (ConfigurationService.getModel().isSuspend()) {
-			return;
-		}
+		if (onFinelizedValidations()) return;
+
+		SCMProcessor.CommonOriginRevision commonOriginRevision = getCommonOriginRevision(r);
 
 		boolean hasTests = testListener.processBuild(r);
 
+		CIBuildResult result;
+		result = getCiBuildResult(r);
+		CIEvent event = getCiEvent(r, commonOriginRevision, hasTests, result);
+
+		if (r instanceof AbstractBuild) {
+			event.setParameters(ParameterProcessors.getInstances(r))
+					.setProjectDisplayName(BuildHandlerUtils.getJobCiId(r));
+		}
+		OctaneSDK.getInstance().getEventsService().publishEvent(event);
+	}
+
+	private CIEvent getCiEvent(Run r, SCMProcessor.CommonOriginRevision commonOriginRevision, boolean hasTests, CIBuildResult result) {
+		return dtoFactory.newDTO(CIEvent.class)
+				.setEventType(CIEventType.FINISHED)
+				.setBuildCiId(BuildHandlerUtils.getBuildCiId(r))
+				.setNumber(String.valueOf(r.getNumber()))
+				.setProject(BuildHandlerUtils.getJobCiId(r))
+				.setStartTime(r.getStartTimeInMillis())
+				.setEstimatedDuration(r.getEstimatedDuration())
+				.setCauses(CIEventCausesFactory.processCauses(extractCauses(r)))
+				.setResult(result)
+				.setDuration(r.getDuration())
+				.setCommonHashId(commonOriginRevision != null ? commonOriginRevision.revision : null)
+				.setBranchName(commonOriginRevision != null ? commonOriginRevision.branch : null)
+				.setTestResultExpected(hasTests);
+	}
+
+	private boolean onFinelizedValidations() {
+		return (!ConfigurationService.getServerConfiguration().isValid() ||
+				ConfigurationService.getModel().isSuspend());
+	}
+
+	private CIBuildResult getCiBuildResult(Run r) {
 		CIBuildResult result;
 		if (r.getResult() == Result.SUCCESS) {
 			result = CIBuildResult.SUCCESS;
@@ -162,23 +207,21 @@ public final class RunListenerImpl extends RunListener<Run> {
 		} else {
 			result = CIBuildResult.UNAVAILABLE;
 		}
-		CIEvent event = dtoFactory.newDTO(CIEvent.class)
-				.setEventType(CIEventType.FINISHED)
-				.setBuildCiId(BuildHandlerUtils.getBuildCiId(r))
-				.setNumber(String.valueOf(r.getNumber()))
-				.setProject(BuildHandlerUtils.getJobCiId(r))
-				.setStartTime(r.getStartTimeInMillis())
-				.setEstimatedDuration(r.getEstimatedDuration())
-				.setCauses(CIEventCausesFactory.processCauses(extractCauses(r)))
-				.setResult(result)
-				.setDuration(r.getDuration())
-				.setTestResultExpected(hasTests);
+		return result;
+	}
 
-		if (r instanceof AbstractBuild) {
-			event.setParameters(ParameterProcessors.getInstances(r))
-					.setProjectDisplayName(BuildHandlerUtils.getJobCiId(r));
+	private SCMProcessor.CommonOriginRevision getCommonOriginRevision(Run r) {
+		SCMProcessor.CommonOriginRevision commonOriginRevision=null;
+		if(r instanceof AbstractBuild) {
+			final SCM scm = ((AbstractBuild) r).getProject().getScm();
+			if (scm != null) {
+				SCMProcessor scmProcessor = SCMProcessors.getAppropriate(scm.getClass().getName());
+				if(scmProcessor!=null) {
+					commonOriginRevision = scmProcessor.getCommonOriginRevision(r);
+				}
+			}
 		}
-		EventsService.getExtensionInstance().dispatchEvent(event);
+		return commonOriginRevision;
 	}
 
 	//  TODO: [YG] this method should be part of causes factory or something like this, it is not suitable for merged build as well
@@ -205,7 +248,7 @@ public final class RunListenerImpl extends RunListener<Run> {
 					}
 				}
 			} else {
-				if (parent.getClass().getName().equals("org.jenkinsci.plugins.workflow.job.WorkflowJob")) {
+				if (parent.getClass().getName().equals(JobProcessorFactory.WORKFLOW_JOB_NAME)) {
 					result = true;
 				} else {
 					List<PipelinePhase> phases = JobProcessorFactory.getFlowProcessor((Job) parent).getInternals();
@@ -238,7 +281,7 @@ public final class RunListenerImpl extends RunListener<Run> {
 		return null;
 	}
 
-	private static List<Cause> extractCauses(Run r) {
+	private static List<Cause> extractCauses(Run<?, ?> r) {
 		if (r.getParent() instanceof MatrixConfiguration) {
 			return ((MatrixRun) r).getParentBuild().getCauses();
 		}
