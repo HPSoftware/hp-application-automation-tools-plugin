@@ -60,7 +60,8 @@
 		<msbuild.exe>C:\Windows\Microsoft.NET\Framework\v4.0.30319\msbuild.exe</msbuild.exe>
 		<msbuild.configuration>Release</msbuild.configuration>
 		<jenkins.version>1.642.4</jenkins.version>
-		<workflow.version>2.2</workflow.version>
+
+		<workflow.version>2.5</workflow.version>
 		<maven.exec.skip>false</maven.exec.skip>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
@@ -84,7 +85,7 @@
 		<url>https://github.com/jenkinsci/hpe-application-automation-tools-plugin</url>
 		<tag>HEAD</tag>
 	</scm>
-	
+
 	<issueManagement>
 		<system>JIRA</system>
 		<url>
@@ -322,18 +323,18 @@
 					</excludes>
 				</configuration>
 			</plugin>
-			 <plugin>
-			    <groupId>org.codehaus.mojo</groupId>
-			    <artifactId>animal-sniffer-maven-plugin</artifactId>
-					<version>1.16</version>
-			    <configuration>
-			      <signature>
-				<groupId>org.codehaus.mojo.signature</groupId>
-				<artifactId>java18</artifactId>
-				<version>1.0</version>
-			      </signature>
-			    </configuration>
-			  </plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>animal-sniffer-maven-plugin</artifactId>
+				<version>1.16</version>
+				<configuration>
+					<signature>
+						<groupId>org.codehaus.mojo.signature</groupId>
+						<artifactId>java18</artifactId>
+						<version>1.0</version>
+					</signature>
+				</configuration>
+			</plugin>
 
 		</plugins>
 
@@ -500,7 +501,7 @@
 		<dependency>
 			<groupId>org.jenkins-ci.plugins.pipeline-stage-view</groupId>
 			<artifactId>pipeline-rest-api</artifactId>
-			<version>1.7</version>
+			<version>2.10</version>
 			<optional>true</optional>
 		</dependency>
 
@@ -649,10 +650,10 @@
 					<groupId>commons-io</groupId>
 					<artifactId>commons-io</artifactId>
 				</exclusion>
-                <exclusion>
-                    <groupId>org.apache.httpcomponents</groupId>
-                    <artifactId>httpclient</artifactId>
-                </exclusion>
+				<exclusion>
+					<groupId>org.apache.httpcomponents</groupId>
+					<artifactId>httpclient</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 
