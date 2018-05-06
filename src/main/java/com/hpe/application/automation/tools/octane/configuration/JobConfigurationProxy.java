@@ -83,7 +83,7 @@ public class JobConfigurationProxy {
 	public JSONObject createPipelineOnServer(JSONObject pipelineObject) throws IOException {
 		JSONObject result = new JSONObject();
 
-		PipelineNode pipelineNode = ModelFactory.createStructureItem(job);
+		PipelineNode pipelineNode = ModelFactory.createStructureItem(job, null);
 		CIServerInfo ciServerInfo = OctaneSDK.getInstance().getPluginServices().getServerInfo();
 		Long releaseId = pipelineObject.getLong("releaseId") != -1 ? pipelineObject.getLong("releaseId") : null;
 
