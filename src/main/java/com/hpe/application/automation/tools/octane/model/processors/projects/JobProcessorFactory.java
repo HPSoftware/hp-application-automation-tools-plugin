@@ -71,9 +71,6 @@ public class JobProcessorFactory {
 
 	public static <T extends Job> AbstractProjectProcessor<T> getFlowProcessor(T job, Set<Job> processedJobs) {
 		AbstractProjectProcessor flowProcessor;
-		if (processedJobs == null) {
-			processedJobs = new HashSet<>();
-		}
 		processedJobs.add(job);
 
 		if (job.getClass().getName().equals(FREE_STYLE_JOB_NAME)) {
@@ -89,6 +86,7 @@ public class JobProcessorFactory {
 		} else {
 			flowProcessor = new UnsupportedProjectProcessor(job);
 		}
+		processedJobs.remove(job);
 		return flowProcessor;
 	}
 }

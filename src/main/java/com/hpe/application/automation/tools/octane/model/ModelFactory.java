@@ -61,6 +61,11 @@ public class ModelFactory {
 	private static final Logger logger = LogManager.getLogger(ModelFactory.class);
 	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
 
+	public static PipelineNode createStructureItem(Job job) {
+		return createStructureItem(job, new HashSet<Job>());
+	}
+
+
 	public static PipelineNode createStructureItem(Job job, Set<Job> processedJobs) {
 		AbstractProjectProcessor projectProcessor = JobProcessorFactory.getFlowProcessor(job, processedJobs);
 		PipelineNode pipelineNode = dtoFactory.newDTO(PipelineNode.class);

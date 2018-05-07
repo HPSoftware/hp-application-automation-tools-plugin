@@ -267,7 +267,7 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 			} else {
 				Job project = getJobByRefId(rootJobCiId);
 				if (project != null) {
-					result = ModelFactory.createStructureItem(project, null);
+					result = ModelFactory.createStructureItem(project);
 				} else {
 					//todo: check error message(s)
 					logger.warn("Failed to get project from jobRefId: '" + rootJobCiId + "' check plugin user Job Read/Overall Read permissions / project name");
