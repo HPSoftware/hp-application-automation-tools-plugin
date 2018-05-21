@@ -206,7 +206,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         //update scm resources
         resources = result.getUpdatedScmResourceFiles();
         if (!resources.isEmpty()) {
-            boolean posted = updateScmResources(client, resources, result.getWorkspaceId(), result.getScmRepositoryId());
+            boolean posted = updateScmResources(client, resources, result.getWorkspaceId());
             logger.warn("Persistence [" + item.getProjectName() + "#" + item.getBuildNumber() + "] : " + resources.size() + "  updated scmResources posted successfully = " + posted);
         }
 
@@ -273,6 +273,9 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
                         hasDiff = true;
                         file.setOctaneStatus(OctaneStatus.NONE);
                     }
+                    break;
+                default:
+                    //do nothing
             }
         }
 
@@ -336,6 +339,9 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
                         hasDiff = true;
                         discoveredTest.setOctaneStatus(OctaneStatus.MODIFIED);
                     }
+                    break;
+                default:
+                    //do nothing
             }
         }
 
@@ -686,7 +692,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         return entities.size() == 1 ? entities.get(0) : null;
     }
 
-    private static boolean updateScmResources(MqmRestClient client, List<ScmResourceFile> updatedResourceFiles, String workspaceId, String scmResourceId) {
+    private static boolean updateScmResources(MqmRestClient client, List<ScmResourceFile> updatedResourceFiles, String workspaceId) {
         try {
 
             if (!updatedResourceFiles.isEmpty()) {
