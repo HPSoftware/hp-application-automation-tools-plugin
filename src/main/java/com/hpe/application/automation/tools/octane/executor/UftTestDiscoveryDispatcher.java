@@ -87,6 +87,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
     private final static int MAX_DISPATCH_TRIALS = 5;
     private final static int QUERY_CONDITION_SIZE_THRESHOLD = 3000;
     private static final String OCTANE_VERSION_SUPPORTING_TEST_RENAME = "12.60.3";
+    private static String OCTANE_VERSION = null;
 
     private UftTestDiscoveryQueue queue;
 
@@ -919,8 +920,6 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         //return supportTestRename;
         return false;
     }
-
-    static String OCTANE_VERSION = null;
 
     private static String getOctaneVersion(MqmRestClient client) {
 
