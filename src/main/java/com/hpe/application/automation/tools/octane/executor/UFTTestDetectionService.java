@@ -73,7 +73,6 @@ public class UFTTestDetectionService {
     private static final String windowsPathSplitter = "\\";
     private static final String linuxPathSplitter = "/";
 
-
     public static UFTTestDetectionResult startScanning(AbstractBuild<?, ?> build, String workspaceId, String scmRepositoryId, BuildListener buildListener) {
         ChangeLogSet<? extends ChangeLogSet.Entry> changeSet = build.getChangeSet();
         Object[] changeSetItems = changeSet.getItems();
@@ -91,8 +90,6 @@ public class UFTTestDetectionService {
                 removeTestDuplicatedForUpdateTests(result);
                 removeFalsePositiveDataTables(result, result.getDeletedTests(), result.getDeletedScmResourceFiles());
                 removeFalsePositiveDataTables(result, result.getNewTests(), result.getNewScmResourceFiles());
-                handleMovedTests(result);
-                handleMovedDataTables(result);
             }
 
             Map<OctaneStatus, Integer> testStatusMap = computeStatusMap(result.getAllTests());
@@ -170,70 +167,6 @@ public class UFTTestDetectionService {
             statusMap.put(item.getOctaneStatus(), statusMap.get(item.getOctaneStatus()) + 1);
         }
         return statusMap;
-    }
-
-    private static void handleMovedTests(UFTTestDetectionResult result) {
-        List<AutomatedTest> newTests = result.getNewTests();
-        List<AutomatedTest> deletedTests = result.getDeletedTests();
-        if (!newTests.isEmpty() && !deletedTests.isEmpty()) {
-            Map<String, AutomatedTest> dst2Test = new HashMap<>();
-            Map<AutomatedTest, AutomatedTest> deleted2newMovedTests = new HashMap<>();
-            for (AutomatedTest newTest : newTests) {
-                if (StringUtils.isNotEmpty(newTest.getChangeSetDst())) {
-                    dst2Test.put(newTest.getChangeSetDst(), newTest);
-                }
-            }
-            for (AutomatedTest deletedTest : deletedTests) {
-                if (StringUtils.isNotEmpty(deletedTest.getChangeSetDst()) && dst2Test.containsKey(deletedTest.getChangeSetDst())) {
-                    AutomatedTest newTest = dst2Test.get(deletedTest.getChangeSetDst());
-                    deleted2newMovedTests.put(deletedTest, newTest);
-                }
-            }
-
-            for (Map.Entry<AutomatedTest, AutomatedTest> entry : deleted2newMovedTests.entrySet()) {
-                AutomatedTest deletedTest = entry.getKey();
-                AutomatedTest newTest = entry.getValue();
-
-                newTest.setIsMoved(true);
-                newTest.setOldName(deletedTest.getName());
-                newTest.setOldPackage(deletedTest.getPackage());
-                newTest.setOctaneStatus(OctaneStatus.MODIFIED);
-
-                result.getAllTests().remove(deletedTest);
-            }
-        }
-    }
-
-    private static void handleMovedDataTables(UFTTestDetectionResult result) {
-        List<ScmResourceFile> newItems = result.getNewScmResourceFiles();
-        List<ScmResourceFile> deletedItems = result.getDeletedScmResourceFiles();
-        if (!newItems.isEmpty() && !deletedItems.isEmpty()) {
-            Map<String, ScmResourceFile> dst2File = new HashMap<>();
-            Map<ScmResourceFile, ScmResourceFile> deleted2newMovedFiles = new HashMap<>();
-            for (ScmResourceFile newFile : newItems) {
-                if (StringUtils.isNotEmpty(newFile.getChangeSetDst())) {
-                    dst2File.put(newFile.getChangeSetDst(), newFile);
-                }
-            }
-            for (ScmResourceFile deletedFile : deletedItems) {
-                if (StringUtils.isNotEmpty(deletedFile.getChangeSetDst()) && dst2File.containsKey(deletedFile.getChangeSetDst())) {
-                    ScmResourceFile newFile = dst2File.get(deletedFile.getChangeSetDst());
-                    deleted2newMovedFiles.put(deletedFile, newFile);
-                }
-            }
-
-            for (Map.Entry<ScmResourceFile, ScmResourceFile> entry : deleted2newMovedFiles.entrySet()) {
-                ScmResourceFile deletedFile = entry.getKey();
-                ScmResourceFile newFile = entry.getValue();
-
-                newFile.setIsMoved(true);
-                newFile.setOldName(deletedFile.getName());
-                newFile.setOldRelativePath(deletedFile.getRelativePath());
-                newFile.setOctaneStatus(OctaneStatus.MODIFIED);
-
-                result.getAllScmResourceFiles().remove(deletedFile);
-            }
-        }
     }
 
     /**

@@ -44,6 +44,7 @@ import com.hpe.application.automation.tools.common.HttpStatus;
 import com.hpe.application.automation.tools.octane.ResultQueue;
 import com.hpe.application.automation.tools.octane.actions.UftTestType;
 import com.hpe.application.automation.tools.octane.actions.dto.*;
+import com.hpe.application.automation.tools.octane.configuration.ConfigurationListener;
 import com.hpe.application.automation.tools.octane.configuration.ConfigurationService;
 import com.hpe.application.automation.tools.octane.configuration.ServerConfiguration;
 import com.hpe.application.automation.tools.octane.tests.AbstractSafeLoggingAsyncPeriodWork;
@@ -78,13 +79,14 @@ import java.util.*;
  * Actually list of discovered tests are persisted in job run directory. Queue contains only reference to that job run.
  */
 @Extension
-public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWork {
+public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWork implements ConfigurationListener {
 
     private final static Logger logger = LogManager.getLogger(UftTestDiscoveryDispatcher.class);
     private final static String DUPLICATE_ERROR_CODE = "platform.duplicate_entity_error";
     private final static int POST_BULK_SIZE = 100;
     private final static int MAX_DISPATCH_TRIALS = 5;
     private final static int QUERY_CONDITION_SIZE_THRESHOLD = 3000;
+    private static final String OCTANE_VERSION_SUPPORTING_TEST_RENAME = "12.60.3";
 
     private UftTestDiscoveryQueue queue;
 
@@ -155,6 +157,11 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
             validateTestDiscoveryForFullDetection(client, result);
             validateDataTablesDiscoveryForFullDetection(client, result);
         } else {
+            if (isOctaneSupportTestRename(client)) {
+                handleMovedTests(result);
+                handleMovedDataTables(result);
+            }
+
             validateTestDiscoveryAndCompleteTestIdsForScmChangeDetection(client, result);
             validateTestDiscoveryAndCompleteDataTableIdsForScmChangeDetection(client, result);
             //no need to add validation for dataTables, because there is no DTs update and there is no special delete strategy
@@ -838,4 +845,137 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
     public void enqueueResult(String projectName, int buildNumber) {
         queue.add(projectName, buildNumber);
     }
+
+
+    private static void handleMovedTests(UFTTestDetectionResult result) {
+        List<AutomatedTest> newTests = result.getNewTests();
+        List<AutomatedTest> deletedTests = result.getDeletedTests();
+        if (!newTests.isEmpty() && !deletedTests.isEmpty()) {
+            Map<String, AutomatedTest> dst2Test = new HashMap<>();
+            Map<AutomatedTest, AutomatedTest> deleted2newMovedTests = new HashMap<>();
+            for (AutomatedTest newTest : newTests) {
+                if (StringUtils.isNotEmpty(newTest.getChangeSetDst())) {
+                    dst2Test.put(newTest.getChangeSetDst(), newTest);
+                }
+            }
+            for (AutomatedTest deletedTest : deletedTests) {
+                if (StringUtils.isNotEmpty(deletedTest.getChangeSetDst()) && dst2Test.containsKey(deletedTest.getChangeSetDst())) {
+                    AutomatedTest newTest = dst2Test.get(deletedTest.getChangeSetDst());
+                    deleted2newMovedTests.put(deletedTest, newTest);
+                }
+            }
+
+            for (Map.Entry<AutomatedTest, AutomatedTest> entry : deleted2newMovedTests.entrySet()) {
+                AutomatedTest deletedTest = entry.getKey();
+                AutomatedTest newTest = entry.getValue();
+
+                newTest.setIsMoved(true);
+                newTest.setOldName(deletedTest.getName());
+                newTest.setOldPackage(deletedTest.getPackage());
+                newTest.setOctaneStatus(OctaneStatus.MODIFIED);
+
+                result.getAllTests().remove(deletedTest);
+            }
+        }
+    }
+
+    private static void handleMovedDataTables(UFTTestDetectionResult result) {
+        List<ScmResourceFile> newItems = result.getNewScmResourceFiles();
+        List<ScmResourceFile> deletedItems = result.getDeletedScmResourceFiles();
+        if (!newItems.isEmpty() && !deletedItems.isEmpty()) {
+            Map<String, ScmResourceFile> dst2File = new HashMap<>();
+            Map<ScmResourceFile, ScmResourceFile> deleted2newMovedFiles = new HashMap<>();
+            for (ScmResourceFile newFile : newItems) {
+                if (StringUtils.isNotEmpty(newFile.getChangeSetDst())) {
+                    dst2File.put(newFile.getChangeSetDst(), newFile);
+                }
+            }
+            for (ScmResourceFile deletedFile : deletedItems) {
+                if (StringUtils.isNotEmpty(deletedFile.getChangeSetDst()) && dst2File.containsKey(deletedFile.getChangeSetDst())) {
+                    ScmResourceFile newFile = dst2File.get(deletedFile.getChangeSetDst());
+                    deleted2newMovedFiles.put(deletedFile, newFile);
+                }
+            }
+
+            for (Map.Entry<ScmResourceFile, ScmResourceFile> entry : deleted2newMovedFiles.entrySet()) {
+                ScmResourceFile deletedFile = entry.getKey();
+                ScmResourceFile newFile = entry.getValue();
+
+                newFile.setIsMoved(true);
+                newFile.setOldName(deletedFile.getName());
+                newFile.setOldRelativePath(deletedFile.getRelativePath());
+                newFile.setOctaneStatus(OctaneStatus.MODIFIED);
+
+                result.getAllScmResourceFiles().remove(deletedFile);
+            }
+        }
+    }
+
+
+    private static boolean isOctaneSupportTestRename(MqmRestClient client) {
+        String octane_version = getOctaneVersion(client);
+        boolean supportTestRename = (octane_version != null && versionCompare(OCTANE_VERSION_SUPPORTING_TEST_RENAME, octane_version) <= 0);
+        logger.warn("Support test rename = " + supportTestRename);
+        //return supportTestRename;
+        return false;
+    }
+
+    static String OCTANE_VERSION = null;
+
+    private static String getOctaneVersion(MqmRestClient client) {
+
+        if (OCTANE_VERSION == null) {
+            List<Entity> entities = client.getEntities(null, "server_version", null, null);
+            if (entities.size() == 1) {
+                Entity entity = entities.get(0);
+                OCTANE_VERSION = entity.getStringValue("version");
+                logger.warn("Received Octane version - " + OCTANE_VERSION);
+
+            } else {
+                logger.error(String.format("Request for Octane version returned %s items. return version is not defined.", entities.size()));
+            }
+        }
+
+        return OCTANE_VERSION;
+    }
+
+    @Override
+    public void onChanged(ServerConfiguration conf, ServerConfiguration oldConf) {
+        OCTANE_VERSION = null;
+    }
+
+    /**
+     * Compares two version strings.
+     * <p>
+     * Use this instead of String.compareTo() for a non-lexicographical
+     * comparison that works for version strings. e.g. "1.10".compareTo("1.6").
+     *
+     * @param str1 a string of ordinal numbers separated by decimal points.
+     * @param str2 a string of ordinal numbers separated by decimal points.
+     * @return The result is a negative integer if str1 is _numerically_ less than str2.
+     * The result is a positive integer if str1 is _numerically_ greater than str2.
+     * The result is zero if the strings are _numerically_ equal.
+     * @note It does not work if "1.10" is supposed to be equal to "1.10.0".
+     */
+    private static Integer versionCompare(String str1, String str2) {
+        String[] vals1 = str1.split("\\.");
+        String[] vals2 = str2.split("\\.");
+        int i = 0;
+        // set index to first non-equal ordinal or length of shortest version string
+        while (i < vals1.length && i < vals2.length && vals1[i].equals(vals2[i])) {
+            i++;
+        }
+        // compare first non-equal ordinal number
+        if (i < vals1.length && i < vals2.length) {
+            int diff = Integer.valueOf(vals1[i]).compareTo(Integer.valueOf(vals2[i]));
+            return Integer.signum(diff);
+        }
+        // the strings are equal or one string is a substring of the other
+        // e.g. "1.2.3" = "1.2.3" or "1.2.3" < "1.2.3.4"
+        else {
+            return Integer.signum(vals1.length - vals2.length);
+        }
+    }
+
+
 }
