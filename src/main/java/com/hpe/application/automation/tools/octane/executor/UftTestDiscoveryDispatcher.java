@@ -917,8 +917,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         String octane_version = getOctaneVersion(client);
         boolean supportTestRename = (octane_version != null && versionCompare(OCTANE_VERSION_SUPPORTING_TEST_RENAME, octane_version) <= 0);
         logger.warn("Support test rename = " + supportTestRename);
-        //return supportTestRename;
-        return false;
+        return supportTestRename;
     }
 
     private static String getOctaneVersion(MqmRestClient client) {
