@@ -43,7 +43,7 @@ import javax.xml.bind.annotation.*;
 public class ScmResourceFile implements SupportsMoveDetection, SupportsOctaneStatus {
 
     @XmlTransient
-    private Long id;
+    private String id;
     @XmlTransient
     private String type = "scm_resource_file";
     @XmlTransient
@@ -85,11 +85,11 @@ public class ScmResourceFile implements SupportsMoveDetection, SupportsOctaneSta
         this.type = type;
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 

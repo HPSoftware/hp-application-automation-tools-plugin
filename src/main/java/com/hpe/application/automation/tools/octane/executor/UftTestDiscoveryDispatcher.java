@@ -34,18 +34,17 @@
 package com.hpe.application.automation.tools.octane.executor;
 
 import com.google.inject.Inject;
-import com.hp.mqm.client.MqmRestClient;
-import com.hp.mqm.client.QueryHelper;
-import com.hp.mqm.client.exception.RequestErrorException;
-import com.hp.mqm.client.model.Entity;
-import com.hp.mqm.client.model.ListItem;
-import com.hp.mqm.client.model.PagedList;
+import com.hp.octane.integrations.OctaneSDK;
+import com.hp.octane.integrations.api.EntitiesService;
+import com.hp.octane.integrations.dto.entities.Entity;
+import com.hp.octane.integrations.dto.entities.OctaneRestExceptionData;
+import com.hp.octane.integrations.exceptions.OctaneBulkException;
+import com.hp.octane.integrations.services.entities.QueryHelper;
 import com.hpe.application.automation.tools.common.HttpStatus;
 import com.hpe.application.automation.tools.octane.ResultQueue;
 import com.hpe.application.automation.tools.octane.actions.UftTestType;
 import com.hpe.application.automation.tools.octane.actions.dto.*;
 import com.hpe.application.automation.tools.octane.configuration.ConfigurationListener;
-import com.hpe.application.automation.tools.octane.configuration.ConfigurationService;
 import com.hpe.application.automation.tools.octane.configuration.ServerConfiguration;
 import com.hpe.application.automation.tools.octane.tests.AbstractSafeLoggingAsyncPeriodWork;
 import hudson.Extension;
@@ -56,7 +55,6 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.util.TimeUnit2;
 import jenkins.model.Jenkins;
-import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import net.sf.json.JsonConfig;
 import net.sf.json.processors.PropertyNameProcessor;
@@ -103,14 +101,13 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         }
 
         logger.warn("Queue size  " + queue.size());
-        ServerConfiguration serverConfiguration = ConfigurationService.getServerConfiguration();
-        MqmRestClient client = ConfigurationService.createClient(serverConfiguration);
 
-        if (client == null) {
+        if (!OctaneSDK.getInstance().getConfigurationService().isConfigurationValid()) {
             logger.warn("There are pending discovered UFT tests, but MQM server configuration is not valid, results can't be submitted");
             return;
         }
 
+        EntitiesService entitiesService = OctaneSDK.getInstance().getEntitiesService();
         ResultQueue.QueueItem item = null;
         try {
             while ((item = queue.peekFirst()) != null) {
@@ -137,7 +134,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
                 }
 
                 logger.warn("Persistence [" + item.getProjectName() + "#" + item.getBuildNumber() + "]");
-                dispatchDetectionResults(item, client, result);
+                dispatchDetectionResults(item, entitiesService, result);
                 queue.remove();
             }
         } catch (Exception e) {
@@ -151,20 +148,20 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         }
     }
 
-    private static void dispatchDetectionResults(ResultQueue.QueueItem item, MqmRestClient client, UFTTestDetectionResult result) {
+    private static void dispatchDetectionResults(ResultQueue.QueueItem item, EntitiesService entitiesService, UFTTestDetectionResult result) {
         //Check if there is diff in discovery and server status
         //for example : discovery found new test , but it already exist in server , instead of create new tests we will do update test
         if (result.isFullScan()) {
-            validateTestDiscoveryForFullDetection(client, result);
-            validateDataTablesDiscoveryForFullDetection(client, result);
+            validateTestDiscoveryForFullDetection(entitiesService, result);
+            validateDataTablesDiscoveryForFullDetection(entitiesService, result);
         } else {
-            if (isOctaneSupportTestRename(client)) {
+            if (isOctaneSupportTestRename(entitiesService)) {
                 handleMovedTests(result);
                 handleMovedDataTables(result);
             }
 
-            validateTestDiscoveryAndCompleteTestIdsForScmChangeDetection(client, result);
-            validateTestDiscoveryAndCompleteDataTableIdsForScmChangeDetection(client, result);
+            validateTestDiscoveryAndCompleteTestIdsForScmChangeDetection(entitiesService, result);
+            validateTestDiscoveryAndCompleteDataTableIdsForScmChangeDetection(entitiesService, result);
             //no need to add validation for dataTables, because there is no DTs update and there is no special delete strategy
         }
         removeItemsWithStatusNone(result.getAllTests());
@@ -186,42 +183,42 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         //post new tests
         List<AutomatedTest> tests = result.getNewTests();
         if (!tests.isEmpty()) {
-            boolean posted = postTests(client, tests, result.getWorkspaceId(), result.getScmRepositoryId());
+            boolean posted = postTests(entitiesService, tests, result.getWorkspaceId(), result.getScmRepositoryId());
             logger.warn("Persistence [" + item.getProjectName() + "#" + item.getBuildNumber() + "] : " + tests + "  new tests posted successfully = " + posted);
         }
 
         //post test updated
         tests = result.getUpdatedTests();
         if (!tests.isEmpty()) {
-            boolean updated = updateTests(client, tests, result.getWorkspaceId());
+            boolean updated = updateTests(entitiesService, tests, result.getWorkspaceId());
             logger.warn("Persistence [" + item.getProjectName() + "#" + item.getBuildNumber() + "] : " + tests.size() + "  updated tests posted successfully = " + updated);
         }
 
         //post test deleted
         tests = result.getDeletedTests();
         if (!tests.isEmpty()) {
-            boolean updated = updateTests(client, tests, result.getWorkspaceId());
+            boolean updated = updateTests(entitiesService, tests, result.getWorkspaceId());
             logger.warn("Persistence [" + item.getProjectName() + "#" + item.getBuildNumber() + "] : " + tests.size() + "  deleted tests set as not executable successfully = " + updated);
         }
 
         //post scm resources
         List<ScmResourceFile> resources = result.getNewScmResourceFiles();
         if (!resources.isEmpty()) {
-            boolean posted = postScmResources(client, resources, result.getWorkspaceId(), result.getScmRepositoryId());
+            boolean posted = postScmResources(entitiesService, resources, result.getWorkspaceId(), result.getScmRepositoryId());
             logger.warn("Persistence [" + item.getProjectName() + "#" + item.getBuildNumber() + "] : " + resources.size() + "  new scmResources posted successfully = " + posted);
         }
 
         //update scm resources
         resources = result.getUpdatedScmResourceFiles();
         if (!resources.isEmpty()) {
-            boolean posted = updateScmResources(client, resources, result.getWorkspaceId());
+            boolean posted = updateScmResources(entitiesService, resources, result.getWorkspaceId());
             logger.warn("Persistence [" + item.getProjectName() + "#" + item.getBuildNumber() + "] : " + resources.size() + "  updated scmResources posted successfully = " + posted);
         }
 
         //delete scm resources
         resources = result.getDeletedScmResourceFiles();
         if (!resources.isEmpty()) {
-            boolean posted = deleteScmResources(client, resources, result.getWorkspaceId(), result.getScmRepositoryId());
+            boolean posted = deleteScmResources(entitiesService, resources, result.getWorkspaceId(), result.getScmRepositoryId());
             logger.warn("Persistence [" + item.getProjectName() + "#" + item.getBuildNumber() + "] : " + resources.size() + "  scmResources deleted successfully = " + posted);
         }
     }
@@ -234,7 +231,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         }
     }
 
-    private static boolean validateTestDiscoveryAndCompleteDataTableIdsForScmChangeDetection(MqmRestClient client, UFTTestDetectionResult result) {
+    private static boolean validateTestDiscoveryAndCompleteDataTableIdsForScmChangeDetection(EntitiesService entitiesService, UFTTestDetectionResult result) {
         boolean hasDiff = false;
         Set<String> allNames = new HashSet<>();
         for (ScmResourceFile file : result.getAllScmResourceFiles()) {
@@ -246,7 +243,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         }
 
         //GET DataTables FROM OCTANE
-        Map<String, Entity> octaneEntityMapByRelativePath = getDataTablesFromServer(client, Long.parseLong(result.getWorkspaceId()), Long.parseLong(result.getScmRepositoryId()), allNames);
+        Map<String, Entity> octaneEntityMapByRelativePath = getDataTablesFromServer(entitiesService, Long.parseLong(result.getWorkspaceId()), Long.parseLong(result.getScmRepositoryId()), allNames);
 
 
         //MATCHING
@@ -297,7 +294,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
      *
      * @return true if there were changes comparing to discoverede results
      */
-    private static boolean validateTestDiscoveryAndCompleteTestIdsForScmChangeDetection(MqmRestClient client, UFTTestDetectionResult result) {
+    private static boolean validateTestDiscoveryAndCompleteTestIdsForScmChangeDetection(EntitiesService entitiesService, UFTTestDetectionResult result) {
         boolean hasDiff = false;
 
         Set<String> allTestNames = new HashSet<>();
@@ -310,7 +307,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         }
 
         //GET TESTS FROM OCTANE
-        Map<String, Entity> octaneTestsMapByKey = getTestsFromServer(client, Long.parseLong(result.getWorkspaceId()), Long.parseLong(result.getScmRepositoryId()), allTestNames);
+        Map<String, Entity> octaneTestsMapByKey = getTestsFromServer(entitiesService, Long.parseLong(result.getWorkspaceId()), Long.parseLong(result.getScmRepositoryId()), allTestNames);
 
 
         //MATCHING
@@ -367,9 +364,9 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
      *
      * @return true if there were changes comparing to discovered results
      */
-    private static boolean validateTestDiscoveryForFullDetection(MqmRestClient client, UFTTestDetectionResult detectionResult) {
+    private static boolean validateTestDiscoveryForFullDetection(EntitiesService entitiesService, UFTTestDetectionResult detectionResult) {
         boolean hasDiff = false;
-        Map<String, Entity> octaneTestsMap = getTestsFromServer(client, Long.parseLong(detectionResult.getWorkspaceId()), Long.parseLong(detectionResult.getScmRepositoryId()), null);
+        Map<String, Entity> octaneTestsMap = getTestsFromServer(entitiesService, Long.parseLong(detectionResult.getWorkspaceId()), Long.parseLong(detectionResult.getScmRepositoryId()), null);
 
         for (AutomatedTest discoveredTest : detectionResult.getAllTests()) {
             String key = createKey(discoveredTest.getPackage(), discoveredTest.getName());
@@ -410,7 +407,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
     private static boolean checkTestEquals(AutomatedTest discoveredTest, Entity octaneTest) {
         boolean octaneExecutable = octaneTest.getBooleanValue(OctaneConstants.Tests.EXECUTABLE_FIELD);
         String octaneDescription = octaneTest.getStringValue(OctaneConstants.Tests.DESCRIPTION_FIELD);
-        boolean descriptionEquals = ((StringUtils.isEmpty(octaneDescription) || "null".equals(octaneDescription)) && discoveredTest.getDescription() == null) ||
+        boolean descriptionEquals = ((StringUtils.isEmpty(octaneDescription) || "null".equals(octaneDescription)) && StringUtils.isEmpty(discoveredTest.getDescription())) ||
                 octaneDescription.contains(discoveredTest.getDescription());
         boolean testsEqual = (octaneExecutable && descriptionEquals && !discoveredTest.getIsMoved());
         return testsEqual;
@@ -421,11 +418,11 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
      * 1.if DT doesn't exist on octane - this is new DT
      * 2. all DTs that are found in Octane but not discovered - delete those DTs from server
      */
-    private static boolean validateDataTablesDiscoveryForFullDetection(MqmRestClient client, UFTTestDetectionResult detectionResult) {
+    private static boolean validateDataTablesDiscoveryForFullDetection(EntitiesService entitiesService, UFTTestDetectionResult detectionResult) {
         boolean hasDiff = false;
 
 
-        Map<String, Entity> octaneDataTablesMap = getDataTablesFromServer(client, Long.parseLong(detectionResult.getWorkspaceId()), Long.parseLong(detectionResult.getScmRepositoryId()), null);
+        Map<String, Entity> octaneDataTablesMap = getDataTablesFromServer(entitiesService, Long.parseLong(detectionResult.getWorkspaceId()), Long.parseLong(detectionResult.getScmRepositoryId()), null);
         for (ScmResourceFile dataTable : detectionResult.getAllScmResourceFiles()) {
             Entity octaneDataTable = octaneDataTablesMap.remove(dataTable.getRelativePath());
             if (octaneDataTable != null) {//found in Octnat - skip
@@ -448,7 +445,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         return hasDiff;
     }
 
-    private static Map<String, Entity> getTestsFromServer(MqmRestClient client, long workspaceId, long scmRepositoryId, Set<String> allTestNames) {
+    private static Map<String, Entity> getTestsFromServer(EntitiesService entitiesService, long workspaceId, long scmRepositoryId, Set<String> allTestNames) {
         List<String> conditions = new ArrayList<>();
         if (allTestNames != null && !allTestNames.isEmpty()) {
             String byNameCondition = QueryHelper.conditionIn(OctaneConstants.Tests.NAME_FIELD, allTestNames, false);
@@ -461,7 +458,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
 
         conditions.add(QueryHelper.conditionRef(OctaneConstants.Tests.SCM_REPOSITORY_FIELD, scmRepositoryId));
         Collection<String> fields = Arrays.asList(OctaneConstants.Tests.ID_FIELD, OctaneConstants.Tests.NAME_FIELD, OctaneConstants.Tests.PACKAGE_FIELD, OctaneConstants.Tests.EXECUTABLE_FIELD, OctaneConstants.Tests.DESCRIPTION_FIELD);
-        List<Entity> octaneTests = client.getEntities(workspaceId, OctaneConstants.Tests.COLLECTION_NAME, conditions, fields);
+        List<Entity> octaneTests = entitiesService.getEntities(workspaceId, OctaneConstants.Tests.COLLECTION_NAME, conditions, fields);
         Map<String, Entity> octaneTestsMapByKey = new HashedMap();
         for (Entity octaneTest : octaneTests) {
             String key = createKey(octaneTest.getStringValue(OctaneConstants.Tests.PACKAGE_FIELD), octaneTest.getName());
@@ -470,7 +467,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         return octaneTestsMapByKey;
     }
 
-    private static Map<String, Entity> getDataTablesFromServer(MqmRestClient client, long workspaceId, long scmRepositoryId, Set<String> allNames) {
+    private static Map<String, Entity> getDataTablesFromServer(EntitiesService entitiesService, long workspaceId, long scmRepositoryId, Set<String> allNames) {
         List<String> conditions = new ArrayList<>();
         if (allNames != null && !allNames.isEmpty()) {
             String byPathCondition = QueryHelper.conditionIn(OctaneConstants.DataTables.NAME_FIELD, allNames, false);
@@ -486,7 +483,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         conditions.add(conditionByScmRepository);
 
         List<String> dataTablesFields = Arrays.asList(OctaneConstants.DataTables.ID_FIELD, OctaneConstants.DataTables.NAME_FIELD, OctaneConstants.DataTables.RELATIVE_PATH_FIELD);
-        List<Entity> octaneDataTables = client.getEntities(workspaceId, OctaneConstants.DataTables.COLLECTION_NAME, conditions, dataTablesFields);
+        List<Entity> octaneDataTables = entitiesService.getEntities(workspaceId, OctaneConstants.DataTables.COLLECTION_NAME, conditions, dataTablesFields);
 
         Map<String, Entity> octaneDataTablesMap = new HashedMap();
         for (Entity dataTable : octaneDataTables) {
@@ -505,22 +502,17 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         return StringUtils.join(values, "#");
     }
 
-    private static boolean postTests(MqmRestClient client, List<AutomatedTest> tests, String workspaceId, String scmRepositoryId) {
+    private static boolean postTests(EntitiesService entitiesService, List<AutomatedTest> tests, String workspaceId, String scmRepositoryId) {
 
         if (!tests.isEmpty()) {
-            try {
-                completeTestProperties(client, Long.parseLong(workspaceId), tests, scmRepositoryId);
-            } catch (RequestErrorException e) {
-                logger.error("Failed to completeTestProperties : " + e.getMessage());
-                return false;
-            }
+            completeTestProperties(tests, scmRepositoryId);
 
             for (int i = 0; i < tests.size(); i += POST_BULK_SIZE) {
                 try {
                     AutomatedTests data = AutomatedTests.createWithTests(tests.subList(i, Math.min(i + POST_BULK_SIZE, tests.size())));
                     String uftTestJson = convertToJsonString(data);
-                    client.postEntities(Long.parseLong(workspaceId), OctaneConstants.Tests.COLLECTION_NAME, uftTestJson);
-                } catch (RequestErrorException e) {
+                    entitiesService.postEntities(Long.parseLong(workspaceId), OctaneConstants.Tests.COLLECTION_NAME, uftTestJson);
+                } catch (OctaneBulkException e) {
                     return checkIfExceptionCanBeIgnoredInPOST(e, "Failed to post tests");
                 }
             }
@@ -528,22 +520,17 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         return true;
     }
 
-    private static boolean postScmResources(MqmRestClient client, List<ScmResourceFile> resources, String workspaceId, String scmResourceId) {
+    private static boolean postScmResources(EntitiesService entitiesService, List<ScmResourceFile> resources, String workspaceId, String scmResourceId) {
 
         if (!resources.isEmpty()) {
-            try {
-                completeScmResourceProperties(resources, scmResourceId);
-            } catch (RequestErrorException e) {
-                logger.error("Failed to completeScmResourceProperties : " + e.getMessage());
-                return false;
-            }
+            completeScmResourceProperties(resources, scmResourceId);
 
             for (int i = 0; i < resources.size(); i += POST_BULK_SIZE)
                 try {
                     ScmResources data = ScmResources.createWithItems(resources.subList(i, Math.min(i + POST_BULK_SIZE, resources.size())));
                     String json = convertToJsonString(data);
-                    client.postEntities(Long.parseLong(workspaceId), OctaneConstants.DataTables.COLLECTION_NAME, json);
-                } catch (RequestErrorException e) {
+                    entitiesService.postEntities(Long.parseLong(workspaceId), OctaneConstants.DataTables.COLLECTION_NAME, json);
+                } catch (OctaneBulkException e) {
                     return checkIfExceptionCanBeIgnoredInPOST(e, "Failed to post scm resource files");
                 }
         }
@@ -556,38 +543,23 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
      * In this method we check whether exist other exception than duplicate
      *
      * @param e
-     * @param errorPrefix
      * @return
      */
-    private static boolean checkIfExceptionCanBeIgnoredInPOST(RequestErrorException e, String errorPrefix) {
-        if (e.getStatusCode() == HttpStatus.CONFLICT.getCode() && e.getJsonObject() != null && e.getJsonObject().containsKey("errors")) {
-            JSONObject error = findFirstErrorDifferThan(e.getJsonObject().getJSONArray("errors"), DUPLICATE_ERROR_CODE);
-            String errorMessage = null;
-            if (error != null) {
-                errorMessage = error.getString("description");
-                logger.error(errorPrefix + " : " + errorMessage);
-            }
-            return errorMessage == null;
-        }
-
-        logger.error(errorPrefix + "  :  " + e.getMessage());
-        return false;
-    }
-
-    /**
-     * Search for error code that differ from supplied errorCode.
-     */
-    private static JSONObject findFirstErrorDifferThan(JSONArray errors, String excludeErrorCode) {
-        for (int errorIndex = 0; errorIndex < errors.size(); errorIndex++) {
-            JSONObject error = errors.getJSONObject(errorIndex);
-            String errorCode = error.getString("error_code");
-            if (errorCode.equals(excludeErrorCode)) {
-                continue;
-            } else {
-                return error;
+    private static boolean checkIfExceptionCanBeIgnoredInPOST(OctaneBulkException e, String errorPrefix) {
+        boolean isRealException = true;
+        if (e.getResponseStatus() == HttpStatus.CONFLICT.getCode()) {
+            isRealException = false;
+            for (OctaneRestExceptionData exceptionData : e.getData().getErrors()) {
+                if (!exceptionData.getErrorCode().equals(DUPLICATE_ERROR_CODE)) {
+                    isRealException = true;
+                }
             }
         }
-        return null;
+
+        if (isRealException) {
+            logger.error(errorPrefix + "  :  " + e.getMessage());
+        }
+        return isRealException;
     }
 
     private static String convertToJsonString(Object data) {
@@ -656,7 +628,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         return config;
     }
 
-    private static boolean updateTests(MqmRestClient client, Collection<AutomatedTest> tests, String workspaceId) {
+    private static boolean updateTests(EntitiesService entitiesService, Collection<AutomatedTest> tests, String workspaceId) {
 
         try {
             //build  testsForUpdate
@@ -680,7 +652,7 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
                 for (int i = 0; i < tests.size(); i += POST_BULK_SIZE) {
                     AutomatedTests data = AutomatedTests.createWithTests(testsForUpdate.subList(i, Math.min(i + POST_BULK_SIZE, tests.size())));
                     String uftTestJson = convertToJsonString(data);
-                    client.updateEntities(Long.parseLong(workspaceId), OctaneConstants.Tests.COLLECTION_NAME, uftTestJson);
+                    entitiesService.updateEntities(Long.parseLong(workspaceId), OctaneConstants.Tests.COLLECTION_NAME, uftTestJson);
                 }
             }
 
@@ -691,23 +663,23 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         }
     }
 
-    private static Entity fetchDataTableFromOctane(MqmRestClient client, long workspaceIdAsLong, long scmRepositoryId, String relativePath) {
+    private static Entity fetchDataTableFromOctane(EntitiesService entitiesService, long workspaceIdAsLong, long scmRepositoryId, String relativePath) {
         List<String> conditions = new ArrayList<>();
         conditions.add(QueryHelper.condition(OctaneConstants.DataTables.RELATIVE_PATH_FIELD, relativePath));
         conditions.add(QueryHelper.conditionRef(OctaneConstants.DataTables.SCM_REPOSITORY_FIELD, scmRepositoryId));
-        List<Entity> entities = client.getEntities(workspaceIdAsLong, OctaneConstants.DataTables.COLLECTION_NAME, conditions, Arrays.asList("id, name"));
+        List<Entity> entities = entitiesService.getEntities(workspaceIdAsLong, OctaneConstants.DataTables.COLLECTION_NAME, conditions, Arrays.asList("id, name"));
 
         return entities.size() == 1 ? entities.get(0) : null;
     }
 
-    private static boolean updateScmResources(MqmRestClient client, List<ScmResourceFile> updatedResourceFiles, String workspaceId) {
+    private static boolean updateScmResources(EntitiesService entitiesService, List<ScmResourceFile> updatedResourceFiles, String workspaceId) {
         try {
 
             if (!updatedResourceFiles.isEmpty()) {
                 for (int i = 0; i < updatedResourceFiles.size(); i += POST_BULK_SIZE) {
                     ScmResources data = ScmResources.createWithItems(updatedResourceFiles.subList(i, Math.min(i + POST_BULK_SIZE, updatedResourceFiles.size())));
                     String json = convertToJsonString(data);
-                    client.updateEntities(Long.parseLong(workspaceId), OctaneConstants.DataTables.COLLECTION_NAME, json);
+                    entitiesService.updateEntities(Long.parseLong(workspaceId), OctaneConstants.DataTables.COLLECTION_NAME, json);
                 }
             }
 
@@ -718,20 +690,20 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         }
     }
 
-    private static boolean deleteScmResources(MqmRestClient client, List<ScmResourceFile> deletedResourceFiles, String workspaceId, String scmRepositoryId) {
+    private static boolean deleteScmResources(EntitiesService entitiesService, List<ScmResourceFile> deletedResourceFiles, String workspaceId, String scmRepositoryId) {
 
         long workspaceIdAsLong = Long.parseLong(workspaceId);
         long scmRepositoryIdAsLong = Long.parseLong(scmRepositoryId);
-        Set<Long> deletedIds = new HashSet<>();
+        Set<String> deletedIds = new HashSet<>();
         try {
             for (ScmResourceFile scmResource : deletedResourceFiles) {
-                Entity found = fetchDataTableFromOctane(client, workspaceIdAsLong, scmRepositoryIdAsLong, scmResource.getRelativePath());
+                Entity found = fetchDataTableFromOctane(entitiesService, workspaceIdAsLong, scmRepositoryIdAsLong, scmResource.getRelativePath());
                 if (found != null) {
                     deletedIds.add(found.getId());
                 }
             }
 
-            client.deleteEntities(Long.parseLong(workspaceId), OctaneConstants.DataTables.COLLECTION_NAME, deletedIds);
+            entitiesService.deleteEntitiesByIds(Long.parseLong(workspaceId), OctaneConstants.DataTables.COLLECTION_NAME, deletedIds);
             return true;
 
         } catch (Exception e) {
@@ -739,11 +711,11 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         }
     }
 
-    private static void completeTestProperties(MqmRestClient client, long workspaceId, Collection<AutomatedTest> tests, String scmRepositoryId) {
-        ListNodeEntity uftTestingTool = getUftTestingTool(client, workspaceId);
-        ListNodeEntity uftFramework = getUftFramework(client, workspaceId);
-        ListNodeEntity guiTestType = hasTestsByType(tests, UftTestType.GUI) ? getGuiTestType(client, workspaceId) : null;
-        ListNodeEntity apiTestType = hasTestsByType(tests, UftTestType.API) ? getApiTestType(client, workspaceId) : null;
+    private static void completeTestProperties(Collection<AutomatedTest> tests, String scmRepositoryId) {
+        ListNodeEntity uftTestingTool = ListNodeEntity.create("list_node.testing_tool_type.uft");
+        ListNodeEntity uftFramework = ListNodeEntity.create("list_node.je.framework.uft");
+        ListNodeEntity guiTestType = ListNodeEntity.create("list_node.test_type.gui");
+        ListNodeEntity apiTestType = ListNodeEntity.create("list_node.test_type.api");
 
         BaseRefEntity scmRepository = StringUtils.isEmpty(scmRepositoryId) ? null : BaseRefEntity.create(OctaneConstants.Tests.SCM_REPOSITORY_FIELD, scmRepositoryId);
         for (AutomatedTest test : tests) {
@@ -766,54 +738,6 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
         }
     }
 
-    private static ListNodeEntity getUftTestingTool(MqmRestClient client, long workspaceId) {
-        PagedList<ListItem> testingTools = client.queryListItems("list_node.testing_tool_type", null, workspaceId, 0, POST_BULK_SIZE);
-        String uftTestingToolLogicalName = "list_node.testing_tool_type.uft";
-
-        for (ListItem item : testingTools.getItems()) {
-            if (uftTestingToolLogicalName.equals(item.getLogicalName())) {
-                return ListNodeEntity.create(item.getId());
-            }
-        }
-        return null;
-    }
-
-    private static ListNodeEntity getUftFramework(MqmRestClient client, long workspaceId) {
-        PagedList<ListItem> testingTools = client.queryListItems("list_node.je.framework", null, workspaceId, 0, POST_BULK_SIZE);
-        String uftTestingToolLogicalName = "list_node.je.framework.uft";
-
-        for (ListItem item : testingTools.getItems()) {
-            if (uftTestingToolLogicalName.equals(item.getLogicalName())) {
-                return ListNodeEntity.create(item.getId());
-            }
-        }
-        return null;
-    }
-
-    private static ListNodeEntity getGuiTestType(MqmRestClient client, long workspaceId) {
-        PagedList<ListItem> testingTools = client.queryListItems("list_node.test_type", null, workspaceId, 0, POST_BULK_SIZE);
-        String guiLogicalName = "list_node.test_type.gui";
-
-        for (ListItem item : testingTools.getItems()) {
-            if (guiLogicalName.equals(item.getLogicalName())) {
-                return ListNodeEntity.create(item.getId());
-            }
-        }
-        return null;
-    }
-
-    private static ListNodeEntity getApiTestType(MqmRestClient client, long workspaceId) {
-        PagedList<ListItem> testingTools = client.queryListItems("list_node.test_type", null, workspaceId, 0, POST_BULK_SIZE);
-        String guiLogicalName = "list_node.test_type.api";
-
-        for (ListItem item : testingTools.getItems()) {
-            if (guiLogicalName.equals(item.getLogicalName())) {
-                return ListNodeEntity.create(item.getId());
-            }
-        }
-        return null;
-    }
-
     @Override
     public long getRecurrencePeriod() {
         String value = System.getProperty("UftTestDiscoveryDispatcher.Period"); // let's us config the recurrence period. default is 60 seconds.
@@ -826,15 +750,6 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
     @Inject
     public void setTestResultQueue(UftTestDiscoveryQueue queue) {
         this.queue = queue;
-    }
-
-    private static boolean hasTestsByType(Collection<AutomatedTest> tests, UftTestType uftTestType) {
-        for (AutomatedTest test : tests) {
-            if (uftTestType.equals(test.getUftTestType())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
@@ -913,17 +828,17 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
     }
 
 
-    private static boolean isOctaneSupportTestRename(MqmRestClient client) {
-        String octane_version = getOctaneVersion(client);
+    private static boolean isOctaneSupportTestRename(EntitiesService entitiesService) {
+        String octane_version = getOctaneVersion(entitiesService);
         boolean supportTestRename = (octane_version != null && versionCompare(OCTANE_VERSION_SUPPORTING_TEST_RENAME, octane_version) <= 0);
         logger.warn("Support test rename = " + supportTestRename);
         return supportTestRename;
     }
 
-    private static String getOctaneVersion(MqmRestClient client) {
+    private static String getOctaneVersion(EntitiesService entitiesService) {
 
         if (OCTANE_VERSION == null) {
-            List<Entity> entities = client.getEntities(null, "server_version", null, null);
+            List<Entity> entities = entitiesService.getEntities(null, "server_version", null, null);
             if (entities.size() == 1) {
                 Entity entity = entities.get(0);
                 OCTANE_VERSION = entity.getStringValue("version");

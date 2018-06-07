@@ -45,7 +45,7 @@ import javax.xml.bind.annotation.*;
 public class AutomatedTest implements SupportsMoveDetection, SupportsOctaneStatus {
 
     @XmlAttribute
-    private Long id;
+    private String id;
     @XmlTransient
     private String type = "test_automated";
     @XmlTransient
@@ -160,11 +160,11 @@ public class AutomatedTest implements SupportsMoveDetection, SupportsOctaneStatu
         this.testTypes = testTypes;
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
