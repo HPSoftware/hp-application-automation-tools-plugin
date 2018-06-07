@@ -35,7 +35,10 @@ package com.hpe.application.automation.tools.octane.actions.dto;
 
 import com.hpe.application.automation.tools.octane.actions.UftTestType;
 
-import javax.xml.bind.annotation.*;
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * This file represents automated test for sending to Octane
@@ -45,17 +48,7 @@ import javax.xml.bind.annotation.*;
 public class AutomatedTest implements SupportsMoveDetection, SupportsOctaneStatus {
 
     @XmlAttribute
-    private Long id;
-    @XmlTransient
-    private String type = "test_automated";
-    @XmlTransient
-    private ListNodeEntity testingToolType;
-    @XmlTransient
-    private ListNodeEntity framework;
-    @XmlTransient
-    private ListNodeEntityCollection testTypes;
-
-    //PROPERTIES FOR MOVED ENTITY, don't serialized to server, used to set testType property
+    private String id;
     @XmlAttribute
     private String changeSetSrc;
     @XmlAttribute
@@ -66,12 +59,8 @@ public class AutomatedTest implements SupportsMoveDetection, SupportsOctaneStatu
     private String oldPackageName;
     @XmlAttribute
     private Boolean isMoved;
-
-    //don't serialized to server, used to set testType property
     @XmlAttribute
     private UftTestType uftTestType;
-
-    //don't serialized to server
     @XmlAttribute
     private OctaneStatus octaneStatus;
 
@@ -85,9 +74,6 @@ public class AutomatedTest implements SupportsMoveDetection, SupportsOctaneStatu
 
     private String description;
 
-    @XmlTransient
-    private BaseRefEntity scmRepository;
-
     public String getName() {
         return name;
     }
@@ -96,44 +82,12 @@ public class AutomatedTest implements SupportsMoveDetection, SupportsOctaneStatu
         this.name = name;
     }
 
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public ListNodeEntity getFramework() {
-        return framework;
-    }
-
-    public void setFramework(ListNodeEntity framework) {
-        this.framework = framework;
-    }
-
     public String getPackage() {
         return packageName;
     }
 
     public void setPackage(String packageName) {
         this.packageName = packageName;
-    }
-
-    public ListNodeEntity getTestingToolType() {
-        return testingToolType;
-    }
-
-    public void setTestingToolType(ListNodeEntity testingToolType) {
-        this.testingToolType = testingToolType;
-    }
-
-    public BaseRefEntity getScmRepository() {
-        return scmRepository;
-    }
-
-    public void setScmRepository(BaseRefEntity scmRepository) {
-        this.scmRepository = scmRepository;
     }
 
     public String getDescription() {
@@ -152,19 +106,11 @@ public class AutomatedTest implements SupportsMoveDetection, SupportsOctaneStatu
         return uftTestType;
     }
 
-    public ListNodeEntityCollection getTestTypes() {
-        return testTypes;
-    }
-
-    public void setTestTypes(ListNodeEntityCollection testTypes) {
-        this.testTypes = testTypes;
-    }
-
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 

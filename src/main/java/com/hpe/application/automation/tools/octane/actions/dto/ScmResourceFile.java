@@ -42,14 +42,8 @@ import javax.xml.bind.annotation.*;
 @XmlAccessorType(XmlAccessType.FIELD)
 public class ScmResourceFile implements SupportsMoveDetection, SupportsOctaneStatus {
 
-    @XmlTransient
-    private Long id;
-    @XmlTransient
-    private String type = "scm_resource_file";
-    @XmlTransient
-    private BaseRefEntity scmRepository;
-
-    //PROPERTIES FOR MOVED ENTITY
+    @XmlAttribute
+    private String id;
     @XmlAttribute
     private String changeSetSrc;
     @XmlAttribute
@@ -60,8 +54,6 @@ public class ScmResourceFile implements SupportsMoveDetection, SupportsOctaneSta
     private String oldName;
     @XmlAttribute
     private Boolean isMoved;
-
-    //don't serialized to server
     @XmlAttribute
     private OctaneStatus octaneStatus;
 
@@ -77,19 +69,11 @@ public class ScmResourceFile implements SupportsMoveDetection, SupportsOctaneSta
         this.name = name;
     }
 
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -101,18 +85,11 @@ public class ScmResourceFile implements SupportsMoveDetection, SupportsOctaneSta
         this.relativePath = relativePath;
     }
 
-    public BaseRefEntity getScmRepository() {
-        return scmRepository;
-    }
-
-    public void setScmRepository(BaseRefEntity scmRepository) {
-        this.scmRepository = scmRepository;
-    }
-
     @Override
     public String getChangeSetSrc() {
         return changeSetSrc;
     }
+
     @Override
     public void setChangeSetSrc(String changeSetSrc) {
         this.changeSetSrc = changeSetSrc;
