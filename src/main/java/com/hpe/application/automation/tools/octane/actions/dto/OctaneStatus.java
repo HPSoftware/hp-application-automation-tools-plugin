@@ -34,19 +34,8 @@
 package com.hpe.application.automation.tools.octane.actions.dto;
 
 /**
- * Class for (de)serialization of list_node entities in Octane
+ * Octane status of items that should be dispatched to Octane
  */
-@SuppressWarnings({"squid:S2699", "squid:S3658", "squid:S2259", "squid:S1872", "squid:S2925", "squid:S109"})
-public class ListNodeEntity extends BaseRefEntity {
-
-    public ListNodeEntity(){
-        setType("list_node");
-    }
-
-    public static ListNodeEntity create(String id) {
-        ListNodeEntity entity = new ListNodeEntity();
-        entity.setId(id);
-        return entity;
-    }
-
+public enum OctaneStatus {
+    NEW, MODIFIED, DELETED , NONE
 }

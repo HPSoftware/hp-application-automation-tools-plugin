@@ -33,28 +33,17 @@
 
 package com.hpe.application.automation.tools.octane.actions.dto;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
 /**
- * This file represents collection of scm resources for sending to Octane
+ * Interface for entities that support changeSet source and destination properties
  */
-public class ScmResources {
+public interface SupportsMoveDetection {
 
-    private List<ScmResourceFile> data = new ArrayList<>();
+    String getChangeSetSrc();
 
-    public static ScmResources createWithItems(Collection<ScmResourceFile> resources) {
-        ScmResources result = new ScmResources();
-        result.setData(new ArrayList<>(resources));
-        return result;
-    }
+    void setChangeSetSrc(String changeSetSrc);
 
-    public List<ScmResourceFile> getData() {
-        return data;
-    }
+    String getChangeSetDst();
 
-    public void setData(List<ScmResourceFile> data) {
-        this.data = data;
-    }
+    void setChangeSetDst(String changeSetDst);
+
 }

@@ -36,7 +36,7 @@ package com.hpe.application.automation.tools.octane.tests.junit;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.tests.Property;
 import com.hp.octane.integrations.dto.tests.TestSuite;
-import com.hpe.application.automation.tools.octane.executor.OctaneConstants;
+import com.hp.octane.integrations.util.Constants;
 import com.hpe.application.automation.tools.octane.tests.HPRunnerType;
 import com.hpe.application.automation.tools.octane.tests.xml.AbstractXmlIterator;
 import hudson.FilePath;
@@ -186,12 +186,12 @@ public class JUnitXmlIterator extends AbstractXmlIterator<JUnitTestResult> {
 						// currently this handling is needed for UFT tests
 						int testStartIndex = workspace.getRemote().length() + (sharedCheckOutDirectory == null ? 0 : (sharedCheckOutDirectory.length() + 1));
 						String path = testName.substring(testStartIndex);
-						path = path.replace(OctaneConstants.General.LINUX_PATH_SPLITTER, OctaneConstants.General.WINDOWS_PATH_SPLITTER);
-						path = StringUtils.strip(path, OctaneConstants.General.WINDOWS_PATH_SPLITTER);
+						path = path.replace(Constants.FileSystem.LINUX_PATH_SPLITTER, Constants.FileSystem.WINDOWS_PATH_SPLITTER);
+						path = StringUtils.strip(path, Constants.FileSystem.WINDOWS_PATH_SPLITTER);
 
 						//split path to package and and name fields
-						if (path.contains(OctaneConstants.General.WINDOWS_PATH_SPLITTER)) {
-							int testNameStartIndex = path.lastIndexOf(OctaneConstants.General.WINDOWS_PATH_SPLITTER);
+						if (path.contains(Constants.FileSystem.WINDOWS_PATH_SPLITTER)) {
+							int testNameStartIndex = path.lastIndexOf(Constants.FileSystem.WINDOWS_PATH_SPLITTER);
 
 							testName = path.substring(testNameStartIndex + 1);
 							packageName = path.substring(0, testNameStartIndex);

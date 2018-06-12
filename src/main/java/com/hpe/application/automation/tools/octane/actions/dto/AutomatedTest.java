@@ -35,29 +35,35 @@ package com.hpe.application.automation.tools.octane.actions.dto;
 
 import com.hpe.application.automation.tools.octane.actions.UftTestType;
 
-import javax.xml.bind.annotation.*;
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * This file represents automated test for sending to Octane
  */
 @XmlRootElement(name = "test")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class AutomatedTest {
+public class AutomatedTest implements SupportsMoveDetection, SupportsOctaneStatus {
 
-    @XmlTransient
-    private Long id;
-    @XmlTransient
-    private String type = "test_automated";
-    @XmlTransient
-    private ListNodeEntity testingToolType;
-    @XmlTransient
-    private ListNodeEntity framework;
-    @XmlTransient
-    private ListNodeEntityCollection testTypes;
-
-    //don't serialized to server, used to set testType property
+    @XmlAttribute
+    private String id;
+    @XmlAttribute
+    private String changeSetSrc;
+    @XmlAttribute
+    private String changeSetDst;
+    @XmlAttribute
+    private String oldName;
+    @XmlAttribute
+    private String oldPackageName;
+    @XmlAttribute
+    private Boolean isMoved;
     @XmlAttribute
     private UftTestType uftTestType;
+    @XmlAttribute
+    private OctaneStatus octaneStatus;
+
 
     @XmlAttribute
     private String name;
@@ -68,9 +74,6 @@ public class AutomatedTest {
 
     private String description;
 
-    @XmlTransient
-    private BaseRefEntity scmRepository;
-
     public String getName() {
         return name;
     }
@@ -79,44 +82,12 @@ public class AutomatedTest {
         this.name = name;
     }
 
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public ListNodeEntity getFramework() {
-        return framework;
-    }
-
-    public void setFramework(ListNodeEntity framework) {
-        this.framework = framework;
-    }
-
     public String getPackage() {
         return packageName;
     }
 
     public void setPackage(String packageName) {
         this.packageName = packageName;
-    }
-
-    public ListNodeEntity getTestingToolType() {
-        return testingToolType;
-    }
-
-    public void setTestingToolType(ListNodeEntity testingToolType) {
-        this.testingToolType = testingToolType;
-    }
-
-    public BaseRefEntity getScmRepository() {
-        return scmRepository;
-    }
-
-    public void setScmRepository(BaseRefEntity scmRepository) {
-        this.scmRepository = scmRepository;
     }
 
     public String getDescription() {
@@ -135,19 +106,11 @@ public class AutomatedTest {
         return uftTestType;
     }
 
-    public ListNodeEntityCollection getTestTypes() {
-        return testTypes;
-    }
-
-    public void setTestTypes(ListNodeEntityCollection testTypes) {
-        this.testTypes = testTypes;
-    }
-
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -162,5 +125,58 @@ public class AutomatedTest {
     @Override
     public String toString() {
         return "#" + getId() == null ? "0" : getId() + " - " + getPackage() + "@" + getName();
+    }
+
+    @Override
+    public String getChangeSetSrc() {
+        return changeSetSrc;
+    }
+
+    @Override
+    public void setChangeSetSrc(String changeSetSrc) {
+        this.changeSetSrc = changeSetSrc;
+    }
+
+    @Override
+    public String getChangeSetDst() {
+        return changeSetDst;
+    }
+
+    @Override
+    public void setChangeSetDst(String changeSetDst) {
+        this.changeSetDst = changeSetDst;
+    }
+
+    public String getOldName() {
+        return oldName;
+    }
+
+    public void setOldName(String oldName) {
+        this.oldName = oldName;
+    }
+
+    public String getOldPackage() {
+        return oldPackageName;
+    }
+
+    public void setOldPackage(String oldPackageName) {
+        this.oldPackageName = oldPackageName;
+    }
+
+    public Boolean getIsMoved() {
+        return isMoved == null ? false : isMoved;
+    }
+
+    public void setIsMoved(Boolean moved) {
+        isMoved = moved;
+    }
+
+    @Override
+    public OctaneStatus getOctaneStatus() {
+        return octaneStatus;
+    }
+
+    public void setOctaneStatus(OctaneStatus octaneStatus) {
+        this.octaneStatus = octaneStatus;
     }
 }

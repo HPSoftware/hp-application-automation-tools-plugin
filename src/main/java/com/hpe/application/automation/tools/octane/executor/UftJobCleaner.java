@@ -33,6 +33,7 @@
 
 package com.hpe.application.automation.tools.octane.executor;
 
+import com.hp.octane.integrations.dto.entities.EntityConstants;
 import com.hpe.application.automation.tools.octane.actions.UFTTestDetectionPublisher;
 import com.hpe.application.automation.tools.octane.configuration.ConfigurationService;
 import com.hpe.application.automation.tools.octane.configuration.ServerConfiguration;
@@ -177,11 +178,11 @@ public class UftJobCleaner extends AbstractSafeLoggingAsyncPeriodWork {
     }
 
     private Set<String> getOctaneExecutorsLogicalNames(MqmRestClient client, Long workspaceId) {
-        List<Entity> entities = client.getEntities(workspaceId, OctaneConstants.Executors.COLLECTION_NAME, null,
-                Arrays.asList(OctaneConstants.Base.ID_FIELD, OctaneConstants.Base.LOGICAL_NAME_FIELD));
+        List<Entity> entities = client.getEntities(workspaceId, EntityConstants.Executors.COLLECTION_NAME, null,
+                Arrays.asList(EntityConstants.Executors.ID_FIELD, EntityConstants.Executors.LOGICAL_NAME_FIELD));
         Set<String> octaneExecutorIds = new HashSet<>();
         for (Entity executor : entities) {
-            octaneExecutorIds.add(executor.getStringValue(OctaneConstants.Base.LOGICAL_NAME_FIELD));
+            octaneExecutorIds.add(executor.getStringValue(EntityConstants.Executors.LOGICAL_NAME_FIELD));
         }
         return octaneExecutorIds;
     }
