@@ -67,7 +67,7 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings({"squid:S2259", "squid:S1872", "squid:S1698", "squid:S1132"})
 public final class RunListenerImpl extends RunListener<Run> {
 	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
-	private ExecutorService executor = new ThreadPoolExecutor(0, 5, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
+	private ExecutorService executor = new ThreadPoolExecutor(0, 5, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
 
 	@Inject
 	private TestListener testListener;
@@ -145,7 +145,7 @@ public final class RunListenerImpl extends RunListener<Run> {
 
 	@Override
 	public void onFinalized(Run r) {
-		if (onFinelizedValidations()) return;
+		if (!isReadyToRun()) return;
 
 		CommonOriginRevision commonOriginRevision = null;// = getCommonOriginRevision(r);
 
@@ -179,9 +179,10 @@ public final class RunListenerImpl extends RunListener<Run> {
 				.setTestResultExpected(hasTests);
 	}
 
-	private boolean onFinelizedValidations() {
-		return (!ConfigurationService.getServerConfiguration().isValid() ||
-				ConfigurationService.getModel().isSuspend());
+	private boolean isReadyToRun() {
+		return (ConfigurationService.getServerConfiguration() != null &&
+				ConfigurationService.getServerConfiguration().isValid() &&
+				!ConfigurationService.getModel().isSuspend());
 	}
 
 	private CIBuildResult getCiBuildResult(Run r) {
