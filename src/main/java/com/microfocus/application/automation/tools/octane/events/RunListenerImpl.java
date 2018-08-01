@@ -201,19 +201,19 @@ public final class RunListenerImpl extends RunListener<Run> {
 		return result;
 	}
 
-	private CommonOriginRevision getCommonOriginRevision(Run r) {
-		CommonOriginRevision commonOriginRevision = null;
-		if (r instanceof AbstractBuild) {
-			final SCM scm = ((AbstractBuild) r).getProject().getScm();
-			if (scm != null) {
-				SCMProcessor scmProcessor = SCMProcessors.getAppropriate(scm.getClass().getName());
-				if (scmProcessor != null) {
-					commonOriginRevision = scmProcessor.getCommonOriginRevision(r);
-				}
-			}
-		}
-		return commonOriginRevision;
-	}
+//	private CommonOriginRevision getCommonOriginRevision(Run r) {
+//		CommonOriginRevision commonOriginRevision = null;
+//		if (r instanceof AbstractBuild) {
+//			final SCM scm = ((AbstractBuild) r).getProject().getScm();
+//			if (scm != null) {
+//				SCMProcessor scmProcessor = SCMProcessors.getAppropriate(scm.getClass().getName());
+//				if (scmProcessor != null) {
+//					commonOriginRevision = scmProcessor.getCommonOriginRevision(r);
+//				}
+//			}
+//		}
+//		return commonOriginRevision;
+//	}
 
 	//  TODO: [YG] this method should be part of causes factory or something like this, it is not suitable for merged build as well
 	private boolean isInternal(Run r) {
