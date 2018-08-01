@@ -74,7 +74,7 @@ public final class RunListenerImpl extends RunListener<Run> {
 
 	@Override
 	public void onStarted(final Run r, TaskListener listener) {
-		if (!ConfigurationService.getServerConfiguration().isValid()) {
+		if (ConfigurationService.getServerConfiguration() == null || !ConfigurationService.getServerConfiguration().isValid()) {
 			return;
 		}
 		if (ConfigurationService.getModel().isSuspend()) {
