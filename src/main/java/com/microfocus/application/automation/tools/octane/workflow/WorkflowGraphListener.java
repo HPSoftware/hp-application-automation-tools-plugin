@@ -34,8 +34,7 @@ import com.hp.octane.integrations.dto.events.PhaseType;
 import com.hp.octane.integrations.dto.snapshots.CIBuildResult;
 import com.microfocus.application.automation.tools.octane.model.CIEventCausesFactory;
 import com.microfocus.application.automation.tools.octane.tests.build.BuildHandlerUtils;
-import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
-import com.microfocus.application.automation.tools.octane.events.RunListenerImpl;
+
 import hudson.Extension;
 import hudson.model.*;
 import org.jenkinsci.plugins.workflow.actions.ErrorAction;
