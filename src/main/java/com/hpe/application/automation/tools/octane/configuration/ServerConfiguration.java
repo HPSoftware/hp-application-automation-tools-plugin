@@ -117,4 +117,8 @@ final public class ServerConfiguration {
 				", sharedSpace: " + sharedSpace +
 				", username: " + username + " }";
 	}
+
+	public boolean isActive(){
+		return (isValid() && !isSuspend());
+	}
 }

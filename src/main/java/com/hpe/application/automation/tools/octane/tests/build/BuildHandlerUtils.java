@@ -36,6 +36,7 @@ package com.hpe.application.automation.tools.octane.tests.build;
 import com.hpe.application.automation.tools.octane.model.processors.projects.JobProcessorFactory;
 import com.hpe.application.automation.tools.octane.workflow.WorkflowBuildAdapter;
 import com.hpe.application.automation.tools.octane.workflow.WorkflowGraphListener;
+import com.hpe.application.automation.tools.octane.workflow.WorkflowNodeContainer;
 import hudson.FilePath;
 import hudson.matrix.MatrixConfiguration;
 import hudson.matrix.MatrixRun;
@@ -90,7 +91,7 @@ public class BuildHandlerUtils {
 
 	public static List<Run> getBuildPerWorkspaces(Run run) {
 		if (run instanceof WorkflowRun) {
-			return WorkflowGraphListener.FlowNodeContainer.getFlowNode(run);
+			return WorkflowNodeContainer.removeFlowNode(run);
 		} else {
 			List<Run> runsList = new ArrayList<>();
 			runsList.add(run);

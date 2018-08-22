@@ -43,6 +43,8 @@ import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.PhaseType;
 import com.hp.octane.integrations.dto.snapshots.CIBuildResult;
+import com.hpe.application.automation.tools.octane.configuration.ConfigurationService;
+import com.hpe.application.automation.tools.octane.events.RunListenerImpl;
 import com.hpe.application.automation.tools.octane.model.CIEventCausesFactory;
 import com.hpe.application.automation.tools.octane.tests.build.BuildHandlerUtils;
 import hudson.Extension;
@@ -75,8 +77,6 @@ public class WorkflowGraphListener implements GraphListener {
 //    String lastId = "";
 //    CIEventCause lastCIEventCause;
 
-    public static FlowNodeContainer container;
-
     private FlowNode previousStage = null;
 
     @Override
@@ -96,7 +96,7 @@ public class WorkflowGraphListener implements GraphListener {
                 try {
                     WorkflowRun run = (WorkflowRun) flowNode.getExecution().getOwner().getExecutable();
                     WorkflowBuildAdapter adapter = new WorkflowBuildAdapter(run.getParent(), run, workspaceAction.getWorkspace());
-                    FlowNodeContainer.addFlowNode(adapter);
+                    WorkflowNodeContainer.addFlowNode(adapter);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -377,27 +377,4 @@ public class WorkflowGraphListener implements GraphListener {
 //		return tempList;
 //
 //	}
-
-    public static class FlowNodeContainer {
-        private static Map<String, List<Run>> map = new HashMap<>();
-
-        protected static void addFlowNode(Run run) {
-            String key = getKey(run);
-            List<Run> list = map.get(key);
-
-            if (list == null) {
-                list = new ArrayList<>();
-                map.put(key, list);
-            }
-            list.add(run);
-        }
-
-        public static List<Run> getFlowNode(Run run) {
-            return map.remove(getKey(run));
-        }
-
-        private static String getKey(Run run) {
-            return run.getId() + run.getParent().getName();
-        }
-    }
 }

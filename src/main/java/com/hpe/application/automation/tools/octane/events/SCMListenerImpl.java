@@ -84,12 +84,7 @@ public class SCMListenerImpl extends SCMListener {
 	public void onChangeLogParsed(Run<?, ?> r, SCM scm, TaskListener listener, ChangeLogSet<?> changelog) throws Exception {
 		super.onChangeLogParsed(r, scm, listener, changelog);
 
-		if (!ConfigurationService.getServerConfiguration().isValid()) {
-			return;
-		}
-		if (ConfigurationService.getModel().isSuspend()) {
-			return;
-		}
+		if(!ConfigurationService.getServerConfiguration().isActive()) return;
 
 		CIEvent event;
 		if (r.getParent() instanceof MatrixConfiguration || r instanceof AbstractBuild) {

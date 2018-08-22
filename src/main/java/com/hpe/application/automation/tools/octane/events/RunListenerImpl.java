@@ -51,6 +51,8 @@ import com.hpe.application.automation.tools.octane.model.processors.scm.SCMProce
 import com.hpe.application.automation.tools.octane.model.processors.scm.SCMProcessors;
 import com.hpe.application.automation.tools.octane.tests.TestListener;
 import com.hpe.application.automation.tools.octane.tests.build.BuildHandlerUtils;
+import com.hpe.application.automation.tools.octane.workflow.WorkflowGraphListener;
+import com.hpe.application.automation.tools.octane.workflow.WorkflowNodeContainer;
 import hudson.Extension;
 import hudson.matrix.MatrixConfiguration;
 import hudson.matrix.MatrixRun;
@@ -58,6 +60,7 @@ import hudson.model.*;
 import hudson.model.listeners.RunListener;
 import hudson.scm.SCM;
 import jenkins.model.Jenkins;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 
 import java.util.Collection;
 import java.util.List;
@@ -84,10 +87,7 @@ public final class RunListenerImpl extends RunListener<Run> {
 
 	@Override
 	public void onStarted(final Run r, TaskListener listener) {
-		if (!ConfigurationService.getServerConfiguration().isValid()) {
-			return;
-		}
-		if (ConfigurationService.getModel().isSuspend()) {
+		if (!ConfigurationService.getServerConfiguration().isActive()) {
 			return;
 		}
 
@@ -155,7 +155,7 @@ public final class RunListenerImpl extends RunListener<Run> {
 
 	@Override
 	public void onFinalized(Run r) {
-		if (onFinelizedValidations()) return;
+		if (!ConfigurationService.getServerConfiguration().isActive()) return;
 
 		SCMProcessor.CommonOriginRevision commonOriginRevision = getCommonOriginRevision(r);
 
@@ -170,6 +170,14 @@ public final class RunListenerImpl extends RunListener<Run> {
 					.setProjectDisplayName(BuildHandlerUtils.getJobCiId(r));
 		}
 		OctaneSDK.getInstance().getEventsService().publishEvent(event);
+		cleanRunDetails(r);
+	}
+
+	private void cleanRunDetails(Run build) {
+
+		if (build instanceof WorkflowRun) {
+            WorkflowNodeContainer.removeFlowNode(build);
+		}
 	}
 
 	private CIEvent getCiEvent(Run r, SCMProcessor.CommonOriginRevision commonOriginRevision, boolean hasTests, CIBuildResult result) {
@@ -186,11 +194,6 @@ public final class RunListenerImpl extends RunListener<Run> {
 				.setCommonHashId(commonOriginRevision != null ? commonOriginRevision.revision : null)
 				.setBranchName(commonOriginRevision != null ? commonOriginRevision.branch : null)
 				.setTestResultExpected(hasTests);
-	}
-
-	private boolean onFinelizedValidations() {
-		return (!ConfigurationService.getServerConfiguration().isValid() ||
-				ConfigurationService.getModel().isSuspend());
 	}
 
 	private CIBuildResult getCiBuildResult(Run r) {
