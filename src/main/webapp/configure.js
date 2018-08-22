@@ -8,25 +8,14 @@
  * __________________________________________________________________
  * MIT License
  *
- * Copyright (c) 2018 Micro Focus Company, L.P.
+ * © Copyright 2012-2018 Micro Focus or one of its affiliates.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
+ * The only warranties for products and services of Micro Focus and its affiliates
+ * and licensors (“Micro Focus”) are set forth in the express warranty statements
+ * accompanying such products and services. Nothing herein should be construed as
+ * constituting an additional warranty. Micro Focus shall not be liable for technical
+ * or editorial errors or omissions contained herein.
+ * The information contained herein is subject to change without notice.
  * ___________________________________________________________________
  *
  */
@@ -37,6 +26,7 @@ function load(a,path){
     buttonStatus = true;
     var mcUserName = document.getElementsByName("runfromfs.fsUserName")[0].value;
     var mcPassword = document.getElementsByName("runfromfs.fsPassword")[0].value;
+    var mcTenantId = document.getElementsByName("runfromfs.mcTenantId")[0].value;
     var mcUrl = document.getElementsByName("runfromfs.mcServerName")[0].value;
     var useProxy = document.getElementsByName("proxySettings")[0].checked;
     var proxyAddress = document.getElementsByName("runfromfs.fsProxyAddress")[0].value;
@@ -52,7 +42,7 @@ function load(a,path){
     var previousJobId = document.getElementsByName("runfromfs.fsJobId")[0].value;
     a.getMcServerUrl(mcUrl, function(r){
         baseUrl = r.responseObject();
-        a.getJobId(baseUrl,mcUserName, mcPassword, proxyAddress, proxyUserName, proxyPassword, previousJobId, function (response) {
+        a.getJobId(baseUrl,mcUserName, mcPassword, mcTenantId, proxyAddress, proxyUserName, proxyPassword, previousJobId, function (response) {
             var jobResponse = response.responseObject();
             if(jobResponse == null){
                 document.getElementById("errorMessage").style.display = "block";
@@ -64,7 +54,7 @@ function load(a,path){
             openedWindow.location.href = baseUrl+path+jobResponse+'&displayUFTMode=true';
             var messageCallBack = function (event) {
                 if (event && event.data && event.data=="mcCloseWizard") {
-                    a.populateAppAndDevice(baseUrl,mcUserName,mcPassword,proxyAddress, proxyUserName, proxyPassword,jobResponse, function (app) {
+                    a.populateAppAndDevice(baseUrl,mcUserName,mcPassword,mcTenantId, proxyAddress, proxyUserName, proxyPassword,jobResponse, function (app) {
                         var jobInfo = app.responseObject();
                         var deviceId = "";
                         var OS = "";
