@@ -24,8 +24,7 @@ package com.microfocus.application.automation.tools.octane.tests.build;
 
 import com.microfocus.application.automation.tools.octane.model.processors.projects.JobProcessorFactory;
 import com.microfocus.application.automation.tools.octane.workflow.WorkflowBuildAdapter;
-import com.microfocus.application.automation.tools.octane.workflow.WorkflowGraphListener;
-import com.hpe.application.automation.tools.octane.workflow.WorkflowNodeContainer;
+import com.microfocus.application.automation.tools.octane.workflow.WorkflowNodeContainer;
 import hudson.FilePath;
 import hudson.matrix.MatrixConfiguration;
 import hudson.matrix.MatrixRun;

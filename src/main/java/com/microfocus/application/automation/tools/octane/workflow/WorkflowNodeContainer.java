@@ -31,9 +31,9 @@
  *
  */
 
-package com.hpe.application.automation.tools.octane.workflow;
+package com.microfocus.application.automation.tools.octane.workflow;
 
-import com.hpe.application.automation.tools.octane.configuration.ConfigurationService;
+import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
 import hudson.model.Run;
 
 import java.util.ArrayList;
