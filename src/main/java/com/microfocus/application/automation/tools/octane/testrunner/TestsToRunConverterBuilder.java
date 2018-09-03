@@ -29,17 +29,12 @@ import com.microfocus.application.automation.tools.model.EnumDescription;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.*;
-import hudson.slaves.EnvironmentVariablesNodeProperty;
-import hudson.slaves.NodePropertyDescriptor;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
-import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class TestsToRunConverterBuilder extends Builder {

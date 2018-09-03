@@ -39,11 +39,6 @@ public class VariableInjectionAction implements EnvironmentContributingAction {
         variables.put(key, value);
     }
 
-    public VariableInjectionAction(Map<String, String> variables) {
-        variables = new HashMap<>(variables);
-    }
-
-
     @Override
     public void buildEnvVars(AbstractBuild<?, ?> abstractBuild, EnvVars envVars) {
         if (envVars != null && variables != null) {

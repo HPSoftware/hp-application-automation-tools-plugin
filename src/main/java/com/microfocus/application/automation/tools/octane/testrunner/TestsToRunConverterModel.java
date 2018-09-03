@@ -28,7 +28,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class TestsToRunConverterModel implements Serializable {
@@ -36,8 +35,6 @@ public class TestsToRunConverterModel implements Serializable {
     private static final long serialVersionUID = 1L;
 
     public final static EnumDescription none = new EnumDescription("", "");
-    //public final static EnumDescription uft = new EnumDescription("UFT", "UFT format (mtbx)");
-    // public final static EnumDescription junit = new EnumDescription("JUnit", "JUnit format");
 
     public final static List<EnumDescription> Frameworks;
 
