@@ -427,7 +427,6 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 
 			if (originalBody != null && !originalBody.isEmpty() && originalBody.contains("parameters")) {
 				CIParameters ciParameters = DTOFactory.getInstance().dtoFromJson(originalBody, CIParameters.class);
-
 				parametersAction = new ParametersAction(createParameters(project, ciParameters));
 			}
 
