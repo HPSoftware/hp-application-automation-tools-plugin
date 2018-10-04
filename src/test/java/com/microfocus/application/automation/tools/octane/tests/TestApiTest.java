@@ -98,7 +98,7 @@ public class TestApiTest {
 				"http://127.0.0.1:" + octaneServerMockPort + "/ui?p=" + sharedSpaceId,
 				"username",
 				Secret.fromString("password"),
-				"");
+				"",null);
 		ConfigurationService.configurePlugin(model);
 
 		//  run the actual pipeline producing the tests

@@ -98,8 +98,10 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 				.setInstanceIdFrom(model.getIdentityFrom())
 				.setSendingTime(System.currentTimeMillis())
 				.setImpersonatedUser(model.getImpersonatedUser())
-				.setSuspended(model.isSuspend());
-
+				.setSuspended(model.isSuspend())
+				.setSSCBaseAuthToken(model.getSscBaseToken())
+				.setMaxPollingTimeoutHours(model.getPollingTimeoutHours());
+		result.setSSCURL(ConfigurationService.getSSCServer());
 		return result;
 	}
 
@@ -380,7 +382,6 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 			return null;
 		}
 	}
-
 	private InputStream getOctaneLogFile(Run run) {
 		InputStream result = null;
 		String octaneLogFilePath = run.getLogFile().getParent() + File.separator + "octane_log";

@@ -25,7 +25,9 @@ package com.microfocus.application.automation.tools.octane.configuration;
 import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
 import com.microfocus.application.automation.tools.settings.OctaneServerSettingsBuilder;
 import hudson.Plugin;
+import hudson.model.Descriptor;
 import jenkins.model.Jenkins;
+import java.lang.reflect.Field;
 
 /***
  * Octane plugin configuration service -
@@ -42,6 +44,36 @@ public class ConfigurationService {
      */
     public static OctaneServerSettingsModel getModel() {
         return getOctaneDescriptor().getModel();
+    }
+
+    public static String getSSCServer() {
+        Descriptor sscDescriptor = getSSCDescriptor();
+        return getServerFromDescriptor(sscDescriptor);
+    }
+
+    private static String getServerFromDescriptor(Descriptor sscDescriptor) {
+        Object urlObj = getFieldValue(sscDescriptor, "url");
+        if(urlObj != null) {
+            return urlObj.toString();
+        }
+        return null;
+    }
+    public static Object getFieldValue(Object someObject, String fieldName) {
+        for (Field field : someObject.getClass().getDeclaredFields()) {
+            field.setAccessible(true);
+            if(field.getName().equals(fieldName)) {
+                Object value = null;
+                try {
+                    value = field.get(someObject);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+                if (value != null) {
+                    return value;
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -74,6 +106,9 @@ public class ConfigurationService {
         }
 
         return octaneDescriptor;
+    }
+    private static Descriptor getSSCDescriptor(){
+        return Jenkins.getInstance().getDescriptorByName("com.fortify.plugin.jenkins.FPRPublisher");
     }
 
     /**

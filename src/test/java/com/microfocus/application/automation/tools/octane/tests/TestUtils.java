@@ -48,7 +48,7 @@ public class TestUtils {
 	public static void createDummyConfiguration(){
 		ConfigurationService.configurePlugin(new OctaneServerSettingsModel(
 				"http://localhost:8008/ui/?p=1001/1002","username",
-				Secret.fromString("password"),null));
+				Secret.fromString("password"),null,null));
 	}
 
 	public static AbstractBuild runAndCheckBuild(AbstractProject project) throws Exception {
