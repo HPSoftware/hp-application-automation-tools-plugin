@@ -114,7 +114,7 @@ public class Webhooks implements UnprotectedRootAction  {
 								String sonarProjectKey = (String) project.get(SONAR_PROJECT_KEY_NAME);
 
 								// use SDK to fetch and push data
-								OctaneSDK.getInstance().getSonarService().enqueueFetchAndPushSonarCoverageToOctane(jobName, buildId, sonarProjectKey, action.getServerUrl(), sonarToken);
+								OctaneSDK.getClients().get(0).getCoverageService().enqueueFetchAndPushSonarCoverageToOctane(jobName, buildId, sonarProjectKey, action.getServerUrl(), sonarToken);
 								markBuildAsRecievedWebhookCall(build);
 								res.setStatus(HttpStatus.SC_OK); // sonar should get positive feedback for webhook
 							}

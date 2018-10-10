@@ -23,9 +23,9 @@
 package com.microfocus.application.automation.tools.octane.executor;
 
 import com.hp.octane.integrations.OctaneSDK;
-import com.hp.octane.integrations.api.EntitiesService;
 import com.hp.octane.integrations.dto.entities.Entity;
 import com.hp.octane.integrations.dto.entities.EntityConstants;
+import com.hp.octane.integrations.services.entities.EntitiesService;
 import com.microfocus.application.automation.tools.octane.actions.UFTTestDetectionPublisher;
 import com.microfocus.application.automation.tools.octane.tests.AbstractSafeLoggingAsyncPeriodWork;
 import hudson.Extension;
@@ -131,8 +131,8 @@ public class UftJobCleaner extends AbstractSafeLoggingAsyncPeriodWork {
         }
 
         if (!workspace2executorLogical2DiscoveryJobMap.isEmpty()) {
-            if (OctaneSDK.getInstance().getConfigurationService().isConfigurationValid()) {
-                EntitiesService entitiesService = OctaneSDK.getInstance().getEntitiesService();
+            if (OctaneSDK.getClients().get(0).getConfigurationService().isConfigurationValid()) {
+                EntitiesService entitiesService = OctaneSDK.getClients().get(0).getEntitiesService();
                 int deleteCounter = 0;
                 for (Long workspaceId : workspace2executorLogical2DiscoveryJobMap.keySet()) {
                     try {

@@ -24,12 +24,12 @@ package com.microfocus.application.automation.tools.octane.executor;
 
 import com.google.inject.Inject;
 import com.hp.octane.integrations.OctaneSDK;
-import com.hp.octane.integrations.api.EntitiesService;
 import com.hp.octane.integrations.dto.entities.Entity;
 import com.hp.octane.integrations.exceptions.OctaneRestException;
+import com.hp.octane.integrations.services.entities.EntitiesService;
 import com.hp.octane.integrations.uft.UftTestDispatchUtils;
 import com.hp.octane.integrations.uft.items.*;
-import com.hp.octane.integrations.util.SdkStringUtils;
+import com.hp.octane.integrations.utils.SdkStringUtils;
 import com.microfocus.application.automation.tools.octane.ResultQueue;
 import com.microfocus.application.automation.tools.octane.configuration.ConfigurationListener;
 import com.microfocus.application.automation.tools.octane.configuration.ServerConfiguration;
@@ -83,12 +83,12 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
 
 		logger.warn("Queue size  " + queue.size());
 
-		if (!OctaneSDK.getInstance().getConfigurationService().isConfigurationValid()) {
+		if (!OctaneSDK.getClients().get(0).getConfigurationService().isConfigurationValid()) {
 			logger.warn("There are pending discovered UFT tests, but MQM server configuration is not valid, results can't be submitted");
 			return;
 		}
 
-		EntitiesService entitiesService = OctaneSDK.getInstance().getEntitiesService();
+		EntitiesService entitiesService = OctaneSDK.getClients().get(0).getEntitiesService();
 		ResultQueue.QueueItem item = null;
 		try {
 			while ((item = queue.peekFirst()) != null) {

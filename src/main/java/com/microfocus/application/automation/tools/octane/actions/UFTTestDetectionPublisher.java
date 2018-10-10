@@ -23,8 +23,8 @@
 package com.microfocus.application.automation.tools.octane.actions;
 
 import com.hp.octane.integrations.OctaneSDK;
-import com.hp.octane.integrations.api.EntitiesService;
 import com.hp.octane.integrations.dto.entities.Entity;
+import com.hp.octane.integrations.services.entities.EntitiesService;
 import com.hp.octane.integrations.uft.items.UftTestDiscoveryResult;
 import com.microfocus.application.automation.tools.octane.executor.UFTTestDetectionService;
 import hudson.Extension;
@@ -102,7 +102,7 @@ public class UFTTestDetectionPublisher extends Recorder {
 
         public ListBoxModel doFillWorkspaceNameItems() {
             ListBoxModel m = new ListBoxModel();
-            EntitiesService entitiesService = OctaneSDK.getInstance().getEntitiesService();
+            EntitiesService entitiesService = OctaneSDK.getClients().get(0).getEntitiesService();
             List<Entity> workspaces = entitiesService.getEntities(null, "workspaces", null, null);
             for (Entity workspace : workspaces) {
                 m.add(workspace.getName(), String.valueOf(workspace.getId()));

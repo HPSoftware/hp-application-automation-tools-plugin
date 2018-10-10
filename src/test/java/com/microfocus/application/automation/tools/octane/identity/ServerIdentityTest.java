@@ -22,16 +22,12 @@
 
 package com.microfocus.application.automation.tools.octane.identity;
 
+import com.microfocus.application.automation.tools.octane.PlugInAbstractTest;
 import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
 import org.junit.Assert;
-import org.junit.ClassRule;
 import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsRule;
 
-public class ServerIdentityTest {
-
-    @ClassRule
-    public static final JenkinsRule rule = new JenkinsRule();
+public class ServerIdentityTest extends PlugInAbstractTest {
 
     @Test
     public void testIdentity() throws Exception {

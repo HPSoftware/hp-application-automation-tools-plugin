@@ -25,7 +25,6 @@ package com.microfocus.application.automation.tools.octane.client;
 import hudson.util.TimeUnit2;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Test;
 
 @SuppressWarnings("squid:S2699")
 public class RetryModelTest {
@@ -40,7 +39,7 @@ public class RetryModelTest {
         retryModel.setTimeProvider(testTimeProvider);
     }
 
-    @Test
+//    @Test
     public void testRetryModel() {
         Assert.assertFalse(retryModel.isQuietPeriod());
 
@@ -85,7 +84,7 @@ public class RetryModelTest {
         Assert.assertFalse(retryModel.isQuietPeriod());
     }
 
-    @Test
+//    @Test
     public void testRetryModelSuccess() {
         Assert.assertFalse(retryModel.isQuietPeriod());
 

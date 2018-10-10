@@ -23,11 +23,11 @@
 package com.microfocus.application.automation.tools.octane.actions;
 
 import com.hp.octane.integrations.OctaneSDK;
-import com.hp.octane.integrations.api.TasksProcessor;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.connectivity.HttpMethod;
 import com.hp.octane.integrations.dto.connectivity.OctaneResultAbridged;
 import com.hp.octane.integrations.dto.connectivity.OctaneTaskAbridged;
+import com.hp.octane.integrations.services.tasking.TasksProcessor;
 import com.microfocus.application.automation.tools.octane.configuration.ConfigApi;
 import hudson.Extension;
 import hudson.model.RootAction;
@@ -68,6 +68,13 @@ public class PluginActions implements RootAction {
 	}
 
 	public void doDynamic(StaplerRequest req, StaplerResponse res) throws IOException {
+		if (OctaneSDK.getClients().isEmpty()) {
+			res.setStatus(500);
+			res.getWriter().write("no OctaneClient has been initialized yet");
+			res.flushBuffer();
+			return;
+		}
+
 		HttpMethod method = null;
 		if ("post".equals(req.getMethod().toLowerCase())) {
 			method = HttpMethod.POST;
@@ -84,7 +91,7 @@ public class PluginActions implements RootAction {
 			octaneTaskAbridged.setMethod(method);
 			octaneTaskAbridged.setUrl(req.getRequestURIWithQueryString());
 			octaneTaskAbridged.setBody(getBody(req.getReader()));
-			TasksProcessor taskProcessor = OctaneSDK.getInstance().getTasksProcessor();
+			TasksProcessor taskProcessor = OctaneSDK.getClients().get(0).getTasksProcessor();
 			OctaneResultAbridged result = taskProcessor.execute(octaneTaskAbridged);
 
 			res.setStatus(result.getStatus());

@@ -22,13 +22,19 @@
 package com.microfocus.application.automation.tools.run;
 
 import com.hp.octane.integrations.OctaneSDK;
-import com.hp.octane.integrations.exceptions.OctaneSDKSonarException;
+import com.hp.octane.integrations.exceptions.SonarIntegrationException;
 import com.microfocus.application.automation.tools.model.SonarHelper;
 import com.microfocus.application.automation.tools.model.WebhookExpectationAction;
-import com.microfocus.application.automation.tools.octane.actions.Webhooks;
 import com.microfocus.application.automation.tools.octane.Messages;
-import hudson.*;
-import hudson.model.*;
+import com.microfocus.application.automation.tools.octane.actions.Webhooks;
+import hudson.Extension;
+import hudson.ExtensionList;
+import hudson.FilePath;
+import hudson.Launcher;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
@@ -39,7 +45,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
 import javax.annotation.Nonnull;
-import java.io.*;
+import java.io.IOException;
+import java.io.PrintStream;
 
 
 public class SonarOctaneListener extends Builder implements SimpleBuildStep {
@@ -138,9 +145,9 @@ public class SonarOctaneListener extends Builder implements SimpleBuildStep {
             logger.println("callback URL for jenkins resource will be set to: " + callbackWebHooksURL);
             String[] serverDetails = getSonarDetails(run, allConfigurations, listener);
             try {
-                OctaneSDK.getInstance().getSonarService().ensureWebhookExist(callbackWebHooksURL, serverDetails[0], serverDetails[1]);
+                OctaneSDK.getClients().get(0).getCoverageService().ensureSonarWebhookExist(callbackWebHooksURL, serverDetails[0], serverDetails[1]);
                 run.addAction(new WebhookExpectationAction(true, serverDetails[0]));
-            } catch (OctaneSDKSonarException e) {
+            } catch (SonarIntegrationException e) {
                 logger.println("Web-hook registration in sonarQube for build " + getBuildNumber(run) + " failed: " + e.getMessage());
             }
         }
@@ -178,7 +185,7 @@ public class SonarOctaneListener extends Builder implements SimpleBuildStep {
             if (url.isEmpty()) {
                 return FormValidation.warning(Messages.missingSonarServerUrl());
             } else {
-                String connectionStatus = OctaneSDK.getInstance().getSonarService().getSonarStatus(projectKey);
+                String connectionStatus = OctaneSDK.getClients().get(0).getCoverageService().getSonarStatus(projectKey);
                 if (!"CONNECTION_FAILURE".equals(connectionStatus)) {
                     return FormValidation.ok("Validation passed. Connected successfully to server " + url);
                 } else {

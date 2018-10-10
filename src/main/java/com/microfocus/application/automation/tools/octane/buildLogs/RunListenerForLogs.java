@@ -52,7 +52,7 @@ public class RunListenerForLogs extends RunListener<Run> {
 			String jobCiId = BuildHandlerUtils.getJobCiId(run);
 			String buildCiId = BuildHandlerUtils.getBuildCiId(run);
 			logger.info("enqueued build '" + jobCiId + " #" + buildCiId + "' for log submission");
-			OctaneSDK.getInstance().getLogsService().enqueuePushBuildLog(jobCiId, buildCiId);
+			OctaneSDK.getClients().forEach(octaneClient -> octaneClient.getLogsService().enqueuePushBuildLog(jobCiId, buildCiId));
 		} catch (Throwable t) {
 			logger.error("failed to enqueue " + run + " for logs push to Octane", t);
 		}

@@ -22,12 +22,16 @@
 
 package com.microfocus.application.automation.tools.octane.tests.xml;
 
+import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
+import com.microfocus.application.automation.tools.octane.OctaneServerMock;
+import com.microfocus.application.automation.tools.octane.PlugInAbstractTest;
+import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
 import com.microfocus.application.automation.tools.octane.tests.TestResultContainer;
 import com.microfocus.application.automation.tools.octane.tests.TestResultIterable;
-import com.microfocus.application.automation.tools.octane.tests.junit.JUnitTestResult;
 import com.microfocus.application.automation.tools.octane.tests.TestResultIterator;
 import com.microfocus.application.automation.tools.octane.tests.TestUtils;
 import com.microfocus.application.automation.tools.octane.tests.detection.ResultFields;
+import com.microfocus.application.automation.tools.octane.tests.junit.JUnitTestResult;
 import com.microfocus.application.automation.tools.octane.tests.junit.TestResultStatus;
 import com.microfocus.application.automation.tools.octane.tests.testResult.TestResult;
 import hudson.FilePath;
@@ -38,11 +42,10 @@ import hudson.matrix.MatrixProject;
 import hudson.model.AbstractBuild;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
+import hudson.util.Secret;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsRule;
 
 import javax.xml.stream.XMLStreamException;
 import java.io.File;
@@ -50,46 +53,50 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-@SuppressWarnings({"squid:S2698","squid:S2699"})
-public class TestResultXmlWriterTest {
+@SuppressWarnings({"squid:S2698", "squid:S2699"})
+public class TestResultXmlWriterTest extends PlugInAbstractTest {
 
-	@ClassRule
-	public static final JenkinsRule jenkins = new JenkinsRule();
+    private TestResultContainer container;
 
-	private TestResultContainer container;
+    @Before
+    public void initialize() {
+        List<TestResult> testResults = new ArrayList<>();
+        testResults.add(new JUnitTestResult("module", "package", "class", "testName", TestResultStatus.PASSED, 1l, 2l, null, null));
+        container = new TestResultContainer(testResults.iterator(), new ResultFields());
+        OctaneServerMock serverMock = OctaneServerMock.getInstance();
+        OctaneServerSettingsModel model = new OctaneServerSettingsModel(
+                "http://127.0.0.1:" + serverMock.getPort() + "/ui?p=1001",
+                "username",
+                Secret.fromString("password"),
+                "");
+        ConfigurationService.configurePlugin(model);
+    }
 
-	@Before
-	public void initialize() throws IOException {
-		List<TestResult> testResults = new ArrayList<>();
-		testResults.add(new JUnitTestResult("module", "package", "class", "testName", TestResultStatus.PASSED, 1l, 2l, null, null));
-		container = new TestResultContainer(testResults.iterator(), new ResultFields());
-	}
+    @Test
+    public void testNonEmptySubType() throws Exception {
+        MatrixProject matrixProject = rule.createProject(MatrixProject.class, "matrix-project");
 
-	@Test
-	public void testNonEmptySubType() throws Exception {
-		MatrixProject matrixProject = jenkins.createProject(MatrixProject.class, "matrix-project");
+        matrixProject.setAxes(new AxisList(new Axis("OS", "Linux")));
+        MatrixBuild build = (MatrixBuild) TestUtils.runAndCheckBuild(matrixProject);
+        Assert.assertEquals(1, build.getExactRuns().size());
+        assertBuildType(build.getExactRuns().get(0), "matrix-project", "OS=Linux");
+    }
 
-		matrixProject.setAxes(new AxisList(new Axis("OS", "Linux")));
-		MatrixBuild build = (MatrixBuild) TestUtils.runAndCheckBuild(matrixProject);
-		Assert.assertEquals(1, build.getExactRuns().size());
-		assertBuildType(build.getExactRuns().get(0), "matrix-project", "OS=Linux");
-	}
+    @Test
+    public void testEmptySubType() throws Exception {
+        FreeStyleProject project = rule.createFreeStyleProject("freestyle-project");
+        FreeStyleBuild build = (FreeStyleBuild) TestUtils.runAndCheckBuild(project);
+        assertBuildType(build, "freestyle-project", null);
+    }
 
-	@Test
-	public void testEmptySubType() throws Exception {
-		FreeStyleProject project = jenkins.createFreeStyleProject("freestyle-project");
-		FreeStyleBuild build = (FreeStyleBuild) TestUtils.runAndCheckBuild(project);
-		assertBuildType(build, "freestyle-project", null);
-	}
+    private void assertBuildType(AbstractBuild build, String buildType, String subType) throws IOException, XMLStreamException, InterruptedException {
+        FilePath testXml = new FilePath(build.getWorkspace(), "test.xml");
+        TestResultXmlWriter xmlWriter = new TestResultXmlWriter(testXml, build);
+        xmlWriter.writeResults(container);
+        xmlWriter.close();
 
-	private void assertBuildType(AbstractBuild build, String buildType, String subType) throws IOException, XMLStreamException, InterruptedException {
-		FilePath testXml = new FilePath(build.getWorkspace(), "test.xml");
-		TestResultXmlWriter xmlWriter = new TestResultXmlWriter(testXml, build);
-		xmlWriter.writeResults(container);
-		xmlWriter.close();
-
-		TestResultIterator iterator = new TestResultIterable(new File(testXml.getRemote())).iterator();
-		Assert.assertEquals(buildType, iterator.getJobId());
-		Assert.assertEquals(subType, iterator.getSubType());
-	}
+        TestResultIterator iterator = new TestResultIterable(new File(testXml.getRemote())).iterator();
+        Assert.assertEquals(buildType, iterator.getJobId());
+        Assert.assertEquals(subType, iterator.getSubType());
+    }
 }

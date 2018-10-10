@@ -22,7 +22,6 @@ package com.microfocus.application.automation.tools.octane;
 
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.configuration.CIProxyConfiguration;
-import com.hp.octane.integrations.dto.configuration.OctaneConfiguration;
 import com.hp.octane.integrations.dto.connectivity.OctaneResponse;
 import com.hp.octane.integrations.dto.events.MultiBranchType;
 import com.hp.octane.integrations.dto.executor.CredentialsInfo;
@@ -37,13 +36,11 @@ import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.parameters.CIParameters;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.snapshots.SnapshotNode;
-import com.hp.octane.integrations.dto.tests.TestsResult;
 import com.hp.octane.integrations.exceptions.ConfigurationException;
 import com.hp.octane.integrations.exceptions.PermissionException;
 import com.hp.octane.integrations.spi.CIPluginServicesBase;
 import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
 import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
-import com.microfocus.application.automation.tools.octane.configuration.ServerConfiguration;
 import com.microfocus.application.automation.tools.octane.executor.ExecutorConnectivityService;
 import com.microfocus.application.automation.tools.octane.executor.TestExecutionJobCreatorService;
 import com.microfocus.application.automation.tools.octane.executor.UftJobCleaner;
@@ -51,6 +48,7 @@ import com.microfocus.application.automation.tools.octane.model.ModelFactory;
 import com.microfocus.application.automation.tools.octane.model.processors.parameters.ParameterProcessors;
 import com.microfocus.application.automation.tools.octane.model.processors.projects.AbstractProjectProcessor;
 import com.microfocus.application.automation.tools.octane.model.processors.projects.JobProcessorFactory;
+import com.microfocus.application.automation.tools.octane.tests.TestListener;
 import hudson.ProxyConfiguration;
 import hudson.console.PlainTextConsoleOutputStream;
 import hudson.model.*;
@@ -85,21 +83,13 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 
 	@Override
 	public CIServerInfo getServerInfo() {
-		CIServerInfo result = dtoFactory.newDTO(CIServerInfo.class);
-		String serverUrl = Jenkins.getInstance().getRootUrl();
-		if (serverUrl != null && serverUrl.endsWith("/")) {
-			serverUrl = serverUrl.substring(0, serverUrl.length() - 1);
-		}
-		OctaneServerSettingsModel model = ConfigurationService.getModel();
-		result.setType(CIServerTypes.JENKINS.value())
-				.setVersion(Jenkins.VERSION)
-				.setUrl(serverUrl)
-				.setInstanceId(model.getIdentity())
-				.setInstanceIdFrom(model.getIdentityFrom())
-				.setSendingTime(System.currentTimeMillis())
-				.setImpersonatedUser(model.getImpersonatedUser())
-				.setSuspended(model.isSuspend());
+		return getJenkinsServerInfo();
+	}
 
+	@Override
+	public CIPluginInfo getPluginInfo() {
+		CIPluginInfo result = dtoFactory.newDTO(CIPluginInfo.class);
+		result.setVersion(ConfigurationService.getPluginVersion());
 		return result;
 	}
 
@@ -112,31 +102,24 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 	}
 
 	@Override
-	public CIPluginInfo getPluginInfo() {
-		CIPluginInfo result = dtoFactory.newDTO(CIPluginInfo.class);
-		result.setVersion(ConfigurationService.getPluginVersion());
-		return result;
-	}
-
-	@Override
 	public File getAllowedOctaneStorage() {
 		return new File(Jenkins.getInstance().getRootDir(), "userContent");
 	}
 
-	@Override
-	public OctaneConfiguration getOctaneConfiguration() {
-		OctaneConfiguration result = null;
-		ServerConfiguration serverConfiguration = ConfigurationService.getServerConfiguration();
-		if (serverConfiguration != null && serverConfiguration.location != null && !serverConfiguration.location.isEmpty() &&
-				serverConfiguration.sharedSpace != null && !serverConfiguration.sharedSpace.isEmpty()) {
-			result = dtoFactory.newDTO(OctaneConfiguration.class)
-					.setUrl(serverConfiguration.location)
-					.setSharedSpace(serverConfiguration.sharedSpace)
-					.setApiKey(serverConfiguration.username)
-					.setSecret(serverConfiguration.password.getPlainText());
-		}
-		return result;
-	}
+//	@Override
+//	public OctaneConfiguration getOctaneConfiguration() {
+//		OctaneConfiguration result = null;
+//		ServerConfiguration serverConfiguration = ConfigurationService.getServerConfiguration();
+//		if (serverConfiguration != null && serverConfiguration.location != null && !serverConfiguration.location.isEmpty() &&
+//				serverConfiguration.sharedSpace != null && !serverConfiguration.sharedSpace.isEmpty()) {
+//			result = dtoFactory.newDTO(OctaneConfiguration.class)
+//					.setUrl(serverConfiguration.location)
+//					.setSharedSpace(serverConfiguration.sharedSpace)
+//					.setApiKey(serverConfiguration.username)
+//					.setSecret(serverConfiguration.password.getPlainText());
+//		}
+//		return result;
+//	}
 
 	@Override
 	public CIProxyConfiguration getProxyConfiguration(URL targetUrl) {
@@ -365,10 +348,25 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 		return result;
 	}
 
-	//  TODO: implement
 	@Override
-	public TestsResult getTestsResult(String jobCiId, String buildCiId) {
-		return null;
+	public InputStream getTestsResult(String jobCiId, String buildCiId) {
+		Job job = (Job) Jenkins.getInstance().getItemByFullName(jobCiId);
+		if (job == null) {
+			logger.warn("job '" + jobCiId + "' no longer exists, its test results won't be pushed to Octane");
+			return null;
+		}
+		Run run = job.getBuildByNumber(Integer.parseInt(buildCiId));
+		if (run == null) {
+			logger.warn("build '" + jobCiId + " #" + buildCiId + "' no longer exists, its test results won't be pushed to Octane");
+			return null;
+		}
+
+		try {
+			return new FileInputStream(run.getRootDir() + File.separator + TestListener.TEST_RESULT_FILE);
+		} catch (Exception fnfe) {
+			logger.error("'" + TestListener.TEST_RESULT_FILE + "' file no longer exists, test results of '" + jobCiId + " #" + buildCiId + "' won't be pushed to Octane", fnfe);
+			return null;
+		}
 	}
 
 	@Override
@@ -424,7 +422,10 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 				parametersAction = new ParametersAction(createParameters(project, ciParameters));
 			}
 
-			project.scheduleBuild(delay, new Cause.RemoteCause(getOctaneConfiguration() == null ? "non available URL" : getOctaneConfiguration().getUrl(), "octane driven execution"), parametersAction);
+			project.scheduleBuild(delay, new Cause.RemoteCause(
+					ConfigurationService.getServerConfiguration() == null ?
+							"non available URL" :
+							ConfigurationService.getServerConfiguration().location, "octane driven execution"), parametersAction);
 		} else if (job.getClass().getName().equals(JobProcessorFactory.WORKFLOW_JOB_NAME)) {
 			AbstractProjectProcessor workFlowJobProcessor = JobProcessorFactory.getFlowProcessor(job);
 			workFlowJobProcessor.scheduleBuild(originalBody);
@@ -617,5 +618,19 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 		} finally {
 			stopImpersonation(securityContext);
 		}
+	}
+
+	public  CIServerInfo getJenkinsServerInfo() {
+		CIServerInfo result = dtoFactory.newDTO(CIServerInfo.class);
+		String serverUrl = Jenkins.getInstance().getRootUrl();
+		if (serverUrl != null && serverUrl.endsWith("/")) {
+			serverUrl = serverUrl.substring(0, serverUrl.length() - 1);
+		}
+		result.setType(CIServerTypes.JENKINS.value())
+				.setVersion(Jenkins.VERSION)
+				.setUrl(serverUrl)
+				.setSendingTime(System.currentTimeMillis());
+
+		return result;
 	}
 }

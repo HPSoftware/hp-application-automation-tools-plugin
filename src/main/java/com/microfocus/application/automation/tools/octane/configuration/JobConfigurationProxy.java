@@ -25,11 +25,11 @@ package com.microfocus.application.automation.tools.octane.configuration;
 import com.hp.mqm.client.MqmRestClient;
 import com.hp.mqm.client.exception.RequestException;
 import com.hp.mqm.client.model.*;
-import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.general.CIServerInfo;
 import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
+import com.microfocus.application.automation.tools.octane.CIJenkinsServicesImpl;
 import com.microfocus.application.automation.tools.octane.Messages;
 import com.microfocus.application.automation.tools.octane.client.JenkinsMqmRestClientFactory;
 import com.microfocus.application.automation.tools.octane.client.RetryModel;
@@ -73,7 +73,7 @@ public class JobConfigurationProxy {
 		JSONObject result = new JSONObject();
 
 		PipelineNode pipelineNode = ModelFactory.createStructureItem(job);
-		CIServerInfo ciServerInfo = OctaneSDK.getInstance().getPluginServices().getServerInfo();
+		CIServerInfo ciServerInfo = new CIJenkinsServicesImpl().getJenkinsServerInfo();
 		Long releaseId = pipelineObject.getLong("releaseId") != -1 ? pipelineObject.getLong("releaseId") : null;
 
 		MqmRestClient client;

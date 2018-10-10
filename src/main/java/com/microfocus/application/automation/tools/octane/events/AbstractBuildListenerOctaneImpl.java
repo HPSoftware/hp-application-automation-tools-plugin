@@ -87,7 +87,7 @@ public final class AbstractBuildListenerOctaneImpl extends RunListener<AbstractB
 			} else {
 				event.setPhaseType(PhaseType.POST);
 			}
-			OctaneSDK.getInstance().getEventsService().publishEvent(event);
+			OctaneSDK.getClients().forEach(octaneClient -> octaneClient.getEventsService().publishEvent(event));
 		} catch (Throwable throwable) {
 			logger.error("failed to build and/or dispatch STARTED event for " + build, throwable);
 		}
@@ -123,7 +123,7 @@ public final class AbstractBuildListenerOctaneImpl extends RunListener<AbstractB
 						.setBranchName(commonOriginRevision.branch);
 			}
 
-			OctaneSDK.getInstance().getEventsService().publishEvent(event);
+			OctaneSDK.getClients().forEach(octaneClient -> octaneClient.getEventsService().publishEvent(event));
 		} catch (Throwable throwable) {
 			logger.error("failed to build and/or dispatch FINISHED event for " + build, throwable);
 		}

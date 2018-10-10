@@ -53,7 +53,7 @@ public class ItemListenerOctaneImpl extends ItemListener {
 						.setEventType(CIEventType.DELETED)
 						.setProject(JobProcessorFactory.getFlowProcessor((WorkflowJob) item).getTranslateJobName());
 
-				OctaneSDK.getInstance().getEventsService().publishEvent(event);
+				OctaneSDK.getClients().forEach(client ->client.getEventsService().publishEvent(event));
 			}
 		} catch (Throwable throwable) {
 			logger.error("failed to build and/or dispatch DELETED event for " + item, throwable);
