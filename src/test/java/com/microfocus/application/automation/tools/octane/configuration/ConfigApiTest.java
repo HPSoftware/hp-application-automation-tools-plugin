@@ -48,7 +48,7 @@ public class ConfigApiTest extends PlugInAbstractTest {
 		Assert.assertEquals("http://localhost:8008", config.getString("location"));
 		Assert.assertEquals(PlugInAbstractTest.ssp, config.getString("sharedSpace"));
 		Assert.assertEquals("username", config.getString("username"));
-		Assert.assertEquals(ConfigurationService.getModel().getIdentity(), config.getString("serverIdentity"));
+		Assert.assertEquals(ConfigurationService.getSettings().getIdentity(), config.getString("serverIdentity"));
 	}
 
 	@Test
@@ -69,7 +69,7 @@ public class ConfigApiTest extends PlugInAbstractTest {
 		Page page = client.getPage(req);
 		config = JSONObject.fromObject(page.getWebResponse().getContentAsString());
 		checkConfig(config, "http://localhost:8088", sharedSP, "username1", Secret.fromString("password1"));
-		Assert.assertEquals(ConfigurationService.getModel().getIdentity(), config.getString("serverIdentity"));
+		Assert.assertEquals(ConfigurationService.getSettings().getIdentity(), config.getString("serverIdentity"));
 
 
 		// location, shared space, no credentials
@@ -81,7 +81,7 @@ public class ConfigApiTest extends PlugInAbstractTest {
 		page = client.getPage(req);
 		config = JSONObject.fromObject(page.getWebResponse().getContentAsString());
 		checkConfig(config, "http://localhost:8888", sharedSP1, "username1", Secret.fromString("password1"));
-		Assert.assertEquals(ConfigurationService.getModel().getIdentity(), config.getString("serverIdentity"));
+		Assert.assertEquals(ConfigurationService.getSettings().getIdentity(), config.getString("serverIdentity"));
 //
 		// location, shared space and username without password
 		config = new JSONObject();
@@ -93,7 +93,7 @@ public class ConfigApiTest extends PlugInAbstractTest {
 		page = client.getPage(req);
 		config = JSONObject.fromObject(page.getWebResponse().getContentAsString());
 		checkConfig(config, "http://localhost:8882", sharedSP2, "username3", Secret.fromString(""));
-		Assert.assertEquals(ConfigurationService.getModel().getIdentity(), config.getString("serverIdentity"));
+		Assert.assertEquals(ConfigurationService.getSettings().getIdentity(), config.getString("serverIdentity"));
 
 		// uiLocation and identity
 		config = new JSONObject();
@@ -105,7 +105,7 @@ public class ConfigApiTest extends PlugInAbstractTest {
 		config = JSONObject.fromObject(page.getWebResponse().getContentAsString());
 		checkConfig(config, "http://localhost:8881", sharedSP3, "username3", Secret.fromString(""));
 		Assert.assertEquals("2d2fa955-1d13-4d8c-947f-ab11c72bf850", config.getString("serverIdentity"));
-		Assert.assertEquals("2d2fa955-1d13-4d8c-947f-ab11c72bf850", ConfigurationService.getModel().getIdentity());
+		Assert.assertEquals("2d2fa955-1d13-4d8c-947f-ab11c72bf850", ConfigurationService.getSettings().getIdentity());
 
 		// requires POST
 		req.setHttpMethod(HttpMethod.GET);

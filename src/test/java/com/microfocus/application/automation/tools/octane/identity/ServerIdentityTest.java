@@ -31,11 +31,11 @@ public class ServerIdentityTest extends PlugInAbstractTest {
 
     @Test
     public void testIdentity() throws Exception {
-        String identity = ConfigurationService.getModel().getIdentity();
+        String identity = ConfigurationService.getSettings().getIdentity();
         Assert.assertNotNull(identity);
         Assert.assertFalse(identity.isEmpty());
 
-        String identity2 = ConfigurationService.getModel().getIdentity();
+        String identity2 = ConfigurationService.getSettings().getIdentity();
         Assert.assertEquals(identity2, identity);
     }
 }

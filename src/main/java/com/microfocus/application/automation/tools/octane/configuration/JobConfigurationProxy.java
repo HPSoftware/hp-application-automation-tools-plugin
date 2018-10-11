@@ -25,6 +25,8 @@ package com.microfocus.application.automation.tools.octane.configuration;
 import com.hp.mqm.client.MqmRestClient;
 import com.hp.mqm.client.exception.RequestException;
 import com.hp.mqm.client.model.*;
+import com.hp.octane.integrations.OctaneClient;
+import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.general.CIServerInfo;
 import com.hp.octane.integrations.dto.parameters.CIParameter;
@@ -73,12 +75,14 @@ public class JobConfigurationProxy {
 		JSONObject result = new JSONObject();
 
 		PipelineNode pipelineNode = ModelFactory.createStructureItem(job);
-		CIServerInfo ciServerInfo = new CIJenkinsServicesImpl().getJenkinsServerInfo();
+		CIServerInfo ciServerInfo = CIJenkinsServicesImpl.getJenkinsServerInfo();
+		String sharedSpaceId = pipelineObject.getString("sharedSpaceId");
 		Long releaseId = pipelineObject.getLong("releaseId") != -1 ? pipelineObject.getLong("releaseId") : null;
 
+		OctaneClient octaneClient = OctaneSDK.getClientBySharedSpaceId(sharedSpaceId);
 		MqmRestClient client;
 		try {
-			client = createClient();
+			client = createClient(octaneClient.getInstanceId());
 		} catch (ClientException e) {
 			logger.warn(PRODUCT_NAME + " connection failed", e);
 			return error(e.getMessage(), e.getLink());
@@ -86,8 +90,8 @@ public class JobConfigurationProxy {
 
 		try {
 			Pipeline createdPipeline = client.createPipeline(
-					ConfigurationService.getModel().getIdentity(),
-                    pipelineNode.getJobCiId(),
+					octaneClient.getInstanceId(),
+					pipelineNode.getJobCiId(),
 					pipelineObject.getString("name"),
 					pipelineObject.getLong("workspaceId"),
 					releaseId,
@@ -114,8 +118,8 @@ public class JobConfigurationProxy {
 
 		} catch (RequestException e) {
 			logger.warn("Failed to create pipeline", e);
-            String msg = e.getDescription() != null ? e.getDescription() : e.getMessage();
-            return error("Unable to create pipeline. " + msg);
+			String msg = e.getDescription() != null ? e.getDescription() : e.getMessage();
+			return error("Unable to create pipeline. " + msg);
 		} catch (ClientException e) {
 			logger.warn("Failed to create pipeline", e);
 			return error(e.getMessage(), e.getLink());
@@ -126,10 +130,11 @@ public class JobConfigurationProxy {
 	@JavaScriptMethod
 	public JSONObject updatePipelineOnSever(JSONObject pipelineObject) throws IOException {
 		JSONObject result = new JSONObject();
-
+		String sharedSpaceId = pipelineObject.getString("sharedSpaceId");
+		OctaneClient octaneClient = OctaneSDK.getClientBySharedSpaceId(sharedSpaceId);
 		MqmRestClient client;
 		try {
-			client = createClient();
+			client = createClient(octaneClient.getInstanceId());
 		} catch (ClientException e) {
 			logger.warn(PRODUCT_NAME + " connection failed", e);
 			return error(e.getMessage(), e.getLink());
@@ -160,9 +165,9 @@ public class JobConfigurationProxy {
 				fields.add(new ListField(jsonObject.getString("name"), assignedValues));
 			}
 
-            final String jobCiId = JobProcessorFactory.getFlowProcessor(job).getTranslateJobName();
+			final String jobCiId = JobProcessorFactory.getFlowProcessor(job).getTranslateJobName();
 
-            Pipeline pipeline = client.updatePipeline(ConfigurationService.getModel().getIdentity(), jobCiId,
+			Pipeline pipeline = client.updatePipeline(octaneClient.getInstanceId(), jobCiId,
 					new Pipeline(pipelineId, pipelineObject.getString("name"), null, pipelineObject.getLong("workspaceId"), pipelineObject.getLong("releaseId"), taxonomies, fields, pipelineObject.getBoolean("ignoreTests")));
 
 			//WORKAROUND BEGIN
@@ -207,10 +212,11 @@ public class JobConfigurationProxy {
 	@JavaScriptMethod
 	public JSONObject deleteTests(JSONObject pipelineObject) throws IOException, InterruptedException {
 		JSONObject result = new JSONObject();
-
+		String sharedSpaceId = pipelineObject.getString("sharedSpaceId");
+		OctaneClient octaneClient = OctaneSDK.getClientBySharedSpaceId(sharedSpaceId);
 		MqmRestClient client;
 		try {
-			client = createClient();
+			client = createClient(octaneClient.getInstanceId());
 		} catch (ClientException e) {
 			logger.warn(PRODUCT_NAME + " connection failed", e);
 			return error(e.getMessage(), e.getLink());
@@ -229,10 +235,12 @@ public class JobConfigurationProxy {
 	}
 
 	@JavaScriptMethod
-	public JSONObject loadJobConfigurationFromServer() throws IOException {
+	public JSONObject loadJobConfigurationFromServer(JSONObject params) throws IOException {
+		String sharedSpaceId = params.getString("sharedSpaceId");
+		OctaneClient octaneClient = OctaneSDK.getClientBySharedSpaceId(sharedSpaceId);
 		MqmRestClient client;
 		try {
-			client = createClient();
+			client = createClient(octaneClient.getInstanceId());
 		} catch (ClientException e) {
 			logger.warn(PRODUCT_NAME + " connection failed", e);
 			return error(e.getMessage(), e.getLink());
@@ -244,9 +252,9 @@ public class JobConfigurationProxy {
 		try {
 			boolean isUftJob = false;
 			List<CIParameter> parameters = ParameterProcessors.getConfigs(job);
-			if(parameters != null) {
-				for(CIParameter parameter : parameters) {
-					if(parameter != null && parameter.getName() != null && parameter.getName().equals("suiteId")) {
+			if (parameters != null) {
+				for (CIParameter parameter : parameters) {
+					if (parameter != null && parameter.getName() != null && parameter.getName().equals("suiteId")) {
 						isUftJob = true;
 						break;
 					}
@@ -254,8 +262,8 @@ public class JobConfigurationProxy {
 			}
 			ret.put("isUftJob", isUftJob);
 
-            final String jobCiId = JobProcessorFactory.getFlowProcessor(job).getTranslateJobName();
-            JobConfiguration jobConfiguration = client.getJobConfiguration(ConfigurationService.getModel().getIdentity(), jobCiId);
+			final String jobCiId = JobProcessorFactory.getFlowProcessor(job).getTranslateJobName();
+			JobConfiguration jobConfiguration = client.getJobConfiguration(octaneClient.getInstanceId(), jobCiId);
 
 			if (!jobConfiguration.getWorkspacePipelinesMap().isEmpty()) {
 				Map<Long, List<Pipeline>> workspacesMap = jobConfiguration.getWorkspacePipelinesMap();
@@ -331,10 +339,12 @@ public class JobConfigurationProxy {
 
 	@JavaScriptMethod
 	public JSONObject loadWorkspaceConfiguration(JSONObject pipelineJSON) {
+		String sharedSpaceId = pipelineJSON.getString("sharedSpaceId");
+		OctaneClient octaneClient = OctaneSDK.getClientBySharedSpaceId(sharedSpaceId);
 		MqmRestClient client;
 		JSONObject ret = new JSONObject();
 		try {
-			client = createClient();
+			client = createClient(octaneClient.getInstanceId());
 		} catch (ClientException e) {
 			logger.warn(PRODUCT_NAME + " connection failed", e);
 			return error(e.getMessage(), e.getLink());
@@ -370,10 +380,12 @@ public class JobConfigurationProxy {
 
 	@JavaScriptMethod
 	public JSONObject enrichPipeline(JSONObject pipelineJSON) {
+		String sharedSpaceId = pipelineJSON.getString("sharedSpaceId");
+		OctaneClient octaneClient = OctaneSDK.getClientBySharedSpaceId(sharedSpaceId);
 		MqmRestClient client;
 		JSONObject ret = new JSONObject();
 		try {
-			client = createClient();
+			client = createClient(octaneClient.getInstanceId());
 		} catch (ClientException e) {
 			logger.warn(PRODUCT_NAME + " connection failed", e);
 			return error(e.getMessage(), e.getLink());
@@ -481,13 +493,13 @@ public class JobConfigurationProxy {
 	}
 
 	@JavaScriptMethod
-	public JSONObject searchListItems(String logicalListName, String term, long workspaceId, boolean multiValue, boolean extensible) {
+	public JSONObject searchListItems(String logicalListName, String term, String sharedSpaceId, long workspaceId, boolean multiValue, boolean extensible) {
 		int defaultSize = 10;
 		JSONObject ret = new JSONObject();
-
+		OctaneClient octaneClient = OctaneSDK.getClientBySharedSpaceId(sharedSpaceId);
 		MqmRestClient client;
 		try {
-			client = createClient();
+			client = createClient(octaneClient.getInstanceId());
 		} catch (ClientException e) {
 			logger.warn(PRODUCT_NAME + " connection failed", e);
 			return error(e.getMessage(), e.getLink());
@@ -545,13 +557,13 @@ public class JobConfigurationProxy {
 	}
 
 	@JavaScriptMethod
-	public JSONObject searchReleases(String term, long workspaceId) {
+	public JSONObject searchReleases(String term, String sharedSpaceId, long workspaceId) {
 		int defaultSize = 5;
 		JSONObject ret = new JSONObject();
-
+		OctaneClient octaneClient = OctaneSDK.getClientBySharedSpaceId(sharedSpaceId);
 		MqmRestClient client;
 		try {
-			client = createClient();
+			client = createClient(octaneClient.getInstanceId());
 		} catch (ClientException e) {
 			logger.warn(PRODUCT_NAME + " connection failed", e);
 			return error(e.getMessage(), e.getLink());
@@ -591,13 +603,13 @@ public class JobConfigurationProxy {
 	}
 
 	@JavaScriptMethod
-	public JSONObject searchWorkspaces(String term) {
+	public JSONObject searchWorkspaces(String term, String sharedSpaceId) {
 		int defaultSize = 5;
 		JSONObject ret = new JSONObject();
-
+		OctaneClient octaneClient = OctaneSDK.getClientBySharedSpaceId(sharedSpaceId);
 		MqmRestClient client;
 		try {
-			client = createClient();
+			client = createClient(octaneClient.getInstanceId());
 		} catch (ClientException e) {
 			logger.warn(PRODUCT_NAME + " connection failed", e);
 			return error(e.getMessage(), e.getLink());
@@ -629,13 +641,13 @@ public class JobConfigurationProxy {
 	}
 
 	@JavaScriptMethod
-	public JSONObject searchTaxonomies(String term, long workspaceId, JSONArray pipelineTaxonomies) {
+	public JSONObject searchTaxonomies(String term, String sharedSpaceId, long workspaceId, JSONArray pipelineTaxonomies) {
 		int defaultSize = 20;
 		JSONObject ret = new JSONObject();
-
+		OctaneClient octaneClient = OctaneSDK.getClientBySharedSpaceId(sharedSpaceId);
 		MqmRestClient client;
 		try {
-			client = createClient();
+			client = createClient(octaneClient.getInstanceId());
 		} catch (ClientException e) {
 			logger.warn(PRODUCT_NAME + " connection failed", e);
 			return error(e.getMessage(), e.getLink());
@@ -846,8 +858,8 @@ public class JobConfigurationProxy {
 		return result;
 	}
 
-	private MqmRestClient createClient() throws ClientException {
-		ServerConfiguration configuration = ConfigurationService.getServerConfiguration();
+	private MqmRestClient createClient(String instanceId) throws ClientException {
+		ServerConfiguration configuration = ConfigurationService.getServerConfiguration(instanceId);
 		if (StringUtils.isEmpty(configuration.location)) {
 			String label = "Please configure server here";
 			throw new ClientException(PRODUCT_NAME + " not configured", new ExceptionLink("/configure", label));

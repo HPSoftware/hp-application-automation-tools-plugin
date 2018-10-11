@@ -103,7 +103,7 @@ public class EventsTest {
 		assertNotNull(eventsLists.getServer());
 		assertTrue(rule.getInstance().getRootUrl() != null && rule.getInstance().getRootUrl().startsWith(eventsLists.getServer().getUrl()));
 		assertEquals("jenkins", eventsLists.getServer().getType());
-		assertEquals(ConfigurationService.getModel().getIdentity(), eventsLists.getServer().getInstanceId());
+		assertEquals(ConfigurationService.getSettings().getIdentity(), eventsLists.getServer().getInstanceId());
 
 		assertNotNull(eventsLists.getEvents());
 		assertFalse(eventsLists.getEvents().isEmpty());

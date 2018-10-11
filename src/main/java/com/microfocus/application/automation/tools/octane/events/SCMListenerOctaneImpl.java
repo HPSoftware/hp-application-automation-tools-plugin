@@ -20,12 +20,11 @@
 
 package com.microfocus.application.automation.tools.octane.events;
 
-import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.scm.SCMData;
-import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
+import com.microfocus.application.automation.tools.octane.CIJenkinsServicesImpl;
 import com.microfocus.application.automation.tools.octane.model.CIEventCausesFactory;
 import com.microfocus.application.automation.tools.octane.model.processors.scm.SCMProcessor;
 import com.microfocus.application.automation.tools.octane.model.processors.scm.SCMProcessors;
@@ -56,13 +55,6 @@ public class SCMListenerOctaneImpl extends SCMListener {
 	public void onChangeLogParsed(Run<?, ?> run, SCM scm, TaskListener listener, ChangeLogSet<?> changelog) throws Exception {
 		super.onChangeLogParsed(run, scm, listener, changelog);
 
-		if (ConfigurationService.getServerConfiguration() != null && !ConfigurationService.getServerConfiguration().isValid()) {
-			return;
-		}
-		if (ConfigurationService.getModel() != null && ConfigurationService.getModel().isSuspend()) {
-			return;
-		}
-
 		SCMProcessor scmProcessor = SCMProcessors.getAppropriate(scm.getClass().getName());
 		if (scmProcessor == null) {
 			logger.debug("no processors found for SCM provider of type '" + scm.getType() + "', SCM data won't be extracted");
@@ -73,7 +65,7 @@ public class SCMListenerOctaneImpl extends SCMListener {
 			SCMData scmData = extractSCMData(run, scm, scmProcessor);
 			if (scmData != null) {
 				CIEvent event = createSCMEvent(run, scmData);
-				OctaneSDK.getClients().forEach(client ->client.getEventsService().publishEvent(event));
+				CIJenkinsServicesImpl.publishEventToRelevantClients(event);
 			}
 		} catch (Throwable throwable) {
 			logger.error("failed to build and/or dispatch SCM event for " + run, throwable);

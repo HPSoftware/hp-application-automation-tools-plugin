@@ -97,7 +97,7 @@ public class ConfigApi {
 
 		String serverIdentity = (String) configuration.get("serverIdentity");
 		if (!StringUtils.isEmpty(serverIdentity)) {
-			ConfigurationService.getModel().setIdentity(serverIdentity);
+			ConfigurationService.getSettings().setIdentity(serverIdentity);
 		}
 
 		res.serveExposedBean(req, getConfiguration(), Flavor.JSON);
@@ -114,7 +114,7 @@ public class ConfigApi {
 				serverConfiguration.sharedSpace,
 				serverConfiguration.username,
 				serverConfiguration.impersonatedUser,
-				ConfigurationService.getModel().getIdentity());
+				ConfigurationService.getSettings().getIdentity());
 	}
 
 	@ExportedBean

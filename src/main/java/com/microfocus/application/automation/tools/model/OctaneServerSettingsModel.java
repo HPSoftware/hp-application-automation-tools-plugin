@@ -30,115 +30,115 @@ import org.kohsuke.stapler.DataBoundSetter;
 import java.util.Date;
 
 /*
-* Model for sotring the Octane configuration
-*/
+ * Model for sotring the Octane configuration
+ */
 public class OctaneServerSettingsModel {
 
-    private String identity;
-    private Long identityFrom;
+	private String identity;
+	private Long identityFrom;
 
-    private String uiLocation;
-    private String username;
-    private Secret password;
-    private String impersonatedUser;
-    private boolean suspend;
-    private String sscBaseToken;
+	private String uiLocation;
+	private String username;
+	private Secret password;
+	private String impersonatedUser;
+	private boolean suspend;
+	private String sscBaseToken;
 
-    // inferred from uiLocation
-    private String location;
-    private String sharedSpace;
-    private long maxTimeoutHours;
+	// inferred from uiLocation
+	private String location;
+	private String sharedSpace;
+	private long maxTimeoutHours;
 
-    public OctaneServerSettingsModel() {
+	public OctaneServerSettingsModel() {
+	}
 
-    }
+	public OctaneServerSettingsModel(String uiLocation, String username, Secret password, String impersonatedUser) {
+		this(uiLocation, username, password, impersonatedUser, null);
+	}
 
-    public OctaneServerSettingsModel(String uiLocation, String username, Secret password, String impersonatedUser) {
-        this(uiLocation, username, password, impersonatedUser, null);
-    }
+	@DataBoundConstructor
+	public OctaneServerSettingsModel(String uiLocation, String username, Secret password, String impersonatedUser, String sscBaseToken) {
+		this.uiLocation = StringUtils.trim(uiLocation);
+		this.username = username;
+		this.password = password;
+		this.impersonatedUser = impersonatedUser;
+		this.sscBaseToken = sscBaseToken;
+	}
 
-    @DataBoundConstructor
-    public OctaneServerSettingsModel(String uiLocation, String username, Secret password, String impersonatedUser, String sscBaseToken) {
-        this.uiLocation = StringUtils.trim(uiLocation);
-        this.username = username;
-        this.password = password;
-        this.impersonatedUser = impersonatedUser;
-        this.sscBaseToken = sscBaseToken;
-    }
+	public boolean isSuspend() {
+		return this.suspend;
+	}
 
-    public boolean isSuspend(){
-        return this.suspend;
-    }
+	@DataBoundSetter
+	public void setSuspend(boolean suspend) {
+		this.suspend = suspend;
+	}
 
-    @DataBoundSetter
-    public void setSuspend(boolean suspend){
-        this.suspend = suspend;
-    }
-    public String getSscBaseToken(){
-        return this.sscBaseToken;
-    }
+	public String getSscBaseToken() {
+		return this.sscBaseToken;
+	}
 
-    public void setSscBaseToken(String sscBaseToken){
-        this.sscBaseToken = sscBaseToken;
-    }
+	public void setSscBaseToken(String sscBaseToken) {
+		this.sscBaseToken = sscBaseToken;
+	}
 
-    public String getUiLocation() {
-        return uiLocation;
-    }
+	public String getUiLocation() {
+		return uiLocation;
+	}
 
-    public String getUsername() {
-        return username;
-    }
+	public String getUsername() {
+		return username;
+	}
 
-    public Secret getPassword() {
-        return password;
-    }
+	public Secret getPassword() {
+		return password;
+	}
 
-    public String getImpersonatedUser() {
-        return impersonatedUser;
-    }
+	public String getImpersonatedUser() {
+		return impersonatedUser;
+	}
 
-    public String getIdentity() {
-        return identity;
-    }
+	public String getIdentity() {
+		return identity;
+	}
 
-    public void setIdentity(String identity) {
-        if (StringUtils.isEmpty(identity)) {
-            throw new IllegalArgumentException("Empty identity is not allowed");
-        }
-        this.identity = identity;
-        this.setIdentityFrom(new Date().getTime());
-    }
+	public void setIdentity(String identity) {
+		if (StringUtils.isEmpty(identity)) {
+			throw new IllegalArgumentException("Empty identity is not allowed");
+		}
+		this.identity = identity;
+		this.setIdentityFrom(new Date().getTime());
+	}
 
-    public Long getIdentityFrom() {
-        return identityFrom;
-    }
+	public Long getIdentityFrom() {
+		return identityFrom;
+	}
 
-    public String getLocation() {
-        return location;
-    }
+	public String getLocation() {
+		return location;
+	}
 
-    public void setLocation(String location) {
-        this.location = location;
-    }
+	public void setLocation(String location) {
+		this.location = location;
+	}
 
-    public String getSharedSpace() {
-        return sharedSpace;
-    }
+	public String getSharedSpace() {
+		return sharedSpace;
+	}
 
-    public void setSharedSpace(String sharedSpace) {
-        this.sharedSpace = sharedSpace;
-    }
+	public void setSharedSpace(String sharedSpace) {
+		this.sharedSpace = sharedSpace;
+	}
 
-    public void setIdentityFrom(Long identityFrom) {
-        this.identityFrom = identityFrom;
-    }
+	public void setIdentityFrom(Long identityFrom) {
+		this.identityFrom = identityFrom;
+	}
 
-    public long getPollingTimeoutHours() {
-        return maxTimeoutHours;
-    }
+	public long getPollingTimeoutHours() {
+		return maxTimeoutHours;
+	}
 
-    public void setPollingTimeoutHours(long timeoutHours) {
-        maxTimeoutHours = timeoutHours;
-    }
+	public void setPollingTimeoutHours(long timeoutHours) {
+		maxTimeoutHours = timeoutHours;
+	}
 }

@@ -51,11 +51,8 @@ public class SonarHelper {
     private final String SONAR_SERVER_HOST_VARIABLE = "SONAR_HOST_URL";
     private final String SONAR_SERVER_TOKEN_VARIABLE = "SONAR_AUTH_TOKEN";
 
-
     private String serverUrl;
     private String serverToken;
-
-
 
     public String getServerUrl() {
         return serverUrl;
@@ -111,8 +108,6 @@ public class SonarHelper {
         }
     }
 
-
-
     private void setDataFromSonarBuilder(DescribableList<Builder, Descriptor<Builder>> postbuilders) {
         Builder sonarBuilder = postbuilders.getDynamic(SONAR_ACTION_ID);
         if (sonarBuilder != null) {
@@ -140,7 +135,7 @@ public class SonarHelper {
 
     public static String get() {
         // extract token from user
-        String user = ConfigurationService.getModel().getImpersonatedUser();
+        String user = ConfigurationService.getSettings().getImpersonatedUser();
         if (user != null && !user.equalsIgnoreCase("")) {
             User jenkinsUser = User.get(user, false, Collections.emptyMap());
             if (jenkinsUser != null) {

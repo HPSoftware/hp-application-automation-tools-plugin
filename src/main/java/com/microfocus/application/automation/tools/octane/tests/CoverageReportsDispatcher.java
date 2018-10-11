@@ -130,7 +130,7 @@ public class CoverageReportsDispatcher extends AbstractSafeLoggingAsyncPeriodWor
 			while (coverageFile.exists()) {
 				// send each report as IS to octane using rest client
 				boolean status = mqmRestClient.postCoverageReports(
-						ConfigurationService.getModel().getIdentity(),
+						ConfigurationService.getSettings().getIdentity(),
 						BuildHandlerUtils.getJobCiId(build),
 						BuildHandlerUtils.getBuildCiId(build),
 						new FileInputStream(coverageFile),

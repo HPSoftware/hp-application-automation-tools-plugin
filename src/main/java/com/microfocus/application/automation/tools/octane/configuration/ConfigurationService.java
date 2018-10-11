@@ -35,54 +35,63 @@ import jenkins.model.Jenkins;
  */
 public class ConfigurationService {
 
-    /**
-     * Get current {@see OctaneServerSettingsModel} model
-     *
-     * @return current configuration
-     */
-    public static OctaneServerSettingsModel getModel() {
-        return getOctaneDescriptor().getModel();
-    }
+	/**
+	 * Get current {@see OctaneServerSettingsModel} model
+	 *
+	 * @return current configuration
+	 */
+	public static OctaneServerSettingsModel[] getAllSettings() {
+		return getOctaneDescriptor().getServers();
+	}
 
-    /**
-     * Get current Octane server configuration (that is based on model)
-     *
-     * @return current configuration
-     */
-    public static ServerConfiguration getServerConfiguration() {
-        if (getOctaneDescriptor() != null) {
-            return getOctaneDescriptor().getServerConfiguration();
-        }
-        return null;
-    }
+	/**
+	 * Get current {@see OctaneServerSettingsModel} model
+	 *
+	 * @return current configuration
+	 */
+	public static OctaneServerSettingsModel getSettings(String instanceId) {
+		return getOctaneDescriptor().getSettings(instanceId);
+	}
 
-    /**
-     * Change model (used by tests)
-     *
-     * @param newModel new configuration
-     */
-    public static void configurePlugin(OctaneServerSettingsModel newModel) {
-        if (getOctaneDescriptor() != null) {
-            getOctaneDescriptor().setModel(newModel);
-        }
-    }
+	/**
+	 * Get current Octane server configuration (that is based on model)
+	 *
+	 * @return current configuration
+	 */
+	public static ServerConfiguration getServerConfiguration(String instanceId) {
+		if (getOctaneDescriptor() != null) {
+			return getOctaneDescriptor().getServerConfiguration(instanceId);
+		}
+		return null;
+	}
 
-    private static OctaneServerSettingsBuilder.OctaneDescriptorImpl getOctaneDescriptor() {
-        OctaneServerSettingsBuilder.OctaneDescriptorImpl octaneDescriptor = Jenkins.getInstance().getDescriptorByType(OctaneServerSettingsBuilder.OctaneDescriptorImpl.class);
-        if (octaneDescriptor == null) {
-            throw new IllegalArgumentException("failed to obtain Octane plugin descriptor");
-        }
+	/**
+	 * Change model (used by tests)
+	 *
+	 * @param newModel new configuration
+	 */
+	public static void configurePlugin(OctaneServerSettingsModel newModel) {
+		if (getOctaneDescriptor() != null) {
+			getOctaneDescriptor().setModel(newModel);
+		}
+	}
 
-        return octaneDescriptor;
-    }
+	private static OctaneServerSettingsBuilder.OctaneDescriptorImpl getOctaneDescriptor() {
+		OctaneServerSettingsBuilder.OctaneDescriptorImpl octaneDescriptor = Jenkins.getInstance().getDescriptorByType(OctaneServerSettingsBuilder.OctaneDescriptorImpl.class);
+		if (octaneDescriptor == null) {
+			throw new IllegalArgumentException("failed to obtain Octane plugin descriptor");
+		}
 
-    /**
-     * Get plugin version
-     *
-     * @return plugin version
-     */
-    public static String getPluginVersion() {
-        Plugin plugin = Jenkins.getInstance().getPlugin("hp-application-automation-tools-plugin");
-        return plugin.getWrapper().getVersion();
-    }
+		return octaneDescriptor;
+	}
+
+	/**
+	 * Get plugin version
+	 *
+	 * @return plugin version
+	 */
+	public static String getPluginVersion() {
+		Plugin plugin = Jenkins.getInstance().getPlugin("hp-application-automation-tools-plugin");
+		return plugin.getWrapper().getVersion();
+	}
 }
