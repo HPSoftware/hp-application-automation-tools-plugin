@@ -253,7 +253,11 @@ public class CIJenkinsServicesImpl extends CIPluginServices {
 	}
 
 	private SecurityContext startImpersonation() {
-		String user = ConfigurationService.getSettings(getInstanceId()).getImpersonatedUser();
+		OctaneServerSettingsModel settings = ConfigurationService.getSettings(getInstanceId());
+		if (settings == null) {
+			throw new IllegalStateException("failed to retrieve configuration settings by instance ID " + getInstanceId());
+		}
+		String user = settings.getImpersonatedUser();
 		SecurityContext originalContext = null;
 		if (user != null && !user.isEmpty()) {
 			User jenkinsUser = User.get(user, false, Collections.emptyMap());

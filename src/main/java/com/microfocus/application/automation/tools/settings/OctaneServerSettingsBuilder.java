@@ -53,6 +53,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -221,7 +222,12 @@ public class OctaneServerSettingsBuilder extends Builder {
 				newModel.setIdentityFrom(oldModel.getIdentityFrom());
 			}
 
-			servers = (new OctaneServerSettingsModel[]{newModel});
+			if (oldModel == null) {
+				OctaneServerSettingsModel[] newServers = new OctaneServerSettingsModel[servers.length + 1];
+				System.arraycopy(servers, 0, newServers, 0, servers.length);
+				newServers[servers.length] = newModel;
+				servers = newServers;
+			}
 			OctaneConfiguration octaneConfiguration = octaneConfigurations.stream()
 					.filter(oc -> oc.getInstanceId().equals(newModel.getIdentity()))
 					.findFirst()
