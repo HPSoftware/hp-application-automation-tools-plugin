@@ -23,13 +23,13 @@
 package com.microfocus.application.automation.tools.octane.vulnerabilities;
 
 import com.hp.octane.integrations.OctaneSDK;
-import com.hp.octane.integrations.api.VulnerabilitiesService;
 import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
 import com.microfocus.application.automation.tools.octane.tests.build.BuildHandlerUtils;
 import hudson.Extension;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Run;
+import hudson.model.listeners.RunListener;
 import hudson.tasks.Publisher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,14 +39,14 @@ import java.lang.reflect.Field;
 /**
  * Jenkins events life cycle listener for processing vulnerabilities scan results on build completed
  */
+
 @Extension
 @SuppressWarnings({"squid:S2699", "squid:S3658", "squid:S2259", "squid:S1872"})
-public class VulnerabilitiesListener {
+public class VulnerabilitiesListener extends RunListener<Run> {
     private static Logger logger = LogManager.getLogger(VulnerabilitiesListener.class);
 
-    private VulnerabilitiesService vulnerabilitiesService = OctaneSDK.getInstance().getVulnerabilitiesService();
-
-    public void processBuild(Run run) {
+    @Override
+    public void onFinalized(Run run) {
         String jobCiId = BuildHandlerUtils.getJobCiId(run);
         String buildCiId = BuildHandlerUtils.getBuildCiId(run);
         ProjectAndVersionJobConfig projectAndVersionJobConfig = verifySSCConfig(run);
@@ -55,13 +55,13 @@ public class VulnerabilitiesListener {
             return;
         }
 
-        vulnerabilitiesService.enqueueRetrieveAndPushVulnerabilities(jobCiId, buildCiId, projectAndVersionJobConfig.project,
-                projectAndVersionJobConfig.version,
-                run.getStartTimeInMillis());
+        OctaneSDK.getClients().forEach(octaneClient ->
+                octaneClient.getVulnerabilitiesService().enqueueRetrieveAndPushVulnerabilities(jobCiId, buildCiId, projectAndVersionJobConfig.project,
+                        projectAndVersionJobConfig.version,
+                        run.getStartTimeInMillis()));
     }
 
     private ProjectAndVersionJobConfig verifySSCConfig(Run run) {
-
         if (!(ConfigurationService.getServerConfiguration() != null && ConfigurationService.getServerConfiguration().isValid()) ||
                 ConfigurationService.getModel().isSuspend()) {
             logger.warn("Octane is configured to suspend. No need to get SSC Project Configuration ");
@@ -69,6 +69,7 @@ public class VulnerabilitiesListener {
         }
         return getProjectVersionInJobConfig(run);
     }
+
     static class ProjectAndVersionJobConfig {
         public String project;
         public String version;
@@ -78,6 +79,7 @@ public class VulnerabilitiesListener {
             this.version = projectVersion;
         }
     }
+
     private ProjectAndVersionJobConfig getProjectVersionInJobConfig(Run run) {
         AbstractProject project = ((AbstractBuild) run).getProject();
         for (Object publisherO : project.getPublishersList()) {
@@ -93,7 +95,6 @@ public class VulnerabilitiesListener {
     }
 
     private ProjectAndVersionJobConfig getProjectNameByReflection(Object someObject) {
-
         String projectName = getFieldValue(someObject, "projectName");
         String projectVersion = getFieldValue(someObject, "projectVersion");
         if (projectName != null && projectVersion != null) {
@@ -101,10 +102,11 @@ public class VulnerabilitiesListener {
         }
         return null;
     }
+
     private String getFieldValue(Object someObject, String fieldName) {
         for (Field field : someObject.getClass().getDeclaredFields()) {
             field.setAccessible(true);
-            if(field.getName().equals(fieldName)) {
+            if (field.getName().equals(fieldName)) {
                 Object value = null;
                 try {
                     value = field.get(someObject);
