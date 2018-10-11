@@ -22,7 +22,7 @@
 
 package com.microfocus.application.automation.tools.octane.tests.detection;
 
-import com.microfocus.application.automation.tools.octane.PluginAbstractTest;
+import com.microfocus.application.automation.tools.octane.PluginAbstractTestA;
 import com.microfocus.application.automation.tools.octane.tests.CopyResourceSCM;
 import com.microfocus.application.automation.tools.octane.tests.ExtensionUtil;
 import com.microfocus.application.automation.tools.octane.tests.TestUtils;
@@ -45,7 +45,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class ResultFieldsDetectionTest  extends PluginAbstractTest {
+public class ResultFieldsDetectionTest  extends PluginAbstractTestA {
 
 	private static FreeStyleProject project;
 

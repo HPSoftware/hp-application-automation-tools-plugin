@@ -23,7 +23,7 @@
 package com.microfocus.application.automation.tools.octane.tests.detection;
 
 import com.google.inject.Inject;
-import com.microfocus.application.automation.tools.octane.PluginAbstractTest;
+import com.microfocus.application.automation.tools.octane.PluginAbstractTestA;
 import com.microfocus.application.automation.tools.octane.tests.CopyResourceSCM;
 import com.microfocus.application.automation.tools.octane.tests.TestUtils;
 import hudson.FilePath;
@@ -52,7 +52,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @SuppressWarnings({"squid:S2698","squid:S2699","squid:S3658"})
-public class TestNGExtensionTest extends PluginAbstractTest {
+public class TestNGExtensionTest extends PluginAbstractTestA {
 
 	@ClassRule
 	public static final TemporaryFolder temporaryFolder = new TemporaryFolder();

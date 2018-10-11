@@ -22,12 +22,12 @@
 
 package com.microfocus.application.automation.tools.octane.identity;
 
-import com.microfocus.application.automation.tools.octane.PluginAbstractTest;
+import com.microfocus.application.automation.tools.octane.PluginAbstractTestA;
 import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class ServerIdentityTest extends PluginAbstractTest {
+public class ServerIdentityTest extends PluginAbstractTestA {
 
 	@Test
 	public void testIdentity() {

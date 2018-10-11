@@ -29,7 +29,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 
 import java.util.UUID;
 
-public class PluginAbstractTest {
+public class PluginAbstractTestA {
 	protected static final DTOFactory dtoFactory = DTOFactory.getInstance();
 	protected static String ssp;
 

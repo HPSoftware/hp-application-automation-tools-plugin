@@ -29,7 +29,7 @@ import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.parameters.CIParameterType;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.pipelines.PipelinePhase;
-import com.microfocus.application.automation.tools.octane.PluginAbstractTest;
+import com.microfocus.application.automation.tools.octane.PluginAbstractTestA;
 import hudson.matrix.MatrixProject;
 import hudson.maven.MavenModuleSet;
 import hudson.model.*;
@@ -56,7 +56,7 @@ import static org.junit.Assert.*;
  * To change this template use File | Settings | File Templates.
  */
 
-public class PluginMavenTest extends PluginAbstractTest {
+public class PluginMavenTest extends PluginAbstractTestA {
     //  Structure test: maven, no params, no children
     @Test
     public void testStructureMavenNoParamsNoChildren() throws IOException, SAXException {
