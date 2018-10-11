@@ -27,7 +27,7 @@ import com.gargoylesoftware.htmlunit.HttpMethod;
 import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
-import com.microfocus.application.automation.tools.octane.PluginTestBase;
+import com.microfocus.application.automation.tools.octane.OctanePluginTestBase;
 import hudson.util.Secret;
 import net.jcip.annotations.NotThreadSafe;
 import net.sf.json.JSONArray;
@@ -40,7 +40,7 @@ import java.util.UUID;
 // import com.gargoylesoftware.htmlunit.WebRequestSettings;
 @SuppressWarnings({"squid:S2699", "squid:S3658", "squid:S2259", "squid:S1872", "squid:S2925", "squid:S109", "squid:S1607", "squid:S2701", "squid:S2698"})
 @NotThreadSafe
-public class ConfigApiTest extends PluginTestBase {
+public class ConfigApiTest extends OctanePluginTestBase {
 
 	@Test
 	public void testRead() throws Exception {

@@ -27,7 +27,7 @@ import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.parameters.CIParameterType;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.pipelines.PipelinePhase;
-import com.microfocus.application.automation.tools.octane.PluginTestBase;
+import com.microfocus.application.automation.tools.octane.OctanePluginTestBase;
 import hudson.matrix.MatrixProject;
 import hudson.maven.MavenModuleSet;
 import hudson.model.*;
@@ -54,7 +54,7 @@ import static org.junit.Assert.*;
  * To change this template use File | Settings | File Templates.
  */
 @SuppressWarnings({"squid:S2699", "squid:S3658", "squid:S2259", "squid:S1872", "squid:S2925", "squid:S109", "squid:S1607", "squid:S2701"})
-public class PluginFreeStyleTest extends PluginTestBase {
+public class PluginFreeStyleTest extends OctanePluginTestBase {
     //  Structure test: free-style, no params, no children
     //
     @Test
