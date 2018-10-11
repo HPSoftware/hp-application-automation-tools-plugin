@@ -24,7 +24,7 @@ package com.microfocus.application.automation.tools.octane.tests.xml;
 
 import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
 import com.microfocus.application.automation.tools.octane.OctaneServerMock;
-import com.microfocus.application.automation.tools.octane.PluginAbstractTestA;
+import com.microfocus.application.automation.tools.octane.PluginTestBase;
 import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
 import com.microfocus.application.automation.tools.octane.tests.TestResultContainer;
 import com.microfocus.application.automation.tools.octane.tests.TestResultIterable;
@@ -54,7 +54,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @SuppressWarnings({"squid:S2698", "squid:S2699"})
-public class TestResultXmlWriterTest extends PluginAbstractTestA {
+public class TestResultXmlWriterTest extends PluginTestBase {
 
     private TestResultContainer container;
 

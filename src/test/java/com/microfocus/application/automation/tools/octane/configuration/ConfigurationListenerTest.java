@@ -25,7 +25,7 @@ package com.microfocus.application.automation.tools.octane.configuration;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
-import com.microfocus.application.automation.tools.octane.PluginAbstractTestA;
+import com.microfocus.application.automation.tools.octane.PluginTestBase;
 import com.microfocus.application.automation.tools.octane.tests.ExtensionUtil;
 import org.junit.Assert;
 import org.junit.Before;
@@ -35,7 +35,7 @@ import org.jvnet.hudson.test.TestExtension;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ConfigurationListenerTest extends PluginAbstractTestA {
+public class ConfigurationListenerTest extends PluginTestBase {
 
 	private TestConfigurationListener listener;
 

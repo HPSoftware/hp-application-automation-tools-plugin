@@ -28,7 +28,7 @@ import com.hp.octane.integrations.dto.general.CIProviderSummaryInfo;
 import com.hp.octane.integrations.dto.general.CIServerTypes;
 import com.hp.octane.integrations.dto.parameters.CIParameterType;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
-import com.microfocus.application.automation.tools.octane.PluginAbstractTestA;
+import com.microfocus.application.automation.tools.octane.PluginTestBase;
 import com.microfocus.application.automation.tools.octane.actions.PluginActions;
 import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
 import hudson.model.*;
@@ -51,7 +51,7 @@ import static org.junit.Assert.*;
  */
 
 @SuppressWarnings({"squid:S2699", "squid:S3658", "squid:S2259", "squid:S1872", "squid:S2925", "squid:S109", "squid:S1607", "squid:S2701", "squid:S3578", "squid:S2698"})
-public class PluginActionsTest extends PluginAbstractTestA {
+public class PluginActionsTest extends PluginTestBase {
 
 	@Test
 	public void testPluginActionsMethods() {

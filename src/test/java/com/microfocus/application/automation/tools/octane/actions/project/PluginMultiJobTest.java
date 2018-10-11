@@ -27,7 +27,7 @@ import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.parameters.CIParameterType;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.pipelines.PipelinePhase;
-import com.microfocus.application.automation.tools.octane.PluginAbstractTestA;
+import com.microfocus.application.automation.tools.octane.PluginTestBase;
 import com.tikal.jenkins.plugins.multijob.MultiJobBuilder;
 import com.tikal.jenkins.plugins.multijob.MultiJobProject;
 import com.tikal.jenkins.plugins.multijob.PhaseJobsConfig;
@@ -56,7 +56,7 @@ import static org.junit.Assert.*;
  * To change this template use File | Settings | File Templates.
  */
 
-public class PluginMultiJobTest extends PluginAbstractTestA {
+public class PluginMultiJobTest extends PluginTestBase {
     //  Structure test: multi-job, no params, no children
     @Test
     public void testStructureMultiJobNoParamsNoChildren() throws IOException, SAXException {

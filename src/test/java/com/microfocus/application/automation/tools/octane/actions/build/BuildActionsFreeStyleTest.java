@@ -30,7 +30,7 @@ import com.hp.octane.integrations.dto.parameters.CIParameterType;
 import com.hp.octane.integrations.dto.snapshots.CIBuildResult;
 import com.hp.octane.integrations.dto.snapshots.CIBuildStatus;
 import com.hp.octane.integrations.dto.snapshots.SnapshotNode;
-import com.microfocus.application.automation.tools.octane.PluginAbstractTestA;
+import com.microfocus.application.automation.tools.octane.PluginTestBase;
 import com.microfocus.application.automation.tools.octane.actions.Utils;
 import hudson.model.*;
 import hudson.plugins.parameterizedtrigger.*;
@@ -51,7 +51,7 @@ import static org.junit.Assert.*;
  * To change this template use File | Settings | File Templates.
  */
 
-public class BuildActionsFreeStyleTest extends PluginAbstractTestA {
+public class BuildActionsFreeStyleTest extends PluginTestBase {
 	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
 
 	//  Snapshot: free-style, no params, no children

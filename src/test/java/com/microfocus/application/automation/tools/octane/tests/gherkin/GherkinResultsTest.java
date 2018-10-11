@@ -22,7 +22,7 @@
 
 package com.microfocus.application.automation.tools.octane.tests.gherkin;
 
-import com.microfocus.application.automation.tools.octane.PluginAbstractTestA;
+import com.microfocus.application.automation.tools.octane.PluginTestBase;
 import com.microfocus.application.automation.tools.octane.actions.cucumber.CucumberTestResultsActionPublisher;
 import com.microfocus.application.automation.tools.octane.tests.CopyResourceSCM;
 import com.microfocus.application.automation.tools.octane.tests.TestUtils;
@@ -55,7 +55,7 @@ import java.util.UUID;
  * Created by franksha on 05/01/2017.
  */
 @SuppressWarnings({"squid:S2699","squid:S3658","squid:S2259","squid:S1872","squid:S2925","squid:S109","squid:S1607","squid:S2701","squid:S2698"})
-public class GherkinResultsTest extends PluginAbstractTestA {
+public class GherkinResultsTest extends PluginTestBase {
 
     private static String mavenName;
 
