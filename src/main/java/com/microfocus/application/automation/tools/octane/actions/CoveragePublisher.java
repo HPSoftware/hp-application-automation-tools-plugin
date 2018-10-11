@@ -1,5 +1,4 @@
 /*
- *
  *  Certain versions of software and/or documents (“Material”) accessible here may contain branding from
  *  Hewlett-Packard Company (now HP Inc.) and Hewlett Packard Enterprise Company.  As of September 1, 2017,
  *  the Material is now offered by Micro Focus, a separately owned and operated company.  Any reference to the HP
@@ -17,10 +16,11 @@
  * or editorial errors or omissions contained herein.
  * The information contained herein is subject to change without notice.
  * ___________________________________________________________________
- *
  */
 
 package com.microfocus.application.automation.tools.octane.actions;
+
+import com.hp.octane.integrations.OctaneSDK;
 import com.microfocus.application.automation.tools.octane.Messages;
 import com.microfocus.application.automation.tools.octane.actions.coverage.CoveragePublisherAction;
 import com.microfocus.application.automation.tools.octane.actions.coverage.CoverageService;
@@ -53,9 +53,11 @@ import java.io.IOException;
 public class CoveragePublisher extends Recorder {
 	private final String jacocoPathPattern;
 	private final String lcovPathPattern;
+
 	/**
 	 * this ctor is being called from configuration page.
 	 * the jacocoPathPattern is being injected from the web page text box
+	 *
 	 * @param jacocoPathPattern regular expression path for coverage reports
 	 */
 	@DataBoundConstructor
@@ -67,6 +69,7 @@ public class CoveragePublisher extends Recorder {
 
 	/**
 	 * this method used for serialization & deserialization of path
+	 *
 	 * @return jacoco path
 	 */
 	public String getJacocoPathPattern() {
@@ -75,6 +78,7 @@ public class CoveragePublisher extends Recorder {
 
 	/**
 	 * this method used for serialization & deserialization of path
+	 *
 	 * @return lcov path
 	 */
 	public String getLcovPathPattern() {
@@ -83,7 +87,8 @@ public class CoveragePublisher extends Recorder {
 
 	/**
 	 * this is where we build the project. this method is being called when we run the build
-	 * @param build instance
+	 *
+	 * @param build    instance
 	 * @param launcher instance
 	 * @param listener for action attachment
 	 * @return status
@@ -99,12 +104,14 @@ public class CoveragePublisher extends Recorder {
 		CoveragePublisherAction action = new CoveragePublisherAction(build, listener);
 		build.addAction(action);
 		if (action.copyCoverageReportsToBuildFolder(jacocoPathPattern, CoverageService.Jacoco.JACOCO_DEFAULT_FILE_NAME)) {
-			extensionList.get(0).enqueueTask(build.getProject().getFullName(), build.getNumber(), CoverageService.Jacoco.JACOCO_TYPE);
+			OctaneSDK.getClients().forEach(octaneClient ->
+					extensionList.get(0).enqueueTask(octaneClient.getInstanceId(), build.getProject().getFullName(), build.getNumber(), CoverageService.Jacoco.JACOCO_TYPE));
 			copyReportsToBuildFolderStatus = true;
 		}
 		if (action.copyCoverageReportsToBuildFolder(lcovPathPattern, CoverageService.Lcov.LCOV_DEFAULT_FILE_NAME)) {
-			extensionList.get(0).enqueueTask(build.getProject().getFullName(), build.getNumber(), CoverageService.Lcov.LCOV_TYPE);
-			copyReportsToBuildFolderStatus |= true;
+			OctaneSDK.getClients().forEach(octaneClient ->
+					extensionList.get(0).enqueueTask(octaneClient.getInstanceId(), build.getProject().getFullName(), build.getNumber(), CoverageService.Lcov.LCOV_TYPE));
+			copyReportsToBuildFolderStatus = true;
 		}
 		// add upload task to queue
 		return copyReportsToBuildFolderStatus;
@@ -112,6 +119,7 @@ public class CoveragePublisher extends Recorder {
 
 	/**
 	 * bound between descriptor to publisher
+	 *
 	 * @return descriptor
 	 */
 	@Override
@@ -121,6 +129,7 @@ public class CoveragePublisher extends Recorder {
 
 	/**
 	 * Returns BuildStepMonitor.NONE by default, as Builders normally don't depend on its previous result
+	 *
 	 * @return monitor
 	 */
 	@Override
@@ -141,6 +150,7 @@ public class CoveragePublisher extends Recorder {
 
 		/**
 		 * Indicates that this builder can be used with all kinds of project types
+		 *
 		 * @param aClass that describe the job
 		 * @return always true, indicate that this post build action suitable for all jenkins jobs
 		 */
@@ -152,7 +162,7 @@ public class CoveragePublisher extends Recorder {
 			return "ALM Octane code coverage publisher";
 		}
 
-		public FormValidation doCheckJacocoPathPattern(@AncestorInPath AbstractProject project, @QueryParameter String value) throws IOException, ServletException {
+		public FormValidation doCheckJacocoPathPattern(@AncestorInPath AbstractProject project, @QueryParameter String value) throws IOException {
 			if (value == null || value.isEmpty()) {
 				return FormValidation.warning(Messages.CoverageResultsActionEmptyConfigurationWarning(), CoverageService.Jacoco.JACOCO_DEFAULT_PATH);
 			} else if (project == null) {
@@ -160,6 +170,7 @@ public class CoveragePublisher extends Recorder {
 			}
 			return FilePath.validateFileMask(project.getSomeWorkspace(), value);
 		}
+
 		public FormValidation doCheckLcovPathPattern(@AncestorInPath AbstractProject project, @QueryParameter String value) throws IOException, ServletException {
 			if (value == null || value.isEmpty()) {
 				return FormValidation.warning(Messages.CoverageResultsActionEmptyConfigurationWarning(), CoverageService.Lcov.LCOV_DEFAULT_PATH);

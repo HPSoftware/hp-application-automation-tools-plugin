@@ -1,5 +1,4 @@
 /*
- *
  *  Certain versions of software and/or documents (“Material”) accessible here may contain branding from
  *  Hewlett-Packard Company (now HP Inc.) and Hewlett Packard Enterprise Company.  As of September 1, 2017,
  *  the Material is now offered by Micro Focus, a separately owned and operated company.  Any reference to the HP
@@ -17,7 +16,6 @@
  * or editorial errors or omissions contained herein.
  * The information contained herein is subject to change without notice.
  * ___________________________________________________________________
- *
  */
 
 package com.microfocus.application.automation.tools.octane.configuration;
@@ -27,21 +25,23 @@ import com.microfocus.application.automation.tools.settings.OctaneServerSettings
 import hudson.Plugin;
 import jenkins.model.Jenkins;
 
+import java.util.Arrays;
+import java.util.List;
+
 /***
  * Octane plugin configuration service -
  * 1. helps to change Octane configuration
  * 2. helps to get Octane configuration and model
- * 3. helps to get RestClient based on some configuration
  */
 public class ConfigurationService {
 
 	/**
-	 * Get current {@see OctaneServerSettingsModel} model
+	 * provides all available configurations
 	 *
-	 * @return current configuration
+	 * @return list of all available configurations
 	 */
-	public static OctaneServerSettingsModel[] getAllSettings() {
-		return getOctaneDescriptor().getServers();
+	public static List<OctaneServerSettingsModel> getAllSettings() {
+		return Arrays.asList(getOctaneDescriptor().getServers());
 	}
 
 	/**
@@ -51,18 +51,6 @@ public class ConfigurationService {
 	 */
 	public static OctaneServerSettingsModel getSettings(String instanceId) {
 		return getOctaneDescriptor().getSettings(instanceId);
-	}
-
-	/**
-	 * Get current Octane server configuration (that is based on model)
-	 *
-	 * @return current configuration
-	 */
-	public static ServerConfiguration getServerConfiguration(String instanceId) {
-		if (getOctaneDescriptor() != null) {
-			return getOctaneDescriptor().getServerConfiguration(instanceId);
-		}
-		return null;
 	}
 
 	/**

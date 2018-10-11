@@ -31,6 +31,7 @@ import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.general.CIServerInfo;
 import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
+import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
 import com.microfocus.application.automation.tools.octane.CIJenkinsServicesImpl;
 import com.microfocus.application.automation.tools.octane.Messages;
 import com.microfocus.application.automation.tools.octane.client.JenkinsMqmRestClientFactory;
@@ -71,7 +72,7 @@ public class JobConfigurationProxy {
 	}
 
 	@JavaScriptMethod
-	public JSONObject createPipelineOnServer(JSONObject pipelineObject) throws IOException {
+	public JSONObject createPipelineOnServer(JSONObject pipelineObject) {
 		JSONObject result = new JSONObject();
 
 		PipelineNode pipelineNode = ModelFactory.createStructureItem(job);
@@ -128,7 +129,7 @@ public class JobConfigurationProxy {
 	}
 
 	@JavaScriptMethod
-	public JSONObject updatePipelineOnSever(JSONObject pipelineObject) throws IOException {
+	public JSONObject updatePipelineOnSever(JSONObject pipelineObject) {
 		JSONObject result = new JSONObject();
 		String sharedSpaceId = pipelineObject.getString("sharedSpaceId");
 		OctaneClient octaneClient = OctaneSDK.getClientBySharedSpaceId(sharedSpaceId);
@@ -210,7 +211,7 @@ public class JobConfigurationProxy {
 
 
 	@JavaScriptMethod
-	public JSONObject deleteTests(JSONObject pipelineObject) throws IOException, InterruptedException {
+	public JSONObject deleteTests(JSONObject pipelineObject) {
 		JSONObject result = new JSONObject();
 		String sharedSpaceId = pipelineObject.getString("sharedSpaceId");
 		OctaneClient octaneClient = OctaneSDK.getClientBySharedSpaceId(sharedSpaceId);
@@ -235,7 +236,7 @@ public class JobConfigurationProxy {
 	}
 
 	@JavaScriptMethod
-	public JSONObject loadJobConfigurationFromServer(JSONObject params) throws IOException {
+	public JSONObject loadJobConfigurationFromServer(JSONObject params) {
 		String sharedSpaceId = params.getString("sharedSpaceId");
 		OctaneClient octaneClient = OctaneSDK.getClientBySharedSpaceId(sharedSpaceId);
 		MqmRestClient client;
@@ -276,18 +277,8 @@ public class JobConfigurationProxy {
 				}
 				//WORKAROUND END
 
-				Map<Workspace, List<Pipeline>> sortedWorkspacesMap = new TreeMap<>(new Comparator<Workspace>() {
-					@Override
-					public int compare(final Workspace w1, final Workspace w2) {
-						return w1.getName().compareTo(w2.getName());
-					}
-				});
-				Comparator<Pipeline> pipelineComparator = new Comparator<Pipeline>() {
-					@Override
-					public int compare(final Pipeline p1, final Pipeline p2) {
-						return p1.getName().compareTo(p2.getName());
-					}
-				};
+				Map<Workspace, List<Pipeline>> sortedWorkspacesMap = new TreeMap<>(Comparator.comparing(Workspace::getName));
+				Comparator<Pipeline> pipelineComparator = Comparator.comparing(Pipeline::getName);
 
 				//create workspaces JSON Object
 				for (Entry<Long, List<Pipeline>> workspacePipelines : workspacesMap.entrySet()) {
@@ -305,8 +296,8 @@ public class JobConfigurationProxy {
 					workspaces.put(String.valueOf(relatedWorkspace.getId()), workspaceJSON);
 
 					//inserting this workspace into sortedMap (sorted by workspaceName and by pipelineName, so that we can pick first workspace and its first pipeline as preselected values
-					LinkedList<Pipeline> workspacePipelinesList = new LinkedList<Pipeline>(workspacePipelines.getValue());
-					Collections.sort(workspacePipelinesList, pipelineComparator);
+					LinkedList<Pipeline> workspacePipelinesList = new LinkedList<>(workspacePipelines.getValue());
+					workspacePipelinesList.sort(pipelineComparator);
 					sortedWorkspacesMap.put(relatedWorkspace, workspacePipelinesList);
 				}
 
@@ -676,7 +667,7 @@ public class JobConfigurationProxy {
 					if (taxonomyMap.containsKey(taxonomy.getRoot().getId())) {
 						taxonomyMap.get(taxonomy.getRoot().getId()).add(taxonomy);
 					} else {
-						taxonomyMap.put(taxonomy.getRoot().getId(), new LinkedHashSet<>(Arrays.asList(taxonomy)));
+						taxonomyMap.put(taxonomy.getRoot().getId(), new LinkedHashSet<>(Collections.singletonList(taxonomy)));
 						taxonomyCategories.put(taxonomy.getRoot().getId(), taxonomy.getRoot().getName());
 					}
 				}
@@ -859,8 +850,8 @@ public class JobConfigurationProxy {
 	}
 
 	private MqmRestClient createClient(String instanceId) throws ClientException {
-		ServerConfiguration configuration = ConfigurationService.getServerConfiguration(instanceId);
-		if (StringUtils.isEmpty(configuration.location)) {
+		OctaneServerSettingsModel configuration = ConfigurationService.getSettings(instanceId);
+		if (StringUtils.isEmpty(configuration.getLocation())) {
 			String label = "Please configure server here";
 			throw new ClientException(PRODUCT_NAME + " not configured", new ExceptionLink("/configure", label));
 		}
@@ -874,10 +865,10 @@ public class JobConfigurationProxy {
 
 		JenkinsMqmRestClientFactory clientFactory = getExtension(JenkinsMqmRestClientFactory.class);
 		MqmRestClient client = clientFactory.obtain(
-				configuration.location,
-				configuration.sharedSpace,
-				configuration.username,
-				configuration.password);
+				configuration.getLocation(),
+				configuration.getSharedSpace(),
+				configuration.getUsername(),
+				configuration.getPassword());
 		try {
 			client.validateConfigurationWithoutLogin();
 		} catch (RequestException e) {

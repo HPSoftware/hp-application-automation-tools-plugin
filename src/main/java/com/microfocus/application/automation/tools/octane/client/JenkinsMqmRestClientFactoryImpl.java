@@ -26,8 +26,8 @@ import com.hp.mqm.client.MqmConnectionConfig;
 import com.hp.mqm.client.MqmRestClient;
 import com.hp.mqm.client.MqmRestClientImpl;
 import com.hp.mqm.client.UsernamePasswordProxyCredentials;
+import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
 import com.microfocus.application.automation.tools.octane.configuration.ConfigurationListener;
-import com.microfocus.application.automation.tools.octane.configuration.ServerConfiguration;
 import hudson.Extension;
 import hudson.ProxyConfiguration;
 import hudson.util.Secret;
@@ -58,7 +58,7 @@ public class JenkinsMqmRestClientFactoryImpl implements JenkinsMqmRestClientFact
 	}
 
 	@Override
-	public void onChanged(ServerConfiguration conf, ServerConfiguration oldConf) {
+	public void onChanged(OctaneServerSettingsModel newConf, OctaneServerSettingsModel oldConf) {
 		mqmRestClient = null;
 	}
 

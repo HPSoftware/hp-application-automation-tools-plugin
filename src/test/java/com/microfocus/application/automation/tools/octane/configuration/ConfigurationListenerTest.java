@@ -24,6 +24,7 @@ package com.microfocus.application.automation.tools.octane.configuration;
 
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
 import com.microfocus.application.automation.tools.octane.PlugInAbstractTest;
 import com.microfocus.application.automation.tools.octane.tests.ExtensionUtil;
 import org.junit.Assert;
@@ -41,15 +42,15 @@ public class ConfigurationListenerTest extends PlugInAbstractTest {
 	@Before
 	public void initialize() {
 		listener = ExtensionUtil.getInstance(rule, TestConfigurationListener.class);
-		Assert.assertEquals("Listener count doesn't match 1",1, listener.getCount());
+		Assert.assertEquals("Listener count doesn't match 1", 1, listener.getCount());
 
-		List<ServerConfiguration> confs = listener.getConfigurationsChange();
-		Assert.assertNotNull("Configuration is null",confs);
-		Assert.assertEquals("Config size doesn't match 2",2, confs.size());
-		Assert.assertEquals("location doesn't match localhost:8008","http://localhost:8008", confs.get(0).location);
-		Assert.assertEquals("username doesn't match username","username", confs.get(0).username);
-		Assert.assertNull(confs.get(1).location);
-		Assert.assertNull(confs.get(1).username);
+		List<OctaneServerSettingsModel> confs = listener.getConfigurationsChange();
+		Assert.assertNotNull("Configuration is null", confs);
+		Assert.assertEquals("Config size doesn't match 2", 2, confs.size());
+		Assert.assertEquals("location doesn't match localhost:8008", "http://localhost:8008", confs.get(0).getLocation());
+		Assert.assertEquals("username doesn't match username", "username", confs.get(0).getUsername());
+		Assert.assertNull(confs.get(1).getLocation());
+		Assert.assertNull(confs.get(1).getLocation());
 	}
 
 	@Test
@@ -61,35 +62,35 @@ public class ConfigurationListenerTest extends PlugInAbstractTest {
 
 		// not increased on re-submit
 		rule.submit(form);
-		Assert.assertEquals("Listener count doesn't match 1",1, listener.getCount());
+		Assert.assertEquals("Listener count doesn't match 1", 1, listener.getCount());
 
 		configPage = client.goTo("configure");
 		form = configPage.getFormByName("config");
 		// increased when configuration changes
 		form.getInputByName("_.username").setValueAttribute("username2");
 		rule.submit(form);
-		Assert.assertEquals("Listener count doesn't match 2",2, listener.getCount());
+		Assert.assertEquals("Listener count doesn't match 2", 2, listener.getCount());
 
-		List<ServerConfiguration> confs = listener.getConfigurationsChange();
-		Assert.assertNotNull("Configuration is null",confs);
-		Assert.assertEquals("Config count doesn't match 2",2, confs.size());
-		Assert.assertEquals("http://localhost:8008", confs.get(0).location);
-		Assert.assertEquals("username2", confs.get(0).username);
-		Assert.assertEquals("http://localhost:8008", confs.get(1).location);
-		Assert.assertEquals("username", confs.get(1).username);
+		List<OctaneServerSettingsModel> confs = listener.getConfigurationsChange();
+		Assert.assertNotNull("Configuration is null", confs);
+		Assert.assertEquals("Config count doesn't match 2", 2, confs.size());
+		Assert.assertEquals("http://localhost:8008", confs.get(0).getLocation());
+		Assert.assertEquals("username2", confs.get(0).getUsername());
+		Assert.assertEquals("http://localhost:8008", confs.get(1).getLocation());
+		Assert.assertEquals("username", confs.get(1).getUsername());
 	}
 
 	@TestExtension
 	public static class TestConfigurationListener implements ConfigurationListener {
 
 		private int count;
-		private List<ServerConfiguration> newAndOld;
+		private List<OctaneServerSettingsModel> newAndOld;
 
 		@Override
-		public void onChanged(ServerConfiguration conf, ServerConfiguration oldConf) {
+		public void onChanged(OctaneServerSettingsModel newConf, OctaneServerSettingsModel oldConf) {
 			++count;
 			newAndOld = new ArrayList<>();
-			newAndOld.add(conf);
+			newAndOld.add(newConf);
 			newAndOld.add(oldConf);
 		}
 
@@ -97,7 +98,7 @@ public class ConfigurationListenerTest extends PlugInAbstractTest {
 			return count;
 		}
 
-		public List<ServerConfiguration> getConfigurationsChange() {
+		public List<OctaneServerSettingsModel> getConfigurationsChange() {
 			return newAndOld;
 		}
 	}

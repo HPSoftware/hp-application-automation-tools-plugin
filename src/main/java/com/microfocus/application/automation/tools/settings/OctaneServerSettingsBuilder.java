@@ -1,5 +1,4 @@
 /*
- *
  *  Certain versions of software and/or documents (“Material”) accessible here may contain branding from
  *  Hewlett-Packard Company (now HP Inc.) and Hewlett Packard Enterprise Company.  As of September 1, 2017,
  *  the Material is now offered by Micro Focus, a separately owned and operated company.  Any reference to the HP
@@ -17,7 +16,6 @@
  * or editorial errors or omissions contained herein.
  * The information contained herein is subject to change without notice.
  * ___________________________________________________________________
- *
  */
 
 package com.microfocus.application.automation.tools.settings;
@@ -30,7 +28,6 @@ import com.microfocus.application.automation.tools.octane.Messages;
 import com.microfocus.application.automation.tools.octane.configuration.ConfigurationListener;
 import com.microfocus.application.automation.tools.octane.configuration.ConfigurationParser;
 import com.microfocus.application.automation.tools.octane.configuration.MqmProject;
-import com.microfocus.application.automation.tools.octane.configuration.ServerConfiguration;
 import hudson.CopyOnWrite;
 import hudson.Extension;
 import hudson.ExtensionList;
@@ -120,7 +117,6 @@ public class OctaneServerSettingsBuilder extends Builder {
 		public OctaneDescriptorImpl() {
 			load();
 			// todo: validate & clean || migrate old config and save
-
 		}
 
 		@Inject
@@ -146,16 +142,6 @@ public class OctaneServerSettingsBuilder extends Builder {
 			}
 			OctaneServerSettingsModel innerServerConfiguration = servers[0];
 			return innerServerConfiguration.getLocation() != null && !innerServerConfiguration.getLocation().isEmpty();
-		}
-
-		private static ServerConfiguration convertToServerConfiguration(OctaneServerSettingsModel model) {
-			return new ServerConfiguration(
-					model.getLocation(),
-					model.getSharedSpace(),
-					model.getUsername(),
-					model.getPassword(),
-					model.getImpersonatedUser(),
-					model.isSuspend());
 		}
 
 		@Override
@@ -251,19 +237,17 @@ public class OctaneServerSettingsBuilder extends Builder {
 			}
 			save();
 
-			ServerConfiguration oldConfiguration = convertToServerConfiguration(oldModel);
-			ServerConfiguration newConfiguration = convertToServerConfiguration(newModel);
-			if (!oldConfiguration.equals(newConfiguration)) {
-				fireOnChanged(newConfiguration, oldConfiguration);
+			if (!newModel.equals(oldModel)) {
+				fireOnChanged(newModel, oldModel);
 			}
 		}
 
-		private void fireOnChanged(ServerConfiguration configuration, ServerConfiguration oldConfiguration) {
+		private void fireOnChanged(OctaneServerSettingsModel newConf, OctaneServerSettingsModel oldConf) {
 			OctaneSDK.getClients().forEach(octaneClient -> octaneClient.getConfigurationService().notifyChange());
 			ExtensionList<ConfigurationListener> listeners = ExtensionList.lookup(ConfigurationListener.class);
 			for (ConfigurationListener listener : listeners) {
 				try {
-					listener.onChanged(configuration, oldConfiguration);
+					listener.onChanged(newConf, oldConf);
 				} catch (ThreadDeath t) {
 					throw t;
 				} catch (Throwable t) {
@@ -327,10 +311,6 @@ public class OctaneServerSettingsBuilder extends Builder {
 			return result;
 		}
 
-		public ServerConfiguration getServerConfiguration(String instanceId) {
-			return convertToServerConfiguration(getSettings(instanceId));
-		}
-
 		private SecurityContext impersonate(String user) throws FormValidation {
 			SecurityContext originalContext = null;
 			if (user != null && !user.equalsIgnoreCase("")) {
@@ -351,7 +331,7 @@ public class OctaneServerSettingsBuilder extends Builder {
 		}
 
 		public FormValidation doCheckInstanceId(@QueryParameter String value) {
-			if (StringUtils.isBlank(value)) {
+			if (value == null || value.isEmpty()) {
 				return FormValidation.error("Plugin Instance Id cannot be empty");
 			}
 

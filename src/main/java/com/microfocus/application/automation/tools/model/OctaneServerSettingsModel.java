@@ -28,6 +28,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
 import java.util.Date;
+import java.util.Objects;
 
 /*
  * Model for sotring the Octane configuration
@@ -140,5 +141,26 @@ public class OctaneServerSettingsModel {
 
 	public void setPollingTimeoutHours(long timeoutHours) {
 		maxTimeoutHours = timeoutHours;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		OctaneServerSettingsModel that = (OctaneServerSettingsModel) o;
+		return suspend == that.suspend &&
+				maxTimeoutHours == that.maxTimeoutHours &&
+				Objects.equals(identity, that.identity) &&
+				Objects.equals(username, that.username) &&
+				Objects.equals(password, that.password) &&
+				Objects.equals(impersonatedUser, that.impersonatedUser) &&
+				Objects.equals(sscBaseToken, that.sscBaseToken) &&
+				Objects.equals(location, that.location) &&
+				Objects.equals(sharedSpace, that.sharedSpace);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(identity, username, password, impersonatedUser, suspend, sscBaseToken, location, sharedSpace, maxTimeoutHours);
 	}
 }

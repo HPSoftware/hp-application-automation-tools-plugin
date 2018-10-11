@@ -23,8 +23,8 @@
 package com.microfocus.application.automation.tools.octane.client;
 
 import com.google.inject.Inject;
+import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
 import com.microfocus.application.automation.tools.octane.configuration.ConfigurationListener;
-import com.microfocus.application.automation.tools.octane.configuration.ServerConfiguration;
 import hudson.Extension;
 import hudson.util.TimeUnit2;
 
@@ -75,7 +75,7 @@ public class RetryModel implements ConfigurationListener {
 	}
 
 	@Override
-	public void onChanged(ServerConfiguration conf, ServerConfiguration oldConf) {
+	public void onChanged(OctaneServerSettingsModel newConf, OctaneServerSettingsModel oldConf) {
 		doSuccess();
 	}
 

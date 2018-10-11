@@ -26,13 +26,13 @@ import com.google.common.primitives.Longs;
 import com.google.inject.Inject;
 import com.hp.mqm.client.MqmRestClient;
 import com.hp.mqm.client.exception.RequestErrorException;
+import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
 import com.microfocus.application.automation.tools.octane.ResultQueue;
 import com.microfocus.application.automation.tools.octane.actions.coverage.CoverageService;
 import com.microfocus.application.automation.tools.octane.client.JenkinsMqmRestClientFactory;
 import com.microfocus.application.automation.tools.octane.client.JenkinsMqmRestClientFactoryImpl;
 import com.microfocus.application.automation.tools.octane.client.RetryModel;
 import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
-import com.microfocus.application.automation.tools.octane.configuration.ServerConfiguration;
 import com.microfocus.application.automation.tools.octane.executor.CoverageReportsQueue;
 import com.microfocus.application.automation.tools.octane.tests.build.BuildHandlerUtils;
 import hudson.Extension;
@@ -92,19 +92,18 @@ public class CoverageReportsDispatcher extends AbstractSafeLoggingAsyncPeriodWor
 			return;
 		}
 
-		MqmRestClient mqmRestClient = initMqmRestClient();
-		if (mqmRestClient == null) {
-			logger.warn("There are pending coverage reports, but MQM server location is not specified, reports can't be submitted");
-			reportsQueue.remove();
-			return;
-		}
-
 		ResultQueue.QueueItem item;
 
 		while ((item = reportsQueue.peekFirst()) != null) {
-
 			if (retryModel.isQuietPeriod()) {
 				logger.debug("There are pending coverage reports, but we are in quiet period");
+				return;
+			}
+
+			MqmRestClient mqmRestClient = initMqmRestClient(item.getInstanceId());
+			if (mqmRestClient == null) {
+				logger.warn("There are pending coverage reports, but MQM server location is not specified, reports can't be submitted");
+				reportsQueue.remove();
 				return;
 			}
 
@@ -130,7 +129,7 @@ public class CoverageReportsDispatcher extends AbstractSafeLoggingAsyncPeriodWor
 			while (coverageFile.exists()) {
 				// send each report as IS to octane using rest client
 				boolean status = mqmRestClient.postCoverageReports(
-						ConfigurationService.getSettings().getIdentity(),
+						item.getInstanceId(),
 						BuildHandlerUtils.getJobCiId(build),
 						BuildHandlerUtils.getBuildCiId(build),
 						new FileInputStream(coverageFile),
@@ -173,25 +172,20 @@ public class CoverageReportsDispatcher extends AbstractSafeLoggingAsyncPeriodWor
 		}
 	}
 
-	private MqmRestClient initMqmRestClient() {
-		MqmRestClient result = null;
-		ServerConfiguration configuration = ConfigurationService.getServerConfiguration();
-		if (configuration.isValid()) {
-			result = clientFactory.obtain(
-					configuration.location,
-					configuration.sharedSpace,
-					configuration.username,
-					configuration.password);
-		}
+	private MqmRestClient initMqmRestClient(String instanceId) {
+		MqmRestClient result;
+		OctaneServerSettingsModel configuration = ConfigurationService.getSettings(instanceId);
+		result = clientFactory.obtain(
+				configuration.getLocation(),
+				configuration.getSharedSpace(),
+				configuration.getUsername(),
+				configuration.getPassword());
 		return result;
 	}
 
 	private Run getBuildFromQueueItem(ResultQueue.QueueItem item) {
 		Run result = null;
 		Jenkins jenkins = Jenkins.getInstance();
-		if (jenkins == null) {
-			throw new IllegalStateException("failed to obtain Jenkins' instance");
-		}
 		Job project = (Job) jenkins.getItemByFullName(item.getProjectName());
 		if (project != null) {
 			result = project.getBuildByNumber(item.getBuildNumber());
@@ -208,7 +202,7 @@ public class CoverageReportsDispatcher extends AbstractSafeLoggingAsyncPeriodWor
 		return TimeUnit2.SECONDS.toMillis(10);
 	}
 
-	public void enqueueTask(String projectName, int buildNumber, String fileType) {
+	public void enqueueTask(String instanceId, String projectName, int buildNumber, String fileType) {
 		reportsQueue.add(projectName, fileType, buildNumber);
 	}
 
