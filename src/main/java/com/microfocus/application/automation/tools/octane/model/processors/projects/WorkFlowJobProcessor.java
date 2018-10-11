@@ -1,5 +1,4 @@
 /*
- *
  *  Certain versions of software and/or documents (“Material”) accessible here may contain branding from
  *  Hewlett-Packard Company (now HP Inc.) and Hewlett Packard Enterprise Company.  As of September 1, 2017,
  *  the Material is now offered by Micro Focus, a separately owned and operated company.  Any reference to the HP
@@ -17,12 +16,10 @@
  * or editorial errors or omissions contained herein.
  * The information contained herein is subject to change without notice.
  * ___________________________________________________________________
- *
  */
 
 package com.microfocus.application.automation.tools.octane.model.processors.projects;
 
-import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
 import com.microfocus.application.automation.tools.octane.tests.build.BuildHandlerUtils;
 import hudson.model.Cause;
 import hudson.model.Job;
@@ -50,7 +47,7 @@ public class WorkFlowJobProcessor extends AbstractProjectProcessor<WorkflowJob> 
 		return new ArrayList<>();
 	}
 
-	public void scheduleBuild(String parametersBody) {
+	public void scheduleBuild(String parametersBody, String issuingDescription) {
 		int delay = this.job.getQuietPeriod();
 
 		if (parametersBody != null && !parametersBody.isEmpty()) {
@@ -63,9 +60,7 @@ public class WorkFlowJobProcessor extends AbstractProjectProcessor<WorkflowJob> 
 
 			//  TODO: support parameters
 		}
-		this.job.scheduleBuild(delay, new Cause.RemoteCause(ConfigurationService.getServerConfiguration() == null ?
-				"non available URL" :
-				ConfigurationService.getServerConfiguration().location, "octane driven execution"));
+		this.job.scheduleBuild(delay, new Cause.RemoteCause(issuingDescription, "octane driven execution"));
 	}
 
 	@Override

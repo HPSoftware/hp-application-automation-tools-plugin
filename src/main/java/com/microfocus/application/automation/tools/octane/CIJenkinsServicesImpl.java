@@ -20,6 +20,7 @@
 
 package com.microfocus.application.automation.tools.octane;
 
+import com.hp.octane.integrations.CIPluginServices;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.configuration.CIProxyConfiguration;
@@ -40,7 +41,6 @@ import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.snapshots.SnapshotNode;
 import com.hp.octane.integrations.exceptions.ConfigurationException;
 import com.hp.octane.integrations.exceptions.PermissionException;
-import com.hp.octane.integrations.spi.CIPluginServicesBase;
 import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
 import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
 import com.microfocus.application.automation.tools.octane.executor.ExecutorConnectivityService;
@@ -79,7 +79,7 @@ import java.util.stream.Collectors;
  * Base implementation of SPI(service provider interface) of Octane CI SDK for Jenkins
  */
 
-public class CIJenkinsServicesImpl extends CIPluginServicesBase {
+public class CIJenkinsServicesImpl extends CIPluginServices {
 	private static final Logger logger = LogManager.getLogger(CIJenkinsServicesImpl.class);
 	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
 
@@ -97,7 +97,7 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 
 	@Override
 	public void suspendCIEvents(boolean suspend) {
-		OctaneServerSettingsModel model = ConfigurationService.getSettings();
+		OctaneServerSettingsModel model = ConfigurationService.getSettings(getInstanceId());
 		model.setSuspend(suspend);
 		ConfigurationService.configurePlugin(model);
 		logger.info("suspend ci event: " + suspend);
@@ -253,9 +253,9 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 	}
 
 	private SecurityContext startImpersonation() {
-		String user = ConfigurationService.getSettings().getImpersonatedUser();
+		String user = ConfigurationService.getSettings(getInstanceId()).getImpersonatedUser();
 		SecurityContext originalContext = null;
-		if (user != null && !user.equalsIgnoreCase("")) {
+		if (user != null && !user.isEmpty()) {
 			User jenkinsUser = User.get(user, false, Collections.emptyMap());
 			if (jenkinsUser != null) {
 				originalContext = ACL.impersonate(jenkinsUser.impersonate());
@@ -470,12 +470,14 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 			}
 
 			project.scheduleBuild(delay, new Cause.RemoteCause(
-					ConfigurationService.getServerConfiguration() == null ?
+					ConfigurationService.getSettings(getInstanceId()) == null ?
 							"non available URL" :
-							ConfigurationService.getServerConfiguration().location, "octane driven execution"), parametersAction);
+							ConfigurationService.getSettings(getInstanceId()).getLocation(), "octane driven execution"), parametersAction);
 		} else if (job.getClass().getName().equals(JobProcessorFactory.WORKFLOW_JOB_NAME)) {
 			AbstractProjectProcessor workFlowJobProcessor = JobProcessorFactory.getFlowProcessor(job);
-			workFlowJobProcessor.scheduleBuild(originalBody);
+			workFlowJobProcessor.scheduleBuild(
+					originalBody,
+					ConfigurationService.getSettings(getInstanceId()) == null ? "non available URL" : ConfigurationService.getSettings(getInstanceId()).getLocation());
 		}
 	}
 
@@ -606,7 +608,7 @@ public class CIJenkinsServicesImpl extends CIPluginServicesBase {
 		try {
 			item = Jenkins.getInstance().getItem(jobRefId);
 		} catch (AccessDeniedException e) {
-			String user = ConfigurationService.getSettings().getImpersonatedUser();
+			String user = ConfigurationService.getSettings(getInstanceId()).getImpersonatedUser();
 			if (user != null && !user.isEmpty()) {
 				throw new PermissionException(403);
 			} else {
