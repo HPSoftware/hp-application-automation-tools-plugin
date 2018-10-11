@@ -23,9 +23,10 @@
 package com.microfocus.application.automation.tools.octane.configuration;
 
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
+import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
 import com.microfocus.application.automation.tools.octane.Messages;
 import com.microfocus.application.automation.tools.octane.OctaneServerMock;
-import com.microfocus.application.automation.tools.octane.PlugInAbstractTest;
+import com.microfocus.application.automation.tools.octane.PluginAbstractTest;
 import com.microfocus.application.automation.tools.octane.tests.ExtensionUtil;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
@@ -42,7 +43,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings({"squid:S2699", "squid:S3658", "squid:S2259", "squid:S1872", "squid:S2925", "squid:S109", "squid:S1607", "squid:S2701", "squid:S2698"})
-public class ConfigurationServiceTest extends PlugInAbstractTest {
+public class ConfigurationServiceTest extends PluginAbstractTest {
 	private static final Logger logger = Logger.getLogger(ConfigurationServiceTest.class.getName());
 
 	private ConfigurationParser configurationParser;
@@ -57,11 +58,11 @@ public class ConfigurationServiceTest extends PlugInAbstractTest {
 
 	@Test
 	public void testGetServerConfiguration() {
-		ServerConfiguration configuration = ConfigurationService.getServerConfiguration();
-		assertEquals("http://localhost:8008", configuration.location);
-		assertEquals(PlugInAbstractTest.ssp, configuration.sharedSpace);
-		assertEquals("username", configuration.username);
-		assertEquals(password, configuration.password);
+		OctaneServerSettingsModel configuration = ConfigurationService.getSettings("nonsense");
+		assertEquals("http://localhost:8008", configuration.getLocation());
+		assertEquals(PluginAbstractTest.ssp, configuration.getSharedSpace());
+		assertEquals("username", configuration.getUsername());
+		assertEquals(password, configuration.getPassword());
 	}
 
 	@Test

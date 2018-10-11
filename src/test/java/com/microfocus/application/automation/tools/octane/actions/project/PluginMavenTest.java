@@ -22,16 +22,16 @@
 
 package com.microfocus.application.automation.tools.octane.actions.project;
 
+import com.gargoylesoftware.htmlunit.HttpMethod;
 import com.gargoylesoftware.htmlunit.Page;
+import com.gargoylesoftware.htmlunit.WebRequest;
 import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.parameters.CIParameterType;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.pipelines.PipelinePhase;
-import com.microfocus.application.automation.tools.octane.PlugInAbstractTest;
-import com.tikal.jenkins.plugins.multijob.MultiJobBuilder;
-import com.tikal.jenkins.plugins.multijob.MultiJobProject;
-import com.tikal.jenkins.plugins.multijob.PhaseJobsConfig;
+import com.microfocus.application.automation.tools.octane.PluginAbstractTest;
 import hudson.matrix.MatrixProject;
+import hudson.maven.MavenModuleSet;
 import hudson.model.*;
 import hudson.plugins.parameterizedtrigger.*;
 import hudson.tasks.BuildTrigger;
@@ -41,8 +41,8 @@ import org.junit.Test;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
+import java.net.URL;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -52,17 +52,17 @@ import static org.junit.Assert.*;
  * Created with IntelliJ IDEA.
  * User: gullery
  * Date: 13/01/15
- * Time: 11:44
+ * Time: 11:42
  * To change this template use File | Settings | File Templates.
  */
 
-public class PlugInMultiJobTest extends PlugInAbstractTest {
-    //  Structure test: multi-job, no params, no children
+public class PluginMavenTest extends PluginAbstractTest {
+    //  Structure test: maven, no params, no children
     @Test
-    public void testStructureMultiJobNoParamsNoChildren() throws IOException, SAXException {
+    public void testStructureMavenNoParamsNoChildren() throws IOException, SAXException {
         String projectName = "root-job-" + UUID.randomUUID().toString();
-        rule.getInstance().createProject(MultiJobProject.class, projectName);
-
+        MavenModuleSet project = rule.createProject(MavenModuleSet.class, projectName);
+        project.runHeadless();
         Page page;
         PipelineNode pipeline;
 
@@ -75,17 +75,35 @@ public class PlugInMultiJobTest extends PlugInAbstractTest {
         assertEquals(0, pipeline.getPhasesPostBuild().size());
     }
 
-    //  Structure test: multi-job, with params, no children
+    @Test
+    //@Ignore
+    public void testDoRun() throws IOException, SAXException, InterruptedException {
+        String projectName = "root-job-" + UUID.randomUUID().toString();
+        int retries = 0;
+        MavenModuleSet p = rule.createProject(MavenModuleSet.class, projectName);
+        p.runHeadless();
+
+        WebRequest webRequest = new WebRequest(new URL(client.getContextPath() + "nga/api/v1/jobs/" + projectName + "/run"), HttpMethod.GET);
+        client.loadWebResponse(webRequest);
+
+        while ((p.getLastBuild() == null || p.getLastBuild().isBuilding()) && ++retries < 20) {
+            Thread.sleep(1000);
+        }
+        assertEquals(p.getBuilds().toArray().length, 1);
+    }
+
+    //  Structure test: maven, with params, no children
     //
     @Test
-    public void testStructureMultiJobWithParamsNoChildren() throws IOException, SAXException {
+    public void testStructureMavenWithParamsNoChildren() throws IOException, SAXException {
         String projectName = "root-job-" + UUID.randomUUID().toString();
-        MultiJobProject p = rule.getInstance().createProject(MultiJobProject.class, projectName);
+        MavenModuleSet p = rule.createProject(MavenModuleSet.class, projectName);
+        p.runHeadless();
         ParametersDefinitionProperty params = new ParametersDefinitionProperty(Arrays.asList(
                 (ParameterDefinition) new BooleanParameterDefinition("ParamA", true, "bool"),
                 (ParameterDefinition) new StringParameterDefinition("ParamB", "str", "string"),
                 (ParameterDefinition) new TextParameterDefinition("ParamC", "txt", "text"),
-                (ParameterDefinition) new ChoiceParameterDefinition("ParamD", new String[]{"A", "B", "C"}, "choice"),
+                (ParameterDefinition) new ChoiceParameterDefinition("ParamD", new String[]{"one", "two", "three"}, "choice"),
                 (ParameterDefinition) new FileParameterDefinition("ParamE", "file param")
         ));
         p.addProperty(params);
@@ -127,12 +145,12 @@ public class PlugInMultiJobTest extends PlugInAbstractTest {
         assertEquals("ParamD", tmpParam.getName());
         assertEquals(CIParameterType.STRING, tmpParam.getType());
         assertEquals("choice", tmpParam.getDescription());
-        assertEquals("A", tmpParam.getDefaultValue());
+        assertEquals("one", tmpParam.getDefaultValue());
         assertNotNull(tmpParam.getChoices());
         assertEquals(3, tmpParam.getChoices().length);
-        assertEquals("A", tmpParam.getChoices()[0]);
-        assertEquals("B", tmpParam.getChoices()[1]);
-        assertEquals("C", tmpParam.getChoices()[2]);
+        assertEquals("one", tmpParam.getChoices()[0]);
+        assertEquals("two", tmpParam.getChoices()[1]);
+        assertEquals("three", tmpParam.getChoices()[2]);
 
         tmpParam = pipeline.getParameters().get(4);
         assertEquals("ParamE", tmpParam.getName());
@@ -142,53 +160,45 @@ public class PlugInMultiJobTest extends PlugInAbstractTest {
         assertNull(tmpParam.getChoices());
     }
 
-    //  Structure test: multi-job, with params, with children
+    //  Structure test: maven, with params, with children
     //
     @Test
-    public void testStructureMultiJobWithParamsWithChildren() throws IOException, SAXException {
+    public void testStructureMavenWithParamsWithChildren() throws IOException, SAXException {
         String projectName = "root-job-" + UUID.randomUUID().toString();
-        MultiJobProject p = rule.getInstance().createProject(MultiJobProject.class, projectName);
+        MavenModuleSet p = rule.createProject(MavenModuleSet.class, projectName);
+        p.runHeadless();
         FreeStyleProject p1 = rule.createFreeStyleProject("jobA");
         MatrixProject p2 = rule.createProject(MatrixProject.class, "jobB");
-        MultiJobProject p3 = rule.getInstance().createProject(MultiJobProject.class, "jobC");
+        FreeStyleProject p3 = rule.createFreeStyleProject("jobC");
         MatrixProject p4 = rule.createProject(MatrixProject.class, "jobD");
-        CustomProject p5 = rule.getInstance().createProject(CustomProject.class, "jobE");
         ParametersDefinitionProperty params = new ParametersDefinitionProperty(Arrays.asList(
                 (ParameterDefinition) new BooleanParameterDefinition("ParamA", true, "bool"),
                 (ParameterDefinition) new StringParameterDefinition("ParamB", "str", "string")
         ));
         p.addProperty(params);
-        p.getBuildersList().add(new TriggerBuilder(Arrays.asList(
+        p.getPrebuilders().add(new TriggerBuilder(Arrays.asList(
                 new BlockableBuildTriggerConfig("jobA, jobB", new BlockingBehaviour(
                         Result.FAILURE,
                         Result.UNSTABLE,
                         Result.FAILURE
                 ), Arrays.asList(new AbstractBuildParameters[0])),
-                new BlockableBuildTriggerConfig("jobC,jobD", null, Arrays.asList(new AbstractBuildParameters[0]))
+                new BlockableBuildTriggerConfig("jobC, jobD", null, Arrays.asList(new AbstractBuildParameters[0]))
         )));
-        p.getBuildersList().add(new MultiJobBuilder(
-                "Build",
-                Arrays.asList(
-                        new PhaseJobsConfig("jobA", "", false, null, PhaseJobsConfig.KillPhaseOnJobResultCondition.NEVER, false, false, "", 0, false, false, "", false),
-                        new PhaseJobsConfig("jobB", "", false, null, PhaseJobsConfig.KillPhaseOnJobResultCondition.NEVER, false, false, "", 0, false, false, "", false),
-                        new PhaseJobsConfig("jobE", "", false, null, PhaseJobsConfig.KillPhaseOnJobResultCondition.NEVER, false, false, "", 0, false, false, "", false)
-                ),
-                MultiJobBuilder.ContinuationCondition.SUCCESSFUL
-        ));
-        p.getBuildersList().add(new Shell(""));
-        p.getBuildersList().add(new MultiJobBuilder(
-                "Test",
-                Arrays.asList(
-                        new PhaseJobsConfig("jobC", "", false, null, PhaseJobsConfig.KillPhaseOnJobResultCondition.NEVER, false, false, "", 0, false, false, "", false),
-                        new PhaseJobsConfig("jobD", "", false, null, PhaseJobsConfig.KillPhaseOnJobResultCondition.NEVER, false, false, "", 0, false, false, "", false)
-                ),
-                MultiJobBuilder.ContinuationCondition.SUCCESSFUL
-        ));
+        p.getPrebuilders().add(new Shell(""));
+        p.getPostbuilders().add(new Shell(""));
+        p.getPostbuilders().add(new TriggerBuilder(Arrays.asList(
+                new BlockableBuildTriggerConfig("jobA, jobB", new BlockingBehaviour(
+                        Result.FAILURE,
+                        Result.UNSTABLE,
+                        Result.FAILURE
+                ), Arrays.asList(new AbstractBuildParameters[0])),
+                new BlockableBuildTriggerConfig("jobC, jobD", null, Arrays.asList(new AbstractBuildParameters[0]))
+        )));
         p.getPublishersList().add(new BuildTrigger("jobA, jobB", Result.SUCCESS));
-        p.getPublishersList().add(new hudson.plugins.parameterizedtrigger.BuildTrigger(Collections.singletonList(
-                new BuildTriggerConfig("jobC,jobD", ResultCondition.ALWAYS, false, null)
-        )));
         p.getPublishersList().add(new Fingerprinter(""));
+        p.getPublishersList().add(new hudson.plugins.parameterizedtrigger.BuildTrigger(Arrays.asList(
+                new BuildTriggerConfig("jobC, jobD", ResultCondition.ALWAYS, false, null)
+        )));
 
         Page page;
         PipelineNode pipeline;
@@ -222,8 +232,8 @@ public class PlugInMultiJobTest extends PlugInAbstractTest {
         assertEquals(4, tmpPhases.size());
 
         //  Phase 0
-        assertEquals("", tmpPhases.get(0).getName());
-        assertTrue(tmpPhases.get(0).isBlocking());
+        assertEquals("pre-maven", tmpPhases.get(0).getName());
+        assertEquals(true, tmpPhases.get(0).isBlocking());
         assertEquals(2, tmpPhases.get(0).getJobs().size());
 
         tmpNode = tmpPhases.get(0).getJobs().get(0);
@@ -240,8 +250,8 @@ public class PlugInMultiJobTest extends PlugInAbstractTest {
         assertEquals(0, tmpNode.getPhasesPostBuild().size());
 
         //  Phase 1
-        assertEquals("", tmpPhases.get(1).getName());
-        assertFalse(tmpPhases.get(1).isBlocking());
+        assertEquals("pre-maven", tmpPhases.get(1).getName());
+        assertEquals(false, tmpPhases.get(1).isBlocking());
         assertEquals(2, tmpPhases.get(1).getJobs().size());
 
         tmpNode = tmpPhases.get(1).getJobs().get(0);
@@ -258,9 +268,9 @@ public class PlugInMultiJobTest extends PlugInAbstractTest {
         assertEquals(0, tmpNode.getPhasesPostBuild().size());
 
         //  Phase 2
-        assertEquals("Build", tmpPhases.get(2).getName());
-        assertTrue(tmpPhases.get(2).isBlocking());
-        assertEquals(3, tmpPhases.get(2).getJobs().size());
+        assertEquals("post-maven", tmpPhases.get(2).getName());
+        assertEquals(true, tmpPhases.get(2).isBlocking());
+        assertEquals(2, tmpPhases.get(2).getJobs().size());
 
         tmpNode = tmpPhases.get(2).getJobs().get(0);
         assertEquals("jobA", tmpNode.getJobCiId());
@@ -274,16 +284,10 @@ public class PlugInMultiJobTest extends PlugInAbstractTest {
         assertEquals(0, tmpNode.getParameters().size());
         assertEquals(0, tmpNode.getPhasesInternal().size());
         assertEquals(0, tmpNode.getPhasesPostBuild().size());
-        tmpNode = tmpPhases.get(2).getJobs().get(2);
-        assertEquals("jobE", tmpNode.getJobCiId());
-        assertEquals("jobE", tmpNode.getName());
-        assertEquals(0, tmpNode.getParameters().size());
-        assertEquals(0, tmpNode.getPhasesInternal().size());
-        assertEquals(0, tmpNode.getPhasesPostBuild().size());
 
         //  Phase 3
-        assertEquals("Test", tmpPhases.get(3).getName());
-        assertTrue(tmpPhases.get(3).isBlocking());
+        assertEquals("post-maven", tmpPhases.get(3).getName());
+        assertEquals(false, tmpPhases.get(3).isBlocking());
         assertEquals(2, tmpPhases.get(3).getJobs().size());
 
         tmpNode = tmpPhases.get(3).getJobs().get(0);
@@ -306,7 +310,7 @@ public class PlugInMultiJobTest extends PlugInAbstractTest {
 
         //  Phase 0
         assertEquals("downstream", tmpPhases.get(0).getName());
-        assertFalse(tmpPhases.get(0).isBlocking());
+        assertEquals(false, tmpPhases.get(0).isBlocking());
         assertEquals(2, tmpPhases.get(0).getJobs().size());
 
         tmpNode = tmpPhases.get(0).getJobs().get(0);
@@ -324,7 +328,7 @@ public class PlugInMultiJobTest extends PlugInAbstractTest {
 
         //  Phase 1
         assertEquals("", tmpPhases.get(1).getName());
-        assertFalse(tmpPhases.get(1).isBlocking());
+        assertEquals(false, tmpPhases.get(1).isBlocking());
         assertEquals(2, tmpPhases.get(1).getJobs().size());
 
         tmpNode = tmpPhases.get(1).getJobs().get(0);

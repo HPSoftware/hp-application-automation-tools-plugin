@@ -22,7 +22,7 @@
 
 package com.microfocus.application.automation.tools.octane.tests;
 
-import com.microfocus.application.automation.tools.octane.PlugInAbstractTest;
+import com.microfocus.application.automation.tools.octane.PluginAbstractTest;
 import com.microfocus.application.automation.tools.octane.tests.junit.TestResultStatus;
 import hudson.matrix.*;
 import hudson.maven.MavenModuleSet;
@@ -41,7 +41,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 @SuppressWarnings({"squid:S2699","squid:S3658","squid:S2259","squid:S1872","squid:S2925","squid:S109","squid:S1607","squid:S2701","squid:S2698"})
-public class JUnitResultsTest extends PlugInAbstractTest {
+public class JUnitResultsTest extends PluginAbstractTest {
 
 	private static Set<String> helloWorld2Tests = new HashSet<>();
 

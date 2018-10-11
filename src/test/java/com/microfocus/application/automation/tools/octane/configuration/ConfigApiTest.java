@@ -26,9 +26,11 @@ import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.HttpMethod;
 import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebRequest;
-import com.microfocus.application.automation.tools.octane.PlugInAbstractTest;
+import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
+import com.microfocus.application.automation.tools.octane.PluginAbstractTest;
 import hudson.util.Secret;
 import net.jcip.annotations.NotThreadSafe;
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
@@ -36,19 +38,22 @@ import org.junit.Test;
 import java.util.UUID;
 
 // import com.gargoylesoftware.htmlunit.WebRequestSettings;
-@SuppressWarnings({"squid:S2699","squid:S3658","squid:S2259","squid:S1872","squid:S2925","squid:S109","squid:S1607","squid:S2701","squid:S2698"})
+@SuppressWarnings({"squid:S2699", "squid:S3658", "squid:S2259", "squid:S1872", "squid:S2925", "squid:S109", "squid:S1607", "squid:S2701", "squid:S2698"})
 @NotThreadSafe
-public class ConfigApiTest extends PlugInAbstractTest {
+public class ConfigApiTest extends PluginAbstractTest {
 
 	@Test
 	public void testRead() throws Exception {
 		Page page = client.goTo("nga/configuration/read", "application/json");
-		String configAsString = page.getWebResponse().getContentAsString();
-		JSONObject config = JSONObject.fromObject(configAsString);
-		Assert.assertEquals("http://localhost:8008", config.getString("location"));
-		Assert.assertEquals(PlugInAbstractTest.ssp, config.getString("sharedSpace"));
-		Assert.assertEquals("username", config.getString("username"));
-		Assert.assertEquals(ConfigurationService.getSettings().getIdentity(), config.getString("serverIdentity"));
+		String configsAsString = page.getWebResponse().getContentAsString();
+		JSONArray configs = JSONArray.fromObject(configsAsString);
+		for (int i = 0; i < configs.size(); i++) {
+			JSONObject config = configs.getJSONObject(i);
+			Assert.assertEquals("http://localhost:8008", config.getString("location"));
+			Assert.assertEquals(ssp, config.getString("sharedSpace"));
+			Assert.assertEquals("username", config.getString("username"));
+			Assert.assertEquals("nonsense", config.getString("serverIdentity"));
+		}
 	}
 
 	@Test
@@ -69,7 +74,7 @@ public class ConfigApiTest extends PlugInAbstractTest {
 		Page page = client.getPage(req);
 		config = JSONObject.fromObject(page.getWebResponse().getContentAsString());
 		checkConfig(config, "http://localhost:8088", sharedSP, "username1", Secret.fromString("password1"));
-		Assert.assertEquals(ConfigurationService.getSettings().getIdentity(), config.getString("serverIdentity"));
+		Assert.assertEquals("nonsense", config.getString("serverIdentity"));
 
 
 		// location, shared space, no credentials
@@ -81,8 +86,8 @@ public class ConfigApiTest extends PlugInAbstractTest {
 		page = client.getPage(req);
 		config = JSONObject.fromObject(page.getWebResponse().getContentAsString());
 		checkConfig(config, "http://localhost:8888", sharedSP1, "username1", Secret.fromString("password1"));
-		Assert.assertEquals(ConfigurationService.getSettings().getIdentity(), config.getString("serverIdentity"));
-//
+		Assert.assertEquals("nonsense", config.getString("serverIdentity"));
+
 		// location, shared space and username without password
 		config = new JSONObject();
 		config.put("location", "http://localhost:8882");
@@ -93,7 +98,7 @@ public class ConfigApiTest extends PlugInAbstractTest {
 		page = client.getPage(req);
 		config = JSONObject.fromObject(page.getWebResponse().getContentAsString());
 		checkConfig(config, "http://localhost:8882", sharedSP2, "username3", Secret.fromString(""));
-		Assert.assertEquals(ConfigurationService.getSettings().getIdentity(), config.getString("serverIdentity"));
+		Assert.assertEquals("nonsense", config.getString("serverIdentity"));
 
 		// uiLocation and identity
 		config = new JSONObject();
@@ -105,7 +110,6 @@ public class ConfigApiTest extends PlugInAbstractTest {
 		config = JSONObject.fromObject(page.getWebResponse().getContentAsString());
 		checkConfig(config, "http://localhost:8881", sharedSP3, "username3", Secret.fromString(""));
 		Assert.assertEquals("2d2fa955-1d13-4d8c-947f-ab11c72bf850", config.getString("serverIdentity"));
-		Assert.assertEquals("2d2fa955-1d13-4d8c-947f-ab11c72bf850", ConfigurationService.getSettings().getIdentity());
 
 		// requires POST
 		req.setHttpMethod(HttpMethod.GET);
@@ -123,10 +127,10 @@ public class ConfigApiTest extends PlugInAbstractTest {
 		Assert.assertEquals(sharedSpace, config.getString("sharedSpace"));
 		Assert.assertEquals(username, config.getString("username"));
 		// check values stored
-		ServerConfiguration serverConfiguration = ConfigurationService.getServerConfiguration();
-		Assert.assertEquals(location, serverConfiguration.location);
-		Assert.assertEquals(sharedSpace, serverConfiguration.sharedSpace);
-		Assert.assertEquals(username, serverConfiguration.username);
-		Assert.assertEquals(password, serverConfiguration.password);
+		OctaneServerSettingsModel serverConfiguration = ConfigurationService.getSettings(config.getString("serverIdentity"));
+		Assert.assertEquals(location, serverConfiguration.getLocation());
+		Assert.assertEquals(sharedSpace, serverConfiguration.getSharedSpace());
+		Assert.assertEquals(username, serverConfiguration.getUsername());
+		Assert.assertEquals(password, serverConfiguration.getPassword());
 	}
 }

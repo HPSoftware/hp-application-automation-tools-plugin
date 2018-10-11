@@ -22,14 +22,12 @@
 
 package com.microfocus.application.automation.tools.octane.actions.project;
 
-import com.gargoylesoftware.htmlunit.HttpMethod;
 import com.gargoylesoftware.htmlunit.Page;
-import com.gargoylesoftware.htmlunit.WebRequest;
 import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.parameters.CIParameterType;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.pipelines.PipelinePhase;
-import com.microfocus.application.automation.tools.octane.PlugInAbstractTest;
+import com.microfocus.application.automation.tools.octane.PluginAbstractTest;
 import hudson.matrix.MatrixProject;
 import hudson.maven.MavenModuleSet;
 import hudson.model.*;
@@ -41,8 +39,8 @@ import org.junit.Test;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
-import java.net.URL;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -52,21 +50,23 @@ import static org.junit.Assert.*;
  * Created with IntelliJ IDEA.
  * User: gullery
  * Date: 13/01/15
- * Time: 11:42
+ * Time: 11:39
  * To change this template use File | Settings | File Templates.
  */
-
-public class PlugInMavenTest extends PlugInAbstractTest {
-    //  Structure test: maven, no params, no children
+@SuppressWarnings({"squid:S2699", "squid:S3658", "squid:S2259", "squid:S1872", "squid:S2925", "squid:S109", "squid:S1607", "squid:S2701"})
+public class PluginFreeStyleTest extends PluginAbstractTest {
+    //  Structure test: free-style, no params, no children
+    //
     @Test
-    public void testStructureMavenNoParamsNoChildren() throws IOException, SAXException {
+    public void testStructureFreeStyleNoParamsNoChildren() throws IOException, SAXException {
         String projectName = "root-job-" + UUID.randomUUID().toString();
-        MavenModuleSet project = rule.createProject(MavenModuleSet.class, projectName);
-        project.runHeadless();
+        rule.createFreeStyleProject(projectName);
+
         Page page;
         PipelineNode pipeline;
 
         page = client.goTo("nga/api/v1/jobs/" + projectName, "application/json");
+
         pipeline = dtoFactory.dtoFromJson(page.getWebResponse().getContentAsString(), PipelineNode.class);
         assertEquals(projectName, pipeline.getJobCiId());
         assertEquals(projectName, pipeline.getName());
@@ -75,30 +75,12 @@ public class PlugInMavenTest extends PlugInAbstractTest {
         assertEquals(0, pipeline.getPhasesPostBuild().size());
     }
 
-    @Test
-    //@Ignore
-    public void testDoRun() throws IOException, SAXException, InterruptedException {
-        String projectName = "root-job-" + UUID.randomUUID().toString();
-        int retries = 0;
-        MavenModuleSet p = rule.createProject(MavenModuleSet.class, projectName);
-        p.runHeadless();
-
-        WebRequest webRequest = new WebRequest(new URL(client.getContextPath() + "nga/api/v1/jobs/" + projectName + "/run"), HttpMethod.GET);
-        client.loadWebResponse(webRequest);
-
-        while ((p.getLastBuild() == null || p.getLastBuild().isBuilding()) && ++retries < 20) {
-            Thread.sleep(1000);
-        }
-        assertEquals(p.getBuilds().toArray().length, 1);
-    }
-
-    //  Structure test: maven, with params, no children
+    //  Structure test: free-style, with params, no children
     //
     @Test
-    public void testStructureMavenWithParamsNoChildren() throws IOException, SAXException {
+    public void testStructureFreeStyleWithParamsNoChildren() throws IOException, SAXException {
         String projectName = "root-job-" + UUID.randomUUID().toString();
-        MavenModuleSet p = rule.createProject(MavenModuleSet.class, projectName);
-        p.runHeadless();
+        FreeStyleProject p = rule.createFreeStyleProject(projectName);
         ParametersDefinitionProperty params = new ParametersDefinitionProperty(Arrays.asList(
                 (ParameterDefinition) new BooleanParameterDefinition("ParamA", true, "bool"),
                 (ParameterDefinition) new StringParameterDefinition("ParamB", "str", "string"),
@@ -113,6 +95,7 @@ public class PlugInMavenTest extends PlugInAbstractTest {
         CIParameter tmpParam;
 
         page = client.goTo("nga/api/v1/jobs/" + projectName, "application/json");
+
         pipeline = dtoFactory.dtoFromJson(page.getWebResponse().getContentAsString(), PipelineNode.class);
         assertEquals(projectName, pipeline.getJobCiId());
         assertEquals(projectName, pipeline.getName());
@@ -160,51 +143,50 @@ public class PlugInMavenTest extends PlugInAbstractTest {
         assertNull(tmpParam.getChoices());
     }
 
-    //  Structure test: maven, with params, with children
+    //  Structure test: free-style, with params, with children
     //
     @Test
-    public void testStructureMavenWithParamsWithChildren() throws IOException, SAXException {
+    public void testStructureFreeStyleWithParamsWithChildren() throws IOException, SAXException {
         String projectName = "root-job-" + UUID.randomUUID().toString();
-        MavenModuleSet p = rule.createProject(MavenModuleSet.class, projectName);
-        p.runHeadless();
+        FreeStyleProject p = rule.createFreeStyleProject(projectName);
         FreeStyleProject p1 = rule.createFreeStyleProject("jobA");
         MatrixProject p2 = rule.createProject(MatrixProject.class, "jobB");
         FreeStyleProject p3 = rule.createFreeStyleProject("jobC");
-        MatrixProject p4 = rule.createProject(MatrixProject.class, "jobD");
+        MavenModuleSet p4 = rule.createProject(MavenModuleSet.class, "jobD");
+        CustomProject p5 = rule.getInstance().createProject(CustomProject.class, "jobE");
         ParametersDefinitionProperty params = new ParametersDefinitionProperty(Arrays.asList(
                 (ParameterDefinition) new BooleanParameterDefinition("ParamA", true, "bool"),
                 (ParameterDefinition) new StringParameterDefinition("ParamB", "str", "string")
         ));
         p.addProperty(params);
-        p.getPrebuilders().add(new TriggerBuilder(Arrays.asList(
+        p.getBuildersList().add(new TriggerBuilder(Arrays.asList(
                 new BlockableBuildTriggerConfig("jobA, jobB", new BlockingBehaviour(
                         Result.FAILURE,
                         Result.UNSTABLE,
                         Result.FAILURE
                 ), Arrays.asList(new AbstractBuildParameters[0])),
-                new BlockableBuildTriggerConfig("jobC, jobD", null, Arrays.asList(new AbstractBuildParameters[0]))
+                new BlockableBuildTriggerConfig("jobC,jobD", null, Arrays.asList(new AbstractBuildParameters[0]))
         )));
-        p.getPrebuilders().add(new Shell(""));
-        p.getPostbuilders().add(new Shell(""));
-        p.getPostbuilders().add(new TriggerBuilder(Arrays.asList(
-                new BlockableBuildTriggerConfig("jobA, jobB", new BlockingBehaviour(
+        p.getBuildersList().add(new Shell(""));
+        p.getBuildersList().add(new TriggerBuilder(Arrays.asList(
+                new BlockableBuildTriggerConfig("jobA, jobB, jobE", new BlockingBehaviour(
                         Result.FAILURE,
                         Result.UNSTABLE,
                         Result.FAILURE
                 ), Arrays.asList(new AbstractBuildParameters[0])),
-                new BlockableBuildTriggerConfig("jobC, jobD", null, Arrays.asList(new AbstractBuildParameters[0]))
+                new BlockableBuildTriggerConfig("jobC,jobD", null, Arrays.asList(new AbstractBuildParameters[0]))
         )));
         p.getPublishersList().add(new BuildTrigger("jobA, jobB", Result.SUCCESS));
-        p.getPublishersList().add(new Fingerprinter(""));
-        p.getPublishersList().add(new hudson.plugins.parameterizedtrigger.BuildTrigger(Arrays.asList(
-                new BuildTriggerConfig("jobC, jobD", ResultCondition.ALWAYS, false, null)
+        p.getPublishersList().add(new hudson.plugins.parameterizedtrigger.BuildTrigger(Collections.singletonList(
+                new BuildTriggerConfig("jobC,jobD", ResultCondition.ALWAYS, false, null)
         )));
+        p.getPublishersList().add(new Fingerprinter(""));
 
         Page page;
         PipelineNode pipeline;
+        CIParameter tmpParam;
         List<PipelinePhase> tmpPhases;
         PipelineNode tmpNode;
-        CIParameter tmpParam;
 
         page = client.goTo("nga/api/v1/jobs/" + projectName, "application/json");
         pipeline = dtoFactory.dtoFromJson(page.getWebResponse().getContentAsString(), PipelineNode.class);
@@ -232,7 +214,7 @@ public class PlugInMavenTest extends PlugInAbstractTest {
         assertEquals(4, tmpPhases.size());
 
         //  Phase 0
-        assertEquals("pre-maven", tmpPhases.get(0).getName());
+        assertEquals("", tmpPhases.get(0).getName());
         assertEquals(true, tmpPhases.get(0).isBlocking());
         assertEquals(2, tmpPhases.get(0).getJobs().size());
 
@@ -250,7 +232,7 @@ public class PlugInMavenTest extends PlugInAbstractTest {
         assertEquals(0, tmpNode.getPhasesPostBuild().size());
 
         //  Phase 1
-        assertEquals("pre-maven", tmpPhases.get(1).getName());
+        assertEquals("", tmpPhases.get(1).getName());
         assertEquals(false, tmpPhases.get(1).isBlocking());
         assertEquals(2, tmpPhases.get(1).getJobs().size());
 
@@ -268,9 +250,9 @@ public class PlugInMavenTest extends PlugInAbstractTest {
         assertEquals(0, tmpNode.getPhasesPostBuild().size());
 
         //  Phase 2
-        assertEquals("post-maven", tmpPhases.get(2).getName());
+        assertEquals("", tmpPhases.get(2).getName());
         assertEquals(true, tmpPhases.get(2).isBlocking());
-        assertEquals(2, tmpPhases.get(2).getJobs().size());
+        assertEquals(3, tmpPhases.get(2).getJobs().size());
 
         tmpNode = tmpPhases.get(2).getJobs().get(0);
         assertEquals("jobA", tmpNode.getJobCiId());
@@ -284,9 +266,15 @@ public class PlugInMavenTest extends PlugInAbstractTest {
         assertEquals(0, tmpNode.getParameters().size());
         assertEquals(0, tmpNode.getPhasesInternal().size());
         assertEquals(0, tmpNode.getPhasesPostBuild().size());
+        tmpNode = tmpPhases.get(2).getJobs().get(2);
+        assertEquals("jobE", tmpNode.getJobCiId());
+        assertEquals("jobE", tmpNode.getName());
+        assertEquals(0, tmpNode.getParameters().size());
+        assertEquals(0, tmpNode.getPhasesInternal().size());
+        assertEquals(0, tmpNode.getPhasesPostBuild().size());
 
         //  Phase 3
-        assertEquals("post-maven", tmpPhases.get(3).getName());
+        assertEquals("", tmpPhases.get(3).getName());
         assertEquals(false, tmpPhases.get(3).isBlocking());
         assertEquals(2, tmpPhases.get(3).getJobs().size());
 

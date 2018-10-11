@@ -27,9 +27,11 @@ import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.parameters.CIParameterType;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.pipelines.PipelinePhase;
-import com.microfocus.application.automation.tools.octane.PlugInAbstractTest;
+import com.microfocus.application.automation.tools.octane.PluginAbstractTest;
+import com.tikal.jenkins.plugins.multijob.MultiJobBuilder;
+import com.tikal.jenkins.plugins.multijob.MultiJobProject;
+import com.tikal.jenkins.plugins.multijob.PhaseJobsConfig;
 import hudson.matrix.MatrixProject;
-import hudson.maven.MavenModuleSet;
 import hudson.model.*;
 import hudson.plugins.parameterizedtrigger.*;
 import hudson.tasks.BuildTrigger;
@@ -50,23 +52,21 @@ import static org.junit.Assert.*;
  * Created with IntelliJ IDEA.
  * User: gullery
  * Date: 13/01/15
- * Time: 11:39
+ * Time: 11:44
  * To change this template use File | Settings | File Templates.
  */
-@SuppressWarnings({"squid:S2699", "squid:S3658", "squid:S2259", "squid:S1872", "squid:S2925", "squid:S109", "squid:S1607", "squid:S2701"})
-public class PlugInFreeStyleTest extends PlugInAbstractTest {
-    //  Structure test: free-style, no params, no children
-    //
+
+public class PluginMultiJobTest extends PluginAbstractTest {
+    //  Structure test: multi-job, no params, no children
     @Test
-    public void testStructureFreeStyleNoParamsNoChildren() throws IOException, SAXException {
+    public void testStructureMultiJobNoParamsNoChildren() throws IOException, SAXException {
         String projectName = "root-job-" + UUID.randomUUID().toString();
-        rule.createFreeStyleProject(projectName);
+        rule.getInstance().createProject(MultiJobProject.class, projectName);
 
         Page page;
         PipelineNode pipeline;
 
         page = client.goTo("nga/api/v1/jobs/" + projectName, "application/json");
-
         pipeline = dtoFactory.dtoFromJson(page.getWebResponse().getContentAsString(), PipelineNode.class);
         assertEquals(projectName, pipeline.getJobCiId());
         assertEquals(projectName, pipeline.getName());
@@ -75,17 +75,17 @@ public class PlugInFreeStyleTest extends PlugInAbstractTest {
         assertEquals(0, pipeline.getPhasesPostBuild().size());
     }
 
-    //  Structure test: free-style, with params, no children
+    //  Structure test: multi-job, with params, no children
     //
     @Test
-    public void testStructureFreeStyleWithParamsNoChildren() throws IOException, SAXException {
+    public void testStructureMultiJobWithParamsNoChildren() throws IOException, SAXException {
         String projectName = "root-job-" + UUID.randomUUID().toString();
-        FreeStyleProject p = rule.createFreeStyleProject(projectName);
+        MultiJobProject p = rule.getInstance().createProject(MultiJobProject.class, projectName);
         ParametersDefinitionProperty params = new ParametersDefinitionProperty(Arrays.asList(
                 (ParameterDefinition) new BooleanParameterDefinition("ParamA", true, "bool"),
                 (ParameterDefinition) new StringParameterDefinition("ParamB", "str", "string"),
                 (ParameterDefinition) new TextParameterDefinition("ParamC", "txt", "text"),
-                (ParameterDefinition) new ChoiceParameterDefinition("ParamD", new String[]{"one", "two", "three"}, "choice"),
+                (ParameterDefinition) new ChoiceParameterDefinition("ParamD", new String[]{"A", "B", "C"}, "choice"),
                 (ParameterDefinition) new FileParameterDefinition("ParamE", "file param")
         ));
         p.addProperty(params);
@@ -95,7 +95,6 @@ public class PlugInFreeStyleTest extends PlugInAbstractTest {
         CIParameter tmpParam;
 
         page = client.goTo("nga/api/v1/jobs/" + projectName, "application/json");
-
         pipeline = dtoFactory.dtoFromJson(page.getWebResponse().getContentAsString(), PipelineNode.class);
         assertEquals(projectName, pipeline.getJobCiId());
         assertEquals(projectName, pipeline.getName());
@@ -128,12 +127,12 @@ public class PlugInFreeStyleTest extends PlugInAbstractTest {
         assertEquals("ParamD", tmpParam.getName());
         assertEquals(CIParameterType.STRING, tmpParam.getType());
         assertEquals("choice", tmpParam.getDescription());
-        assertEquals("one", tmpParam.getDefaultValue());
+        assertEquals("A", tmpParam.getDefaultValue());
         assertNotNull(tmpParam.getChoices());
         assertEquals(3, tmpParam.getChoices().length);
-        assertEquals("one", tmpParam.getChoices()[0]);
-        assertEquals("two", tmpParam.getChoices()[1]);
-        assertEquals("three", tmpParam.getChoices()[2]);
+        assertEquals("A", tmpParam.getChoices()[0]);
+        assertEquals("B", tmpParam.getChoices()[1]);
+        assertEquals("C", tmpParam.getChoices()[2]);
 
         tmpParam = pipeline.getParameters().get(4);
         assertEquals("ParamE", tmpParam.getName());
@@ -143,16 +142,16 @@ public class PlugInFreeStyleTest extends PlugInAbstractTest {
         assertNull(tmpParam.getChoices());
     }
 
-    //  Structure test: free-style, with params, with children
+    //  Structure test: multi-job, with params, with children
     //
     @Test
-    public void testStructureFreeStyleWithParamsWithChildren() throws IOException, SAXException {
+    public void testStructureMultiJobWithParamsWithChildren() throws IOException, SAXException {
         String projectName = "root-job-" + UUID.randomUUID().toString();
-        FreeStyleProject p = rule.createFreeStyleProject(projectName);
+        MultiJobProject p = rule.getInstance().createProject(MultiJobProject.class, projectName);
         FreeStyleProject p1 = rule.createFreeStyleProject("jobA");
         MatrixProject p2 = rule.createProject(MatrixProject.class, "jobB");
-        FreeStyleProject p3 = rule.createFreeStyleProject("jobC");
-        MavenModuleSet p4 = rule.createProject(MavenModuleSet.class, "jobD");
+        MultiJobProject p3 = rule.getInstance().createProject(MultiJobProject.class, "jobC");
+        MatrixProject p4 = rule.createProject(MatrixProject.class, "jobD");
         CustomProject p5 = rule.getInstance().createProject(CustomProject.class, "jobE");
         ParametersDefinitionProperty params = new ParametersDefinitionProperty(Arrays.asList(
                 (ParameterDefinition) new BooleanParameterDefinition("ParamA", true, "bool"),
@@ -167,15 +166,24 @@ public class PlugInFreeStyleTest extends PlugInAbstractTest {
                 ), Arrays.asList(new AbstractBuildParameters[0])),
                 new BlockableBuildTriggerConfig("jobC,jobD", null, Arrays.asList(new AbstractBuildParameters[0]))
         )));
+        p.getBuildersList().add(new MultiJobBuilder(
+                "Build",
+                Arrays.asList(
+                        new PhaseJobsConfig("jobA", "", false, null, PhaseJobsConfig.KillPhaseOnJobResultCondition.NEVER, false, false, "", 0, false, false, "", false),
+                        new PhaseJobsConfig("jobB", "", false, null, PhaseJobsConfig.KillPhaseOnJobResultCondition.NEVER, false, false, "", 0, false, false, "", false),
+                        new PhaseJobsConfig("jobE", "", false, null, PhaseJobsConfig.KillPhaseOnJobResultCondition.NEVER, false, false, "", 0, false, false, "", false)
+                ),
+                MultiJobBuilder.ContinuationCondition.SUCCESSFUL
+        ));
         p.getBuildersList().add(new Shell(""));
-        p.getBuildersList().add(new TriggerBuilder(Arrays.asList(
-                new BlockableBuildTriggerConfig("jobA, jobB, jobE", new BlockingBehaviour(
-                        Result.FAILURE,
-                        Result.UNSTABLE,
-                        Result.FAILURE
-                ), Arrays.asList(new AbstractBuildParameters[0])),
-                new BlockableBuildTriggerConfig("jobC,jobD", null, Arrays.asList(new AbstractBuildParameters[0]))
-        )));
+        p.getBuildersList().add(new MultiJobBuilder(
+                "Test",
+                Arrays.asList(
+                        new PhaseJobsConfig("jobC", "", false, null, PhaseJobsConfig.KillPhaseOnJobResultCondition.NEVER, false, false, "", 0, false, false, "", false),
+                        new PhaseJobsConfig("jobD", "", false, null, PhaseJobsConfig.KillPhaseOnJobResultCondition.NEVER, false, false, "", 0, false, false, "", false)
+                ),
+                MultiJobBuilder.ContinuationCondition.SUCCESSFUL
+        ));
         p.getPublishersList().add(new BuildTrigger("jobA, jobB", Result.SUCCESS));
         p.getPublishersList().add(new hudson.plugins.parameterizedtrigger.BuildTrigger(Collections.singletonList(
                 new BuildTriggerConfig("jobC,jobD", ResultCondition.ALWAYS, false, null)
@@ -184,9 +192,9 @@ public class PlugInFreeStyleTest extends PlugInAbstractTest {
 
         Page page;
         PipelineNode pipeline;
-        CIParameter tmpParam;
         List<PipelinePhase> tmpPhases;
         PipelineNode tmpNode;
+        CIParameter tmpParam;
 
         page = client.goTo("nga/api/v1/jobs/" + projectName, "application/json");
         pipeline = dtoFactory.dtoFromJson(page.getWebResponse().getContentAsString(), PipelineNode.class);
@@ -215,7 +223,7 @@ public class PlugInFreeStyleTest extends PlugInAbstractTest {
 
         //  Phase 0
         assertEquals("", tmpPhases.get(0).getName());
-        assertEquals(true, tmpPhases.get(0).isBlocking());
+        assertTrue(tmpPhases.get(0).isBlocking());
         assertEquals(2, tmpPhases.get(0).getJobs().size());
 
         tmpNode = tmpPhases.get(0).getJobs().get(0);
@@ -233,7 +241,7 @@ public class PlugInFreeStyleTest extends PlugInAbstractTest {
 
         //  Phase 1
         assertEquals("", tmpPhases.get(1).getName());
-        assertEquals(false, tmpPhases.get(1).isBlocking());
+        assertFalse(tmpPhases.get(1).isBlocking());
         assertEquals(2, tmpPhases.get(1).getJobs().size());
 
         tmpNode = tmpPhases.get(1).getJobs().get(0);
@@ -250,8 +258,8 @@ public class PlugInFreeStyleTest extends PlugInAbstractTest {
         assertEquals(0, tmpNode.getPhasesPostBuild().size());
 
         //  Phase 2
-        assertEquals("", tmpPhases.get(2).getName());
-        assertEquals(true, tmpPhases.get(2).isBlocking());
+        assertEquals("Build", tmpPhases.get(2).getName());
+        assertTrue(tmpPhases.get(2).isBlocking());
         assertEquals(3, tmpPhases.get(2).getJobs().size());
 
         tmpNode = tmpPhases.get(2).getJobs().get(0);
@@ -274,8 +282,8 @@ public class PlugInFreeStyleTest extends PlugInAbstractTest {
         assertEquals(0, tmpNode.getPhasesPostBuild().size());
 
         //  Phase 3
-        assertEquals("", tmpPhases.get(3).getName());
-        assertEquals(false, tmpPhases.get(3).isBlocking());
+        assertEquals("Test", tmpPhases.get(3).getName());
+        assertTrue(tmpPhases.get(3).isBlocking());
         assertEquals(2, tmpPhases.get(3).getJobs().size());
 
         tmpNode = tmpPhases.get(3).getJobs().get(0);
@@ -298,7 +306,7 @@ public class PlugInFreeStyleTest extends PlugInAbstractTest {
 
         //  Phase 0
         assertEquals("downstream", tmpPhases.get(0).getName());
-        assertEquals(false, tmpPhases.get(0).isBlocking());
+        assertFalse(tmpPhases.get(0).isBlocking());
         assertEquals(2, tmpPhases.get(0).getJobs().size());
 
         tmpNode = tmpPhases.get(0).getJobs().get(0);
@@ -316,7 +324,7 @@ public class PlugInFreeStyleTest extends PlugInAbstractTest {
 
         //  Phase 1
         assertEquals("", tmpPhases.get(1).getName());
-        assertEquals(false, tmpPhases.get(1).isBlocking());
+        assertFalse(tmpPhases.get(1).isBlocking());
         assertEquals(2, tmpPhases.get(1).getJobs().size());
 
         tmpNode = tmpPhases.get(1).getJobs().get(0);
