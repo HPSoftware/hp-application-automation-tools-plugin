@@ -20,9 +20,10 @@
 
 package com.microfocus.application.automation.tools.octane;
 
-import com.gargoylesoftware.htmlunit.html.HtmlForm;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.hp.octane.integrations.dto.DTOFactory;
+import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
+import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
+import hudson.util.Secret;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -31,20 +32,22 @@ import java.util.UUID;
 
 public abstract class OctanePluginTestBase {
 	protected static final DTOFactory dtoFactory = DTOFactory.getInstance();
-	protected static String ssp;
+	protected static String instanceId = UUID.randomUUID().toString();
+	protected static String ssp = UUID.randomUUID().toString();
 
 	@ClassRule
 	public static final JenkinsRule rule = new JenkinsRule();
 	public static final JenkinsRule.WebClient client = rule.createWebClient();
 
 	@BeforeClass
-	public static void init() throws Exception {
-		HtmlPage configPage = client.goTo("configure");
-		HtmlForm form = configPage.getFormByName("config");
-		ssp = UUID.randomUUID().toString();
-		form.getInputByName("_.uiLocation").setValueAttribute("http://localhost:8008/ui/?p=" + ssp + "/1002");
-		form.getInputByName("_.username").setValueAttribute("username");
-		form.getInputByName("_.password").setValueAttribute("password");
-		rule.submit(form);
+	public static void init() {
+
+		OctaneServerSettingsModel model = new OctaneServerSettingsModel(
+				"http://localhost:8008/ui/?p=" + ssp,
+				"username",
+				Secret.fromString("password"),
+				"");
+		model.setIdentity(instanceId);
+		ConfigurationService.configurePlugin(model);
 	}
 }

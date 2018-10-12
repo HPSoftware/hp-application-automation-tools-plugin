@@ -58,6 +58,7 @@ public class ConfigurationServiceTest extends OctanePluginTestBase {
 
 	@Test
 	public void testGetServerConfiguration() {
+		//  [YG] TODO the below line will bring nothing, obviously, should be fixed either by initial retrieving of (all?) instance IDs or just traversal on list
 		OctaneServerSettingsModel configuration = ConfigurationService.getSettings("nonsense");
 		assertEquals("http://localhost:8008", configuration.getLocation());
 		assertEquals(OctanePluginTestBase.ssp, configuration.getSharedSpace());

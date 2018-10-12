@@ -92,7 +92,7 @@ public class TestResultXmlWriter {
 
 			writer.writeStartElement("test_result");
 			writer.writeStartElement("build");
-			//writer.writeAttribute("server_id", ConfigurationService.getSettings().getIdentity());
+			writer.writeAttribute("server_id", "to-be-filled-in-SDK");
 			writer.writeAttribute("job_id", buildDescriptor.getJobId());
 			writer.writeAttribute("build_id", buildDescriptor.getBuildId());
 			if (!StringUtils.isEmpty(buildDescriptor.getSubType())) {

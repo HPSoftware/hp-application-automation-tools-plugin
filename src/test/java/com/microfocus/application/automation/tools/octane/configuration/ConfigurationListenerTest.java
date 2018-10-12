@@ -49,8 +49,8 @@ public class ConfigurationListenerTest extends OctanePluginTestBase {
 		Assert.assertEquals("Config size doesn't match 2", 2, confs.size());
 		Assert.assertEquals("location doesn't match localhost:8008", "http://localhost:8008", confs.get(0).getLocation());
 		Assert.assertEquals("username doesn't match username", "username", confs.get(0).getUsername());
-		Assert.assertNull(confs.get(1).getLocation());
-		Assert.assertNull(confs.get(1).getLocation());
+		Assert.assertNull(confs.get(1).getUsername());
+		Assert.assertNull(confs.get(1).getPassword());
 	}
 
 	@Test

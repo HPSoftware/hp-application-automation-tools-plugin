@@ -37,7 +37,6 @@ import org.junit.Test;
 
 import java.util.UUID;
 
-// import com.gargoylesoftware.htmlunit.WebRequestSettings;
 @SuppressWarnings({"squid:S2699", "squid:S3658", "squid:S2259", "squid:S1872", "squid:S2925", "squid:S109", "squid:S1607", "squid:S2701", "squid:S2698"})
 @NotThreadSafe
 public class ConfigApiTest extends OctanePluginTestBase {
@@ -52,7 +51,8 @@ public class ConfigApiTest extends OctanePluginTestBase {
 			Assert.assertEquals("http://localhost:8008", config.getString("location"));
 			Assert.assertEquals(ssp, config.getString("sharedSpace"));
 			Assert.assertEquals("username", config.getString("username"));
-			Assert.assertEquals("nonsense", config.getString("serverIdentity"));
+			String instanceId = config.getString("serverIdentity");
+			Assert.assertTrue(instanceId != null && !instanceId.isEmpty());
 		}
 	}
 
