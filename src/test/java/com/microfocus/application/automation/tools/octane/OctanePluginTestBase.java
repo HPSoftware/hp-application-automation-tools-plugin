@@ -37,7 +37,6 @@ public abstract class OctanePluginTestBase {
 	public static final JenkinsRule rule = new JenkinsRule();
 	public static final JenkinsRule.WebClient client = rule.createWebClient();
 
-
 	@BeforeClass
 	public static void init() throws Exception {
 		HtmlPage configPage = client.goTo("configure");

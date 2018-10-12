@@ -40,9 +40,14 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
  */
 
 @Extension
-public class ItemListenerOctaneImpl extends ItemListener {
-	private static final Logger logger = LogManager.getLogger(ItemListenerOctaneImpl.class);
+public class GlobalEventsListenerOctaneImpl extends ItemListener {
+	private static final Logger logger = LogManager.getLogger(GlobalEventsListenerOctaneImpl.class);
 	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
+
+	@Override
+	public void onLoaded() {
+		//  [YG] TODO: move here all of the initialization logic related to Octane
+	}
 
 	@Override
 	public void onDeleted(Item item) {
@@ -53,10 +58,15 @@ public class ItemListenerOctaneImpl extends ItemListener {
 						.setEventType(CIEventType.DELETED)
 						.setProject(JobProcessorFactory.getFlowProcessor((WorkflowJob) item).getTranslateJobName());
 
-				OctaneSDK.getClients().forEach(client ->client.getEventsService().publishEvent(event));
+				OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(event));
 			}
 		} catch (Throwable throwable) {
 			logger.error("failed to build and/or dispatch DELETED event for " + item, throwable);
 		}
+	}
+
+	@Override
+	public void onBeforeShutdown() {
+		OctaneSDK.getClients().forEach(OctaneSDK::removeClient);
 	}
 }

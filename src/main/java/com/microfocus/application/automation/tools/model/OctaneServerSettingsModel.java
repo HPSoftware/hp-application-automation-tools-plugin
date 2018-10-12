@@ -143,6 +143,12 @@ public class OctaneServerSettingsModel {
 		maxTimeoutHours = timeoutHours;
 	}
 
+	public boolean isValid() {
+		return identity != null && !identity.isEmpty() &&
+				location != null && !location.isEmpty() &&
+				sharedSpace != null && !sharedSpace.isEmpty();
+	}
+
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;

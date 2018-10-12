@@ -107,14 +107,16 @@ public class ConfigApi {
 
 	private List<Configuration> getConfigurations() {
 		List<Configuration> result = new LinkedList<>();
-		ConfigurationService.getAllSettings().forEach(one ->
+		ConfigurationService.getAllSettings().forEach(one -> {
+			if (one.isValid()) {
 				result.add(new Configuration(
 						one.getLocation(),
 						one.getSharedSpace(),
 						one.getUsername(),
 						one.getImpersonatedUser(),
-						one.getIdentity()
-				)));
+						one.getIdentity()));
+			}
+		});
 		return result;
 	}
 
