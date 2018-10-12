@@ -222,7 +222,7 @@ public class OctaneServerSettingsBuilder extends Builder {
 
 			//  set identity in new model
 			if (oldModel == null) {
-				System.out.println("keeping the new identity from UI: " + newModel.getIdentity());
+				logger.info("keeping the new identity from UI: " + newModel.getIdentity());
 			} else if (oldModel.getIdentity() != null && !oldModel.getIdentity().isEmpty()) {
 				newModel.setIdentity(oldModel.getIdentity());
 				newModel.setIdentityFrom(oldModel.getIdentityFrom());
