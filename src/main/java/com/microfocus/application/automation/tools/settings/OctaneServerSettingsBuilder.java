@@ -314,10 +314,12 @@ public class OctaneServerSettingsBuilder extends Builder {
 			}
 
 			OctaneServerSettingsModel result = null;
-			for (OctaneServerSettingsModel setting : servers) {
-				if (instanceId.equals(setting.getIdentity())) {
-					result = setting;
-					break;
+			if (servers != null) {
+				for (OctaneServerSettingsModel setting : servers) {
+					if (instanceId.equals(setting.getIdentity())) {
+						result = setting;
+						break;
+					}
 				}
 			}
 			return result;

@@ -58,9 +58,6 @@ public class ConfigApiTest extends OctanePluginTestBase {
 
 	@Test
 	public void testSave() throws Exception {
-		//URL url = client.createCrumbedUrl("nga/configuration/save");
-		//WebRequest request = new WebRequest(url,HttpMethod.POST);
-
 		// basic scenario: location, shared space and credentials
 		JSONObject config = new JSONObject();
 		config.put("location", "http://localhost:8088");
@@ -74,8 +71,9 @@ public class ConfigApiTest extends OctanePluginTestBase {
 		Page page = client.getPage(req);
 		config = JSONObject.fromObject(page.getWebResponse().getContentAsString());
 		checkConfig(config, "http://localhost:8088", sharedSP, "username1", Secret.fromString("password1"));
-		Assert.assertEquals("nonsense", config.getString("serverIdentity"));
 
+		String instanceId = config.getString("serverIdentity");
+		Assert.assertTrue(instanceId != null && !instanceId.isEmpty());
 
 		// location, shared space, no credentials
 		config = new JSONObject();
@@ -86,7 +84,7 @@ public class ConfigApiTest extends OctanePluginTestBase {
 		page = client.getPage(req);
 		config = JSONObject.fromObject(page.getWebResponse().getContentAsString());
 		checkConfig(config, "http://localhost:8888", sharedSP1, "username1", Secret.fromString("password1"));
-		Assert.assertEquals("nonsense", config.getString("serverIdentity"));
+		Assert.assertEquals(instanceId, config.getString("serverIdentity"));
 
 		// location, shared space and username without password
 		config = new JSONObject();
@@ -98,7 +96,7 @@ public class ConfigApiTest extends OctanePluginTestBase {
 		page = client.getPage(req);
 		config = JSONObject.fromObject(page.getWebResponse().getContentAsString());
 		checkConfig(config, "http://localhost:8882", sharedSP2, "username3", Secret.fromString(""));
-		Assert.assertEquals("nonsense", config.getString("serverIdentity"));
+		Assert.assertEquals(instanceId, config.getString("serverIdentity"));
 
 		// uiLocation and identity
 		config = new JSONObject();

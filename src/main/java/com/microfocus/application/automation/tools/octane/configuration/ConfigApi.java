@@ -105,7 +105,7 @@ public class ConfigApi {
 				settings.getIdentity());
 	}
 
-	private List<Configuration> getConfigurations() {
+	private Configurations getConfigurations() {
 		List<Configuration> result = new LinkedList<>();
 		ConfigurationService.getAllSettings().forEach(one -> {
 			if (one.isValid()) {
@@ -117,7 +117,7 @@ public class ConfigApi {
 						one.getIdentity()));
 			}
 		});
-		return result;
+		return new Configurations(result);
 	}
 
 	@ExportedBean
@@ -159,6 +159,20 @@ public class ConfigApi {
 		@Exported(inline = true)
 		public String getServerIdentity() {
 			return serverIdentity;
+		}
+	}
+
+	@ExportedBean
+	public static final class Configurations {
+		private final List<Configuration> configurations;
+
+		public Configurations(List<Configuration> configurations) {
+			this.configurations = new LinkedList<>(configurations);
+		}
+
+		@Exported(inline = true)
+		public Configuration[] getConfigurations() {
+			return configurations.toArray(new Configuration[0]);
 		}
 	}
 }

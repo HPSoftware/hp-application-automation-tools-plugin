@@ -120,7 +120,7 @@ public class JUnitResultsTest extends OctanePluginTestBase {
 		project.runHeadless();
 
 		project.setMaven(mavenName);
-		project.setGoals(String.format("clean test --settings %s\\conf\\settings.xml -Dmaven.repo.local=%s\\m2-temp -Dmaven.test.failure.ignore=true",
+		project.setGoals(String.format("clean test --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=%s\\m2-temp -Dmaven.test.failure.ignore=true",
 				TestUtils.getMavenHome(), System.getenv("TEMP")));
 		project.getPublishersList().add(new JUnitResultArchiver("**/target/surefire-reports/*.xml"));
 		project.setScm(new CopyResourceSCM("/helloWorldRoot"));
@@ -137,7 +137,7 @@ public class JUnitResultsTest extends OctanePluginTestBase {
 		project.runHeadless();
 
 		project.setMaven(mavenName);
-		project.setGoals(String.format("clean test --settings %s\\conf\\settings.xml -Dmaven.repo.local=%s\\m2-temp -Dmaven.test.failure.ignore=true",
+		project.setGoals(String.format("clean test --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=%s\\m2-temp -Dmaven.test.failure.ignore=true",
 				TestUtils.getMavenHome(), System.getenv("TEMP")));
 		project.setScm(new CopyResourceSCM("/helloWorldRoot"));
 		AbstractBuild build = TestUtils.runAndCheckBuild(project);
@@ -154,7 +154,7 @@ public class JUnitResultsTest extends OctanePluginTestBase {
 
 		project.setMaven(mavenName);
 		project.setRootPOM("subFolder/helloWorld/pom.xml");
-		project.setGoals(String.format("clean test --settings %s\\conf\\settings.xml -Dmaven.repo.local=%s\\m2-temp -Dmaven.test.failure.ignore=true",
+		project.setGoals(String.format("clean test --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=%s\\m2-temp -Dmaven.test.failure.ignore=true",
 				TestUtils.getMavenHome(), System.getenv("TEMP")));
 		project.getPublishersList().add(new JUnitResultArchiver("**/target/surefire-reports/*.xml"));
 		project.setScm(new CopyResourceSCM("/helloWorldRoot", "subFolder"));
