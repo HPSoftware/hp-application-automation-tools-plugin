@@ -71,15 +71,22 @@ public class OctaneServerSettingsBuilder extends Builder {
 		return (OctaneDescriptorImpl) super.getDescriptor();
 	}
 
+	public static OctaneDescriptorImpl getOctaneSettingsManager() {
+		OctaneDescriptorImpl octaneDescriptor = Jenkins.getInstance().getDescriptorByType(OctaneDescriptorImpl.class);
+		if (octaneDescriptor == null) {
+			throw new IllegalStateException("failed to obtain Octane plugin descriptor");
+		}
+
+		return octaneDescriptor;
+	}
+
 	/**
 	 * Descriptor for {@link OctaneServerSettingsBuilder}. Used as a singleton. The class is marked as
 	 * public so that it can be accessed from views.
 	 * <p>
-	 * <p>
 	 * See <tt>src/main/resources/hudson/plugins/hello_world/HelloWorldBuilder/*.jelly</tt> for the
 	 * actual HTML fragment for the configuration screen.
 	 */
-
 	@Extension
 	public static final class OctaneDescriptorImpl extends BuildStepDescriptor<Builder> {
 
@@ -120,8 +127,7 @@ public class OctaneServerSettingsBuilder extends Builder {
 			// todo: validate & clean || migrate old config and save
 		}
 
-		@Inject
-		public void postInitialize() {
+		public void initOctaneClients() {
 			if (!isInitialConfigValid(servers)) {
 				return;
 			}

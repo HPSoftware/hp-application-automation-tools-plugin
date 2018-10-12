@@ -41,7 +41,7 @@ public class ConfigurationService {
 	 * @return list of all available configurations
 	 */
 	public static List<OctaneServerSettingsModel> getAllSettings() {
-		return Arrays.asList(getOctaneDescriptor().getServers());
+		return Arrays.asList(OctaneServerSettingsBuilder.getOctaneSettingsManager().getServers());
 	}
 
 	/**
@@ -50,7 +50,7 @@ public class ConfigurationService {
 	 * @return current configuration
 	 */
 	public static OctaneServerSettingsModel getSettings(String instanceId) {
-		return getOctaneDescriptor().getSettings(instanceId);
+		return OctaneServerSettingsBuilder.getOctaneSettingsManager().getSettings(instanceId);
 	}
 
 	/**
@@ -59,18 +59,7 @@ public class ConfigurationService {
 	 * @param newModel new configuration
 	 */
 	public static void configurePlugin(OctaneServerSettingsModel newModel) {
-		if (getOctaneDescriptor() != null) {
-			getOctaneDescriptor().setModel(newModel);
-		}
-	}
-
-	private static OctaneServerSettingsBuilder.OctaneDescriptorImpl getOctaneDescriptor() {
-		OctaneServerSettingsBuilder.OctaneDescriptorImpl octaneDescriptor = Jenkins.getInstance().getDescriptorByType(OctaneServerSettingsBuilder.OctaneDescriptorImpl.class);
-		if (octaneDescriptor == null) {
-			throw new IllegalArgumentException("failed to obtain Octane plugin descriptor");
-		}
-
-		return octaneDescriptor;
+		OctaneServerSettingsBuilder.getOctaneSettingsManager().setModel(newModel);
 	}
 
 	/**

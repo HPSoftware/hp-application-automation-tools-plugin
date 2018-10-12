@@ -25,6 +25,7 @@ import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.microfocus.application.automation.tools.octane.model.processors.projects.JobProcessorFactory;
+import com.microfocus.application.automation.tools.settings.OctaneServerSettingsBuilder;
 import hudson.Extension;
 import hudson.model.Item;
 import hudson.model.listeners.ItemListener;
@@ -46,7 +47,7 @@ public class GlobalEventsListenerOctaneImpl extends ItemListener {
 
 	@Override
 	public void onLoaded() {
-		//  [YG] TODO: move here all of the initialization logic related to Octane
+		OctaneServerSettingsBuilder.getOctaneSettingsManager().initOctaneClients();
 	}
 
 	@Override

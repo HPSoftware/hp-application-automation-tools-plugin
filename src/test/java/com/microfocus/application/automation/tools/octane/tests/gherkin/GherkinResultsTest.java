@@ -204,7 +204,7 @@ public class GherkinResultsTest extends OctanePluginTestBase {
         project.runHeadless();
 
         project.setMaven(mavenName);
-        project.setGoals(String.format("clean test --settings %s\\conf\\settings.xml -Dmaven.repo.local=%s\\m2-temp -Dmaven.test.failure.ignore=true",
+        project.setGoals(String.format("clean test --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=%s\\m2-temp -Dmaven.test.failure.ignore=true",
                 TestUtils.getMavenHome(),System.getenv("TEMP")));
         if(subfolder) {
             project.setRootPOM("subFolder/pom.xml");
