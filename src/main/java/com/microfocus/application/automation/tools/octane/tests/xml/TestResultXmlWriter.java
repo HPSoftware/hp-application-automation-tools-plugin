@@ -93,13 +93,11 @@ public class TestResultXmlWriter {
 			writer.writeStartElement("test_result");
 			writer.writeStartElement("build");
 			//writer.writeAttribute("server_id", ConfigurationService.getSettings().getIdentity());
-			//writer.writeAttribute("job_id", buildDescriptor.getJobId());
-			//writer.writeAttribute("job_name", buildDescriptor.getJobName());
-			//writer.writeAttribute("build_id", buildDescriptor.getBuildId());
-			//writer.writeAttribute("build_name", buildDescriptor.getBuildName());
-			//if (!StringUtils.isEmpty(buildDescriptor.getSubType())) {
-			//	writer.writeAttribute("sub_type", buildDescriptor.getSubType());
-			//}
+			writer.writeAttribute("job_id", buildDescriptor.getJobId());
+			writer.writeAttribute("build_id", buildDescriptor.getBuildId());
+			if (!StringUtils.isEmpty(buildDescriptor.getSubType())) {
+				writer.writeAttribute("sub_type", buildDescriptor.getSubType());
+			}
 			writer.writeEndElement(); // build
 			writeFields(resultFields);
 			writer.writeStartElement("test_runs");

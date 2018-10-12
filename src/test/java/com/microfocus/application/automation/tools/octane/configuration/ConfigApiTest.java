@@ -46,7 +46,7 @@ public class ConfigApiTest extends OctanePluginTestBase {
 	public void testRead() throws Exception {
 		Page page = client.goTo("nga/configuration/read", "application/json");
 		String configsAsString = page.getWebResponse().getContentAsString();
-		JSONArray configs = JSONArray.fromObject(configsAsString);
+		JSONArray configs = JSONObject.fromObject(configsAsString).getJSONArray("configurations");
 		for (int i = 0; i < configs.size(); i++) {
 			JSONObject config = configs.getJSONObject(i);
 			Assert.assertEquals("http://localhost:8008", config.getString("location"));
@@ -83,7 +83,7 @@ public class ConfigApiTest extends OctanePluginTestBase {
 		req.setRequestBody(config.toString());
 		page = client.getPage(req);
 		config = JSONObject.fromObject(page.getWebResponse().getContentAsString());
-		checkConfig(config, "http://localhost:8888", sharedSP1, "username1", Secret.fromString("password1"));
+		checkConfig(config, "http://localhost:8888", sharedSP1, "", Secret.fromString(""));
 		Assert.assertEquals(instanceId, config.getString("serverIdentity"));
 
 		// location, shared space and username without password
@@ -92,10 +92,11 @@ public class ConfigApiTest extends OctanePluginTestBase {
 		String sharedSP2 = UUID.randomUUID().toString();
 		config.put("sharedSpace", sharedSP2);
 		config.put("username", "username3");
+		config.put("password", "password3");
 		req.setRequestBody(config.toString());
 		page = client.getPage(req);
 		config = JSONObject.fromObject(page.getWebResponse().getContentAsString());
-		checkConfig(config, "http://localhost:8882", sharedSP2, "username3", Secret.fromString(""));
+		checkConfig(config, "http://localhost:8882", sharedSP2, "username3", Secret.fromString("password3"));
 		Assert.assertEquals(instanceId, config.getString("serverIdentity"));
 
 		// uiLocation and identity
@@ -106,7 +107,7 @@ public class ConfigApiTest extends OctanePluginTestBase {
 		req.setRequestBody(config.toString());
 		page = client.getPage(req);
 		config = JSONObject.fromObject(page.getWebResponse().getContentAsString());
-		checkConfig(config, "http://localhost:8881", sharedSP3, "username3", Secret.fromString(""));
+		checkConfig(config, "http://localhost:8881", sharedSP3, "", Secret.fromString(""));
 		Assert.assertEquals("2d2fa955-1d13-4d8c-947f-ab11c72bf850", config.getString("serverIdentity"));
 
 		// requires POST

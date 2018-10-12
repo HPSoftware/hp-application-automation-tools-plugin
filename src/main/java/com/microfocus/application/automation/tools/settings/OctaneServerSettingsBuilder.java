@@ -229,15 +229,19 @@ public class OctaneServerSettingsBuilder extends Builder {
 			}
 
 			if (oldModel == null) {
-				if (servers.length == 1 && !servers[0].isValid()) {
-					//  replacing the first dummy one
-					servers[0] = newModel;
+				if (servers == null) {
+					servers = new OctaneServerSettingsModel[]{newModel};
 				} else {
-					//  adding new one
-					OctaneServerSettingsModel[] newServers = new OctaneServerSettingsModel[servers.length + 1];
-					System.arraycopy(servers, 0, newServers, 0, servers.length);
-					newServers[servers.length] = newModel;
-					servers = newServers;
+					if (servers.length == 1 && !servers[0].isValid()) {
+						//  replacing the first dummy one
+						servers[0] = newModel;
+					} else {
+						//  adding new one
+						OctaneServerSettingsModel[] newServers = new OctaneServerSettingsModel[servers.length + 1];
+						System.arraycopy(servers, 0, newServers, 0, servers.length);
+						newServers[servers.length] = newModel;
+						servers = newServers;
+					}
 				}
 			}
 			OctaneConfiguration octaneConfiguration = octaneConfigurations.stream()
