@@ -362,22 +362,30 @@ public class CIJenkinsServicesImpl extends CIPluginServices {
 
 	@Override
 	public InputStream getBuildLog(String jobCiId, String buildCiId) {
-		Run build = getBuildFromQueueItem(jobCiId, buildCiId);
-		if (build != null) {
-			return getOctaneLogFile(build);
+		Run run = getRunFromQueueItem(jobCiId, buildCiId);
+		if (run != null) {
+			return getOctaneLogFile(run);
 		} else {
 			return null;
 		}
 	}
 
-//	@Override
-//	public SSCServerInfo getSSCServerInfo() {
-//		OctaneServerSettingsModel model = ConfigurationService.getSettings();
-//		return dtoFactory.newDTO(SSCServerInfo.class)
-//				.setSSCBaseAuthToken(model.getSscBaseToken())
-//				.setMaxPollingTimeoutHours(model.getPollingTimeoutHours())
-//				.setSSCURL(SSCServerConfigUtil.getSSCServer());
-//	}
+	@Override
+	public InputStream getCoverageReport(String jobId, String buildId, String reportFileName) {
+		InputStream result = null;
+		Run run = getRunFromQueueItem(jobId, buildId);
+		if (run != null) {
+			File coverageReport = new File(run.getRootDir(), reportFileName);
+			if (coverageReport.exists()) {
+				try {
+					result = new FileInputStream(coverageReport);
+				} catch (FileNotFoundException fnfe) {
+					logger.warn("file not found for '" + reportFileName + "' although just verified its existence, concurrency?");
+				}
+			}
+		}
+		return result;
+	}
 
 	@Override
 	public void runTestDiscovery(DiscoveryInfo discoveryInfo) {
@@ -452,7 +460,7 @@ public class CIJenkinsServicesImpl extends CIPluginServices {
 		return result;
 	}
 
-	private Run getBuildFromQueueItem(String jobId, String buildId) {
+	private Run getRunFromQueueItem(String jobId, String buildId) {
 		Run result = null;
 		Job project = getJobByRefId(jobId);
 		if (project != null) {

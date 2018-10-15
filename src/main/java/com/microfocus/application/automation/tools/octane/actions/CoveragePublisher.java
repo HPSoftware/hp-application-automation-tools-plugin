@@ -20,13 +20,14 @@
 
 package com.microfocus.application.automation.tools.octane.actions;
 
+import com.hp.octane.integrations.OctaneClient;
 import com.hp.octane.integrations.OctaneSDK;
+import com.hp.octane.integrations.dto.coverage.CoverageReportType;
 import com.microfocus.application.automation.tools.octane.Messages;
 import com.microfocus.application.automation.tools.octane.actions.coverage.CoveragePublisherAction;
 import com.microfocus.application.automation.tools.octane.actions.coverage.CoverageService;
-import com.microfocus.application.automation.tools.octane.tests.CoverageReportsDispatcher;
+import com.microfocus.application.automation.tools.octane.tests.build.BuildHandlerUtils;
 import hudson.Extension;
-import hudson.ExtensionList;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
@@ -37,13 +38,13 @@ import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
 import hudson.util.FormValidation;
-import jenkins.model.Jenkins;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Post-build action that collects the coverage reports from workspace
@@ -96,23 +97,30 @@ public class CoveragePublisher extends Recorder {
 	@Override
 	public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
 		boolean copyReportsToBuildFolderStatus = false;
-		ExtensionList<CoverageReportsDispatcher> extensionList = Jenkins.getInstance().getExtensionList(CoverageReportsDispatcher.class);
-		if (extensionList == null || extensionList.size() == 0) {
-			return false;
-		}
+
 		// copy coverage reports
 		CoveragePublisherAction action = new CoveragePublisherAction(build, listener);
 		build.addAction(action);
-		if (action.copyCoverageReportsToBuildFolder(jacocoPathPattern, CoverageService.Jacoco.JACOCO_DEFAULT_FILE_NAME)) {
-			OctaneSDK.getClients().forEach(octaneClient ->
-					extensionList.get(0).enqueueTask(octaneClient.getInstanceId(), build.getProject().getFullName(), build.getNumber(), CoverageService.Jacoco.JACOCO_TYPE));
+		List<String> reportFileNames;
+		if (!(reportFileNames = action.copyCoverageReportsToBuildFolder(jacocoPathPattern, CoverageService.Jacoco.JACOCO_DEFAULT_FILE_NAME)).isEmpty()) {
+			for (OctaneClient octaneClient : OctaneSDK.getClients()) {
+				for (String reportFileName : reportFileNames) {
+					octaneClient.getCoverageService()
+							.enqueuePushCoverage(BuildHandlerUtils.getJobCiId(build), String.valueOf(build.getNumber()), CoverageReportType.JACOCOXML, reportFileName);
+				}
+			}
 			copyReportsToBuildFolderStatus = true;
 		}
-		if (action.copyCoverageReportsToBuildFolder(lcovPathPattern, CoverageService.Lcov.LCOV_DEFAULT_FILE_NAME)) {
-			OctaneSDK.getClients().forEach(octaneClient ->
-					extensionList.get(0).enqueueTask(octaneClient.getInstanceId(), build.getProject().getFullName(), build.getNumber(), CoverageService.Lcov.LCOV_TYPE));
+		if (!(reportFileNames = action.copyCoverageReportsToBuildFolder(lcovPathPattern, CoverageService.Lcov.LCOV_DEFAULT_FILE_NAME)).isEmpty()) {
+			for (OctaneClient octaneClient : OctaneSDK.getClients()) {
+				for (String reportFileName : reportFileNames) {
+					octaneClient.getCoverageService()
+							.enqueuePushCoverage(BuildHandlerUtils.getJobCiId(build), String.valueOf(build.getNumber()), CoverageReportType.LCOV, reportFileName);
+				}
+			}
 			copyReportsToBuildFolderStatus = true;
 		}
+
 		// add upload task to queue
 		return copyReportsToBuildFolderStatus;
 	}
