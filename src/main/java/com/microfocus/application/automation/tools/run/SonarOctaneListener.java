@@ -144,12 +144,15 @@ public class SonarOctaneListener extends Builder implements SimpleBuildStep {
 		if (run instanceof AbstractBuild) {
 			logger.println("callback URL for jenkins resource will be set to: " + callbackWebHooksURL);
 			String[] serverDetails = getSonarDetails(run, allConfigurations, listener);
-			try {
-				OctaneSDK.getClients().get(0).getSonarService().ensureSonarWebhookExist(callbackWebHooksURL, serverDetails[0], serverDetails[1]);
-				run.addAction(new WebhookExpectationAction(true, serverDetails[0]));
-			} catch (SonarIntegrationException e) {
-				logger.println("Web-hook registration in sonarQube for build " + getBuildNumber(run) + " failed: " + e.getMessage());
-			}
+			OctaneSDK.getClients().forEach(octaneClient -> {
+				try {
+					octaneClient.getSonarService().ensureSonarWebhookExist(callbackWebHooksURL, serverDetails[0], serverDetails[1]);
+				} catch (SonarIntegrationException e) {
+					logger.println("Web-hook registration in sonarQube for build " + getBuildNumber(run) + " failed: " + e.getMessage());
+				}
+			});
+			run.addAction(new WebhookExpectationAction(true, serverDetails[0]));
+
 		}
 	}
 
@@ -181,6 +184,9 @@ public class SonarOctaneListener extends Builder implements SimpleBuildStep {
 		 */
 		public FormValidation doTestConnection(@QueryParameter("sonarServerUrl") final String url, @QueryParameter("sonarToken") final String token,
 		                                       @QueryParameter("sonarProjectKey") final String projectKey) {
+			if(OctaneSDK.getClients().isEmpty()){
+				return FormValidation.warning(Messages.missingOctaneConfiguration());
+			}
 			if (url.isEmpty()) {
 				return FormValidation.warning(Messages.missingSonarServerUrl());
 			} else {

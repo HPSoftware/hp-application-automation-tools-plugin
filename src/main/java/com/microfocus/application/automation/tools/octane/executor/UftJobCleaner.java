@@ -31,7 +31,6 @@ import com.microfocus.application.automation.tools.octane.tests.AbstractSafeLogg
 import hudson.Extension;
 import hudson.model.*;
 import jenkins.model.Jenkins;
-import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -123,7 +122,7 @@ public class UftJobCleaner extends AbstractSafeLoggingAsyncPeriodWork {
                 Long workspaceId = getOctaneWorkspaceId(job);
                 if (executorLogicalName != null && workspaceId != null) {
                     if (!workspace2executorLogical2DiscoveryJobMap.containsKey(workspaceId)) {
-                        workspace2executorLogical2DiscoveryJobMap.put(workspaceId, new HashedMap());
+                        workspace2executorLogical2DiscoveryJobMap.put(workspaceId, new HashMap<>());
                     }
                     workspace2executorLogical2DiscoveryJobMap.get(workspaceId).put(executorLogicalName, job);
                 }
@@ -190,7 +189,7 @@ public class UftJobCleaner extends AbstractSafeLoggingAsyncPeriodWork {
 
     private Long getOctaneWorkspaceId(FreeStyleProject job) {
 
-        UFTTestDetectionPublisher uftTestDetectionPublisher = null;
+        UFTTestDetectionPublisher uftTestDetectionPublisher;
         List publishers = job.getPublishersList();
         for (Object publisher : publishers) {
             if (publisher instanceof UFTTestDetectionPublisher) {

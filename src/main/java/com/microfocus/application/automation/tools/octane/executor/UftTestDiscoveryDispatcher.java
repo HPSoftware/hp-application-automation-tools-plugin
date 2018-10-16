@@ -23,6 +23,7 @@
 package com.microfocus.application.automation.tools.octane.executor;
 
 import com.google.inject.Inject;
+import com.hp.octane.integrations.OctaneClient;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.entities.Entity;
 import com.hp.octane.integrations.exceptions.OctaneRestException;
@@ -83,12 +84,11 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
 
 		logger.warn("Queue size  " + queue.size());
 
-		if (!OctaneSDK.getClients().get(0).getConfigurationService().isConfigurationValid()) {
-			logger.warn("There are pending discovered UFT tests, but MQM server configuration is not valid, results can't be submitted");
+		if (OctaneSDK.getClients().isEmpty()) {
+			logger.warn("There are pending discovered UFT tests, but no Octane configuration is found, results can't be submitted");
 			return;
 		}
 
-		EntitiesService entitiesService = OctaneSDK.getClients().get(0).getEntitiesService();
 		ResultQueue.QueueItem item = null;
 		try {
 			while ((item = queue.peekFirst()) != null) {
@@ -115,7 +115,9 @@ public class UftTestDiscoveryDispatcher extends AbstractSafeLoggingAsyncPeriodWo
 				}
 
 				logger.warn("Persistence [" + item.getProjectName() + "#" + item.getBuildNumber() + "]");
-				dispatchDetectionResults(item, entitiesService, result);
+				for (OctaneClient client : OctaneSDK.getClients()) {
+					dispatchDetectionResults(item, client.getEntitiesService(), result);
+				}
 				queue.remove();
 			}
 		} catch (OctaneRestException e) {
