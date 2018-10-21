@@ -58,8 +58,7 @@ public class ConfigurationServiceTest extends OctanePluginTestBase {
 
 	@Test
 	public void testGetServerConfiguration() {
-		//  [YG] TODO the below line will bring nothing, obviously, should be fixed either by initial retrieving of (all?) instance IDs or just traversal on list
-		OctaneServerSettingsModel configuration = ConfigurationService.getSettings("nonsense");
+		OctaneServerSettingsModel configuration = ConfigurationService.getSettings(instanceId);
 		assertEquals("http://localhost:8008", configuration.getLocation());
 		assertEquals(OctanePluginTestBase.ssp, configuration.getSharedSpace());
 		assertEquals("username", configuration.getUsername());
@@ -69,7 +68,6 @@ public class ConfigurationServiceTest extends OctanePluginTestBase {
 	@Test
 	public void testConfigurationRoundTrip() throws Exception {
 		HtmlForm formIn = client.goTo("configure").getFormByName("config");
-//		rule.submit(formIn);
 		HtmlForm formOut = client.goTo("configure").getFormByName("config");
 		assertEquals(formIn.getInputByName("_.uiLocation").getValueAttribute(), formOut.getInputByName("_.uiLocation").getValueAttribute());
 		assertEquals(formIn.getInputByName("_.username").getValueAttribute(), formOut.getInputByName("_.username").getValueAttribute());

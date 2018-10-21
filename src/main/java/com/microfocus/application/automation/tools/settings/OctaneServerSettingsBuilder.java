@@ -41,10 +41,12 @@ import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.acegisecurity.context.SecurityContext;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.kohsuke.stapler.QueryParameter;
@@ -53,8 +55,8 @@ import org.kohsuke.stapler.StaplerRequest;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -91,7 +93,7 @@ public class OctaneServerSettingsBuilder extends Builder {
 		@CopyOnWrite
 		private OctaneServerSettingsModel[] servers;
 
-		private transient List<OctaneConfiguration> octaneConfigurations = new LinkedList<>();
+		private transient Map<String, OctaneConfiguration> octaneConfigurations = new HashMap<>();
 
 		@Override
 		protected XmlFile getConfigFile() {
@@ -134,7 +136,7 @@ public class OctaneServerSettingsBuilder extends Builder {
 						innerServerConfiguration.getSharedSpace());
 				octaneConfiguration.setClient(innerServerConfiguration.getUsername());
 				octaneConfiguration.setSecret(innerServerConfiguration.getPassword().getPlainText());
-				octaneConfigurations.add(octaneConfiguration);
+				octaneConfigurations.put(innerServerConfiguration.getInternalId(), octaneConfiguration);
 				OctaneSDK.addClient(octaneConfiguration, CIJenkinsServicesImpl.class);
 			}
 		}
@@ -167,38 +169,90 @@ public class OctaneServerSettingsBuilder extends Builder {
 
 		@Override
 		public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-			JSONObject jsonObject = (JSONObject) formData.get("mqm");
-			List<OctaneServerSettingsModel> list = req.bindJSONToList(OctaneServerSettingsModel.class, jsonObject);
+			Object data = formData.get("mqm");
+			JSONArray jsonArray = new JSONArray();
+			if (data instanceof JSONObject) {
+				jsonArray.add(data);
+			} else if (data instanceof JSONArray) {
+				jsonArray.addAll((JSONArray) data);
+			}
+
 			//	todo: list above contains full list of all configurations
 			//	todo: traverse the list and
 			//		1) apply changes on known instance ID configurations
 			//		2) remove missing configurations
 			//		3) add new configurations
-			OctaneServerSettingsModel newModel = list.get(0);
-
-			if (jsonObject.containsKey("showIdentity")) {
-				JSONObject showIdentityJo = (JSONObject) jsonObject.get("showIdentity");
-				String identity = showIdentityJo.getString("identity");
-				validateConfiguration(doCheckInstanceId(identity), "Plugin instance id");
-
-				OctaneServerSettingsModel oldModel = getSettings(identity);
-				if (!oldModel.getIdentity().equals(identity)) {
-					newModel.setIdentity(identity);
+			handleDeletedConfigurations(jsonArray);
+			for (Object jsonObject : jsonArray) {
+				JSONObject json = (JSONObject) jsonObject;
+				OctaneServerSettingsModel newModel = req.bindJSON(OctaneServerSettingsModel.class, json);
+				String identity = "";
+				OctaneServerSettingsModel oldModel;
+				if (json.containsKey("showIdentity")) {
+					JSONObject showIdentity = (JSONObject) json.get("showIdentity");
+					identity = showIdentity.getString("identity");
+					validateConfiguration(doCheckInstanceId(identity), "Plugin instance id");
 				}
+
+				String internalId = json.getString("internalId");
+				oldModel = getSettingsByInternalId(internalId);
+				if (oldModel != null) {
+					newModel.setIdentity(identity.isEmpty() ? oldModel.getIdentity() : identity);
+					newModel.setInternalId(oldModel.getInternalId());
+				}
+
+
+				if (json.containsKey("maxTimeoutHours")) {
+					String sscPollingTimeoutString = json.getString("maxTimeoutHours");
+					if (sscPollingTimeoutString != null && !sscPollingTimeoutString.isEmpty()) {
+						try {
+							long sscPollingTimeout = Long.valueOf(sscPollingTimeoutString);
+							newModel.setMaxTimeoutHours(sscPollingTimeout);
+						} catch (NumberFormatException e) {
+							newModel.setMaxTimeoutHours(0);
+						}
+					}
+				}
+				setModel(newModel);
 			}
-			if (jsonObject.containsKey("sscPollingTimeout")) {
-				String sscPollingTimeoutString = jsonObject.getString("sscPollingTimeout");
-				if (sscPollingTimeoutString != null && !sscPollingTimeoutString.isEmpty()) {
-					try {
-						long sscPollingTimeout = Long.valueOf(sscPollingTimeoutString);
-						newModel.setPollingTimeoutHours(sscPollingTimeout);
-					} catch (NumberFormatException e) {
-						newModel.setPollingTimeoutHours(0);
+
+			return super.configure(req, formData);
+		}
+
+		private void handleDeletedConfigurations(JSONArray jsonArray) {
+			if (servers == null) {
+				return;
+			}
+
+			Map<String, Integer> index = new HashMap<>();
+			for (int i = 0; i < servers.length; i++) {
+				OctaneServerSettingsModel innerServerConfiguration = servers[i];
+				boolean configFound = false;
+				for (Object jsonObj : jsonArray) {
+					if (innerServerConfiguration.getInternalId().equals(((JSONObject) jsonObj).getString("internalId"))) {
+						configFound = true;
+						break;
+					}
+				}
+				if (!configFound) {
+					OctaneConfiguration octaneConfiguration = octaneConfigurations.get(innerServerConfiguration.getInternalId());
+					if (octaneConfiguration != null) {
+						logger.info("Removing client with instance Id: " + innerServerConfiguration.getIdentity());
+						OctaneSDK.removeClient(OctaneSDK.getClientByInstanceId(innerServerConfiguration.getIdentity()));
+						index.put(innerServerConfiguration.getInternalId(), i);
 					}
 				}
 			}
-			setModel(newModel);
-			return super.configure(req, formData);
+
+			for (Map.Entry<String, Integer> entry : index.entrySet()) {
+				System.out.println(entry.getKey() + ":" + entry.getValue());
+				servers = ArrayUtils.remove(servers, entry.getValue().intValue());
+				octaneConfigurations.remove(entry.getKey());
+			}
+
+			if (!index.isEmpty()) {
+				save();
+			}
 		}
 
 		public void setModel(OctaneServerSettingsModel newModel) {
@@ -208,21 +262,20 @@ public class OctaneServerSettingsBuilder extends Builder {
 				mqmProject = ConfigurationParser.parseUiLocation(newModel.getUiLocation());
 				newModel.setSharedSpace(mqmProject.getSharedSpace());
 				newModel.setLocation(mqmProject.getLocation());
-				if (newModel.getIdentity() == null || newModel.getIdentity().isEmpty()) {
-					newModel.setIdentity(UUID.randomUUID().toString());
-					newModel.setIdentityFrom(System.currentTimeMillis());
-				}
 			} catch (FormValidation fv) {
 				logger.warn("tested configuration failed on Octane URL parse: " + fv.getMessage(), fv);
 			}
 
-			OctaneServerSettingsModel oldModel = getSettings(newModel.getIdentity());
-
+			OctaneServerSettingsModel oldModel = getSettingsByInternalId(newModel.getInternalId());
 			//  set identity in new model
 			if (oldModel == null) {
-				logger.info("keeping the new identity from UI: " + newModel.getIdentity());
+				if(newModel.getIdentity() == null || newModel.getIdentity().isEmpty()){
+					newModel.setIdentity(UUID.randomUUID().toString());
+				}
+				if(newModel.getIdentityFrom() == null) {
+					newModel.setIdentityFrom(System.currentTimeMillis());
+				}
 			} else if (oldModel.getIdentity() != null && !oldModel.getIdentity().isEmpty()) {
-				newModel.setIdentity(oldModel.getIdentity());
 				newModel.setIdentityFrom(oldModel.getIdentityFrom());
 			}
 
@@ -241,24 +294,43 @@ public class OctaneServerSettingsBuilder extends Builder {
 						servers = newServers;
 					}
 				}
+			} else {
+				updateServer(servers, newModel, oldModel);
 			}
-			OctaneConfiguration octaneConfiguration = octaneConfigurations.stream()
-					.filter(oc -> oc.getInstanceId().equals(newModel.getIdentity()))
-					.findFirst()
-					.orElse(new OctaneConfiguration(newModel.getIdentity(), newModel.getLocation(), newModel.getSharedSpace()));
-
+			OctaneConfiguration octaneConfiguration = octaneConfigurations.containsKey(newModel.getInternalId()) ?
+					octaneConfigurations.get(newModel.getInternalId()) :
+					new OctaneConfiguration(newModel.getIdentity(), newModel.getLocation(), newModel.getSharedSpace());
 			octaneConfiguration.setSharedSpace(newModel.getSharedSpace());
 			octaneConfiguration.setUrl(newModel.getLocation());
 			octaneConfiguration.setClient(newModel.getUsername());
 			octaneConfiguration.setSecret(newModel.getPassword().getPlainText());
-			if (!octaneConfigurations.contains(octaneConfiguration)) {
-				octaneConfigurations.add(octaneConfiguration);
+
+			if (!octaneConfigurations.containsValue(octaneConfiguration)) {
+				octaneConfigurations.put(newModel.getInternalId(), octaneConfiguration);
 				OctaneSDK.addClient(octaneConfiguration, CIJenkinsServicesImpl.class);
 			}
-			save();
+
 
 			if (!newModel.equals(oldModel)) {
 				fireOnChanged(newModel, oldModel);
+			}
+
+			save();
+		}
+
+		private void updateServer(OctaneServerSettingsModel[] servers, OctaneServerSettingsModel newModel,  OctaneServerSettingsModel oldModel) {
+			if (servers != null) {
+				for (int i = 0; i < servers.length; i++) {
+					if (newModel.getInternalId().equals(servers[i].getInternalId())) {
+						servers[i] = newModel;
+						if(!newModel.getIdentity().equals(oldModel.getIdentity())){
+							logger.info("Removing client with instance Id: " + oldModel.getIdentity());
+							OctaneSDK.removeClient(OctaneSDK.getClientByInstanceId(octaneConfigurations.get(oldModel.getInternalId()).getInstanceId()));
+							octaneConfigurations.remove(newModel.getInternalId());
+						}
+						break;
+					}
+				}
 			}
 		}
 
@@ -325,6 +397,23 @@ public class OctaneServerSettingsBuilder extends Builder {
 			if (servers != null) {
 				for (OctaneServerSettingsModel setting : servers) {
 					if (instanceId.equals(setting.getIdentity())) {
+						result = setting;
+						break;
+					}
+				}
+			}
+			return result;
+		}
+
+		public OctaneServerSettingsModel getSettingsByInternalId(String internalId) {
+			if (internalId == null || internalId.isEmpty()) {
+				return null;
+			}
+
+			OctaneServerSettingsModel result = null;
+			if (servers != null) {
+				for (OctaneServerSettingsModel setting : servers) {
+					if (internalId.equals(setting.getInternalId())) {
 						result = setting;
 						break;
 					}

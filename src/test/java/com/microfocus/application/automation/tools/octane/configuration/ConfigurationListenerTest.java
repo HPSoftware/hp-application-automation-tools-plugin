@@ -22,8 +22,6 @@
 
 package com.microfocus.application.automation.tools.octane.configuration;
 
-import com.gargoylesoftware.htmlunit.html.HtmlForm;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
 import com.microfocus.application.automation.tools.octane.OctanePluginTestBase;
 import com.microfocus.application.automation.tools.octane.tests.ExtensionUtil;
@@ -54,20 +52,21 @@ public class ConfigurationListenerTest extends OctanePluginTestBase {
 
 	@Test
 	public void testConfigurationListener() throws Exception {
-		HtmlPage configPage = client.goTo("configure");
-		HtmlForm form = configPage.getFormByName("config");
-		// password is cleared upon form retrieval (restore the value)
-		form.getInputByName("_.password").setValueAttribute("password");
-
+		OctaneServerSettingsModel oldModel = ConfigurationService.getAllSettings().get(0);
+		OctaneServerSettingsModel newModel = new OctaneServerSettingsModel(oldModel.getUiLocation(), oldModel.getUsername(), oldModel.getPassword(), "");
+		newModel.setIdentity(oldModel.getIdentity());
+		newModel.setLocation(oldModel.getUiLocation());
+		newModel.setInternalId(oldModel.getInternalId());
 		// not increased on re-submit
-		rule.submit(form);
+		ConfigurationService.configurePlugin(newModel);
 		Assert.assertEquals("Listener count doesn't match 1", 1, listener.getCount());
 
-		configPage = client.goTo("configure");
-		form = configPage.getFormByName("config");
+		oldModel = ConfigurationService.getAllSettings().get(0);
+		newModel = new OctaneServerSettingsModel(oldModel.getUiLocation(),"username2", oldModel.getPassword(), "");
+		newModel.setIdentity(oldModel.getIdentity());
+		newModel.setInternalId(oldModel.getInternalId());
 		// increased when configuration changes
-		form.getInputByName("_.username").setValueAttribute("username2");
-		rule.submit(form);
+		ConfigurationService.configurePlugin(newModel);
 		Assert.assertEquals("Listener count doesn't match 2", 2, listener.getCount());
 
 		List<OctaneServerSettingsModel> confs = listener.getConfigurationsChange();

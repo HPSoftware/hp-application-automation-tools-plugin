@@ -75,7 +75,7 @@ public class VulnerabilitiesListener extends RunListener<Run> {
 						projectAndVersionJobConfig.project,
 						projectAndVersionJobConfig.version,
 						run.getStartTimeInMillis(),
-						settings.getPollingTimeoutHours());
+						settings.getMaxTimeoutHours());
 			}
 		});
 	}

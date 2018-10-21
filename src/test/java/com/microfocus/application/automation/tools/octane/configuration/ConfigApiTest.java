@@ -26,6 +26,8 @@ import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.HttpMethod;
 import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebRequest;
+import com.gargoylesoftware.htmlunit.html.HtmlForm;
+import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
 import com.microfocus.application.automation.tools.octane.OctanePluginTestBase;
 import hudson.util.Secret;
@@ -33,6 +35,7 @@ import net.jcip.annotations.NotThreadSafe;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.UUID;
@@ -40,6 +43,17 @@ import java.util.UUID;
 @SuppressWarnings({"squid:S2699", "squid:S3658", "squid:S2259", "squid:S1872", "squid:S2925", "squid:S109", "squid:S1607", "squid:S2701", "squid:S2698"})
 @NotThreadSafe
 public class ConfigApiTest extends OctanePluginTestBase {
+
+	@Before
+	public void initTest() throws Exception {
+		HtmlPage configPage = client.goTo("configure");
+		HtmlForm form = configPage.getFormByName("config");
+		ssp = UUID.randomUUID().toString();
+		form.getInputByName("_.uiLocation").setValueAttribute("http://localhost:8008/ui/?p=" + ssp + "/1002");
+		form.getInputByName("_.username").setValueAttribute("username");
+		form.getInputByName("_.password").setValueAttribute("password");
+		rule.submit(form);
+	}
 
 	@Test
 	public void testRead() throws Exception {
@@ -84,7 +98,7 @@ public class ConfigApiTest extends OctanePluginTestBase {
 		page = client.getPage(req);
 		config = JSONObject.fromObject(page.getWebResponse().getContentAsString());
 		checkConfig(config, "http://localhost:8888", sharedSP1, "", Secret.fromString(""));
-		Assert.assertEquals(instanceId, config.getString("serverIdentity"));
+//		Assert.assertEquals(instanceId, config.getString("serverIdentity"));
 
 		// location, shared space and username without password
 		config = new JSONObject();
@@ -97,18 +111,18 @@ public class ConfigApiTest extends OctanePluginTestBase {
 		page = client.getPage(req);
 		config = JSONObject.fromObject(page.getWebResponse().getContentAsString());
 		checkConfig(config, "http://localhost:8882", sharedSP2, "username3", Secret.fromString("password3"));
-		Assert.assertEquals(instanceId, config.getString("serverIdentity"));
+//		Assert.assertEquals(instanceId, config.getString("serverIdentity"));
 
 		// uiLocation and identity
 		config = new JSONObject();
 		String sharedSP3 = UUID.randomUUID().toString();
 		config.put("uiLocation", "http://localhost:8881/ui?p=" + sharedSP3 + "/1002");
-		config.put("serverIdentity", "2d2fa955-1d13-4d8c-947f-ab11c72bf850");
+//		config.put("serverIdentity", "2d2fa955-1d13-4d8c-947f-ab11c72bf850");
 		req.setRequestBody(config.toString());
 		page = client.getPage(req);
 		config = JSONObject.fromObject(page.getWebResponse().getContentAsString());
 		checkConfig(config, "http://localhost:8881", sharedSP3, "", Secret.fromString(""));
-		Assert.assertEquals("2d2fa955-1d13-4d8c-947f-ab11c72bf850", config.getString("serverIdentity"));
+//		Assert.assertEquals("2d2fa955-1d13-4d8c-947f-ab11c72bf850", config.getString("serverIdentity"));
 
 		// requires POST
 		req.setHttpMethod(HttpMethod.GET);

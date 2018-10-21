@@ -29,11 +29,13 @@ import org.kohsuke.stapler.DataBoundSetter;
 
 import java.util.Date;
 import java.util.Objects;
+import java.util.UUID;
 
 /*
- * Model for sotring the Octane configuration
+ * Model for sorting the Octane configuration
  */
 public class OctaneServerSettingsModel {
+	private String internalId = UUID.randomUUID().toString();
 
 	private String identity;
 	private Long identityFrom;
@@ -64,6 +66,10 @@ public class OctaneServerSettingsModel {
 		this.password = password;
 		this.impersonatedUser = impersonatedUser;
 		this.sscBaseToken = sscBaseToken;
+	}
+
+	public String getInternalId() {
+		return internalId;
 	}
 
 	public boolean isSuspend() {
@@ -135,18 +141,23 @@ public class OctaneServerSettingsModel {
 		this.identityFrom = identityFrom;
 	}
 
-	public long getPollingTimeoutHours() {
+	public long getMaxTimeoutHours() {
 		return maxTimeoutHours;
 	}
 
-	public void setPollingTimeoutHours(long timeoutHours) {
-		maxTimeoutHours = timeoutHours;
+	public void setMaxTimeoutHours(long maxTimeoutHours) {
+		this.maxTimeoutHours = maxTimeoutHours;
 	}
 
 	public boolean isValid() {
 		return identity != null && !identity.isEmpty() &&
 				location != null && !location.isEmpty() &&
+				internalId != null && !internalId.isEmpty() &&
 				sharedSpace != null && !sharedSpace.isEmpty();
+	}
+
+	public void setInternalId(String internalId) {
+		this.internalId = internalId;
 	}
 
 	@Override
@@ -167,6 +178,6 @@ public class OctaneServerSettingsModel {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(identity, username, password, impersonatedUser, suspend, sscBaseToken, location, sharedSpace, maxTimeoutHours);
+		return Objects.hash(identity, username, password, impersonatedUser, suspend, sscBaseToken, location, sharedSpace, maxTimeoutHours, internalId);
 	}
 }
