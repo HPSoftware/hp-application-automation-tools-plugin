@@ -46,7 +46,6 @@ import net.sf.json.JSONObject;
 import org.acegisecurity.context.SecurityContext;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.kohsuke.stapler.QueryParameter;
@@ -54,14 +53,7 @@ import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Octane configuration settings
@@ -247,21 +239,24 @@ public class OctaneServerSettingsBuilder extends Builder {
 				}
 				if (!configFound) {
 					OctaneConfiguration octaneConfiguration = octaneConfigurations.get(server.getInternalId());
+					serversToRemove.add(server);
 					if (octaneConfiguration != null) {
 						logger.info("Removing client with instance Id: " + server.getIdentity());
 						OctaneSDK.removeClient(OctaneSDK.getClientByInstanceId(server.getIdentity()));
-						serversToRemove.add(server);
+
 					}
 				}
+			}
 
-				for (OctaneServerSettingsModel serverToRemove : serversToRemove) {
-					servers = ArrayUtils.removeElement(servers, serversToRemove);
-					octaneConfigurations.remove(serverToRemove.getIdentity());
-				}
+			List<OctaneServerSettingsModel> serversToLeave = new ArrayList<>(Arrays.asList(servers));
+			for (OctaneServerSettingsModel serverToRemove : serversToRemove) {
+				serversToLeave.remove(serverToRemove);
+				octaneConfigurations.remove(serverToRemove.getInternalId());
+			}
+			servers = serversToLeave.toArray(new OctaneServerSettingsModel[0]);
 
-				if (!serversToRemove.isEmpty()) {
-					save();
-				}
+			if (!serversToRemove.isEmpty()) {
+				save();
 			}
 		}
 
