@@ -1,4 +1,5 @@
 /*
+ *
  *  Certain versions of software and/or documents (“Material”) accessible here may contain branding from
  *  Hewlett-Packard Company (now HP Inc.) and Hewlett Packard Enterprise Company.  As of September 1, 2017,
  *  the Material is now offered by Micro Focus, a separately owned and operated company.  Any reference to the HP
@@ -16,6 +17,7 @@
  * or editorial errors or omissions contained herein.
  * The information contained herein is subject to change without notice.
  * ___________________________________________________________________
+ *
  */
 
 package com.microfocus.application.automation.tools.octane.tests;
@@ -67,7 +69,6 @@ public class TestQueue implements ResultQueue {
 
 	/**
 	 * add task to queue, type is not relevant to to test queue
-	 *
 	 * @param projectName
 	 * @param type
 	 * @param buildNumber
@@ -80,13 +81,6 @@ public class TestQueue implements ResultQueue {
 	@Override
 	public void add(String projectName, int buildNumber, String workspace) {
 		queue.add(new QueueItem(projectName, buildNumber, workspace));
-	}
-
-	@Override
-	public void add(String instanceId, String projectName, int buildNumber, String workspace) {
-		QueueItem item = new QueueItem(projectName, buildNumber, workspace);
-		item.setInstanceId(instanceId);
-		queue.add(item);
 	}
 
 	public synchronized void add(Collection<? extends AbstractBuild> builds) {
@@ -112,7 +106,6 @@ public class TestQueue implements ResultQueue {
 
 	//  test usage only; [YG] - TODO: remove this code from here ASAP
 	private long ticks;
-
 	public void waitForTicks(int n) throws InterruptedException {
 		long current = ticks;
 		long target = current + n;

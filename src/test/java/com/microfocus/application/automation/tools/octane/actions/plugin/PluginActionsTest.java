@@ -23,24 +23,33 @@
 package com.microfocus.application.automation.tools.octane.actions.plugin;
 
 import com.gargoylesoftware.htmlunit.Page;
+import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.general.CIJobsList;
 import com.hp.octane.integrations.dto.general.CIProviderSummaryInfo;
 import com.hp.octane.integrations.dto.general.CIServerTypes;
 import com.hp.octane.integrations.dto.parameters.CIParameterType;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
-import com.microfocus.application.automation.tools.octane.OctanePluginTestBase;
 import com.microfocus.application.automation.tools.octane.actions.PluginActions;
 import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
-import hudson.model.*;
+import hudson.model.BooleanParameterDefinition;
+import hudson.model.FileParameterDefinition;
+import hudson.model.FreeStyleProject;
+import hudson.model.ParameterDefinition;
+import hudson.model.ParametersDefinitionProperty;
+import hudson.model.StringParameterDefinition;
 import jenkins.model.Jenkins;
+import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.JenkinsRule;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.UUID;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 /**
  * Created with IntelliJ IDEA.
@@ -51,7 +60,12 @@ import static org.junit.Assert.*;
  */
 
 @SuppressWarnings({"squid:S2699", "squid:S3658", "squid:S2259", "squid:S1872", "squid:S2925", "squid:S109", "squid:S1607", "squid:S2701", "squid:S3578", "squid:S2698"})
-public class PluginActionsTest extends OctanePluginTestBase {
+public class PluginActionsTest {
+	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
+
+	@Rule
+	public final JenkinsRule rule = new JenkinsRule();
+	private final JenkinsRule.WebClient client = rule.createWebClient();
 
 	@Test
 	public void testPluginActionsMethods() {
@@ -62,7 +76,6 @@ public class PluginActionsTest extends OctanePluginTestBase {
 	}
 
 	@Test
-	//todo: remove when moving to multi SSP
 	public void testPluginActions_REST_Status() throws IOException, SAXException {
 		Page page = client.goTo("nga/api/v1/status", "application/json");
 		System.out.println(page.getWebResponse().getContentAsString());
@@ -74,6 +87,8 @@ public class PluginActionsTest extends OctanePluginTestBase {
 		assertEquals(CIServerTypes.JENKINS.value(), status.getServer().getType());
 		assertEquals(Jenkins.VERSION, status.getServer().getVersion());
 		assertEquals(rule.getInstance().getRootUrl(), status.getServer().getUrl() + "/");
+		assertEquals(ConfigurationService.getModel().getIdentity(), status.getServer().getInstanceId());
+		assertEquals(ConfigurationService.getModel().getIdentityFrom(), status.getServer().getInstanceIdFrom());
 		assertNotNull(status.getServer().getSendingTime());
 
 		assertNotNull(status.getPlugin());

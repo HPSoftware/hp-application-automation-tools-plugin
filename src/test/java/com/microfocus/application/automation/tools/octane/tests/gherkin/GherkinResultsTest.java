@@ -22,20 +22,19 @@
 
 package com.microfocus.application.automation.tools.octane.tests.gherkin;
 
-import com.microfocus.application.automation.tools.octane.OctanePluginTestBase;
+import com.microfocus.application.automation.tools.octane.ResultQueue;
 import com.microfocus.application.automation.tools.octane.actions.cucumber.CucumberTestResultsActionPublisher;
 import com.microfocus.application.automation.tools.octane.tests.CopyResourceSCM;
+import com.microfocus.application.automation.tools.octane.tests.ExtensionUtil;
+import com.microfocus.application.automation.tools.octane.tests.TestListener;
+import com.microfocus.application.automation.tools.octane.tests.TestQueue;
 import com.microfocus.application.automation.tools.octane.tests.TestUtils;
 import hudson.matrix.*;
 import hudson.maven.MavenModuleSet;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.FreeStyleProject;
-import hudson.model.Result;
+import hudson.model.*;
 import hudson.tasks.Maven;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
+import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.ToolInstallations;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -47,18 +46,19 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Created by franksha on 05/01/2017.
  */
 @SuppressWarnings({"squid:S2699","squid:S3658","squid:S2259","squid:S1872","squid:S2925","squid:S109","squid:S1607","squid:S2701","squid:S2698"})
-public class GherkinResultsTest extends OctanePluginTestBase {
+public class GherkinResultsTest {
 
+    @ClassRule
+    public static final JenkinsRule rule = new JenkinsRule();
     private static String mavenName;
 
+    private TestQueue queue;
 
     private static Set<String> tests = new HashSet<>();
     static {
@@ -70,12 +70,22 @@ public class GherkinResultsTest extends OctanePluginTestBase {
     public static void prepareClass() throws Exception {
         rule.jenkins.setNumExecutors(10);
         Maven.MavenInstallation mavenInstallation = ToolInstallations.configureMaven3();
+        //Maven.MavenInstallation mavenInstallation = new Maven.MavenInstallation("default-system-maven", System.getenv("MAVEN_HOME"), JenkinsRule.NO_PROPERTIES);
         mavenName = mavenInstallation.getName();
+    }
+
+    @Before
+    public void prepareTest() {
+        TestUtils.createDummyConfiguration();
+
+        TestListener testListener = ExtensionUtil.getInstance(rule, TestListener.class);
+        queue = new TestQueue();
+        testListener._setTestResultQueue(queue);
     }
 
     @Test
     public void testGherkinResultsDirectlyOnWorkspace() throws Exception {
-        gherkinResults("**/*Gherkin*.xml", true);
+        gherkinResults("*Gherkin*.xml", true);
     }
 
     @Test
@@ -90,7 +100,7 @@ public class GherkinResultsTest extends OctanePluginTestBase {
 
     @Test
     public void testGherkinResultsInSubFolder() throws Exception {
-        gherkinResultsInSubFolder("subFolder/*Gherkin*.xml", false);
+        gherkinResultsInSubFolder("subFolder/*Gherkin*.xml", true);
     }
 
     @Test
@@ -104,7 +114,7 @@ public class GherkinResultsTest extends OctanePluginTestBase {
 
     @Test
     public void testGherkinResultsDirectlyOnWorkspaceLegacy() throws Exception {
-        gherkinResultsLegacy("**/*Gherkin*.xml", true);
+        gherkinResultsLegacy("*Gherkin*.xml", true);
     }
     @Test
     public void testGherkinResultsDirectlyOnWorkspaceLegacyEmptyGlob() throws Exception {
@@ -118,7 +128,7 @@ public class GherkinResultsTest extends OctanePluginTestBase {
 
     @Test
     public void testGherkinResultsInSubFolderLegacy() throws Exception {
-        gherkinResultsLegacyWithSubFolder("subFolder/*Gherkin*.xml", false);
+        gherkinResultsLegacyWithSubFolder("subFolder/*Gherkin*.xml", true);
     }
 
     @Test
@@ -138,7 +148,7 @@ public class GherkinResultsTest extends OctanePluginTestBase {
         matrixProject.setAxes(new AxisList(new Axis("osType", "Linux", "Windows")));
 
         matrixProject.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" clean test -Dmaven.repo.local=%s\\m2-temp",
-                TestUtils.getMavenHome(), System.getenv("TEMP")), mavenName, null, null, "-Dmaven.test.failure.ignore=true"));
+                System.getenv("MAVEN_HOME"), System.getenv("TEMP")), mavenName, null, null, "-Dmaven.test.failure.ignore=true"));
         matrixProject.getPublishersList().add(new CucumberTestResultsActionPublisher(""));
         matrixProject.setScm(new CopyResourceSCM("/helloCucumberWorld"));
 
@@ -146,7 +156,7 @@ public class GherkinResultsTest extends OctanePluginTestBase {
         for (MatrixRun run : build.getExactRuns()) {
             assertTestResultsEqual(tests, new File(run.getRootDir(), "mqmTests.xml"));
         }
-//        Assert.assertEquals(new HashSet<>(Arrays.asList(projectName + "/osType=Windows#1", projectName + "/osType=Linux#1")), getQueuedItems());
+        Assert.assertEquals(new HashSet<>(Arrays.asList(projectName + "/osType=Windows#1", projectName + "/osType=Linux#1")), getQueuedItems());
         Assert.assertFalse(new File(build.getRootDir(), "mqmTests.xml").exists());
     }
 
@@ -165,7 +175,7 @@ public class GherkinResultsTest extends OctanePluginTestBase {
         FreeStyleProject project = rule.createFreeStyleProject(projectName);
 
         project.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" clean test -Dmaven.repo.local=%s\\m2-temp",
-                TestUtils.getMavenHome(), System.getenv("TEMP")), mavenName, null, null, "-Dmaven.test.failure.ignore=true"));
+                System.getenv("MAVEN_HOME"),System.getenv("TEMP")), mavenName, null, null, "-Dmaven.test.failure.ignore=true"));
         project.setScm(new CopyResourceSCM("/helloCucumberWorld"));
 
         project.getPublishersList().add(new CucumberTestResultsActionPublisher(glob));
@@ -178,7 +188,7 @@ public class GherkinResultsTest extends OctanePluginTestBase {
         FreeStyleProject project = rule.createFreeStyleProject(projectName);
 
         project.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" clean test -Dmaven.repo.local=%s\\m2-temp",
-                TestUtils.getMavenHome(),System.getenv("TEMP")), mavenName, "subFolder/pom.xml", null, "-Dmaven.test.failure.ignore=true"));
+                System.getenv("MAVEN_HOME"),System.getenv("TEMP")), mavenName, "subFolder/pom.xml", null, "-Dmaven.test.failure.ignore=true"));
         project.setScm(new CopyResourceSCM("helloCucumberWorld", "subFolder"));
 
         project.getPublishersList().add(new CucumberTestResultsActionPublisher(glob));
@@ -204,8 +214,8 @@ public class GherkinResultsTest extends OctanePluginTestBase {
         project.runHeadless();
 
         project.setMaven(mavenName);
-        project.setGoals(String.format("clean test --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=%s\\m2-temp -Dmaven.test.failure.ignore=true",
-                TestUtils.getMavenHome(),System.getenv("TEMP")));
+        project.setGoals(String.format("clean test --settings %s\\conf\\settings.xml -Dmaven.repo.local=%s\\m2-temp -Dmaven.test.failure.ignore=true",
+                System.getenv("MAVEN_HOME"),System.getenv("TEMP")));
         if(subfolder) {
             project.setRootPOM("subFolder/pom.xml");
             project.setScm(new CopyResourceSCM("/helloCucumberWorld", "subFolder"));
@@ -219,11 +229,11 @@ public class GherkinResultsTest extends OctanePluginTestBase {
         if(buildShouldSucceed) {
             AbstractBuild build = TestUtils.runAndCheckBuild(project);
             assertTestResultsEqual(tests, new File(build.getRootDir(), "mqmTests.xml"));
-//            Assert.assertEquals(Collections.singleton(project.getName() + "#1"), getQueuedItems());
+            Assert.assertEquals(Collections.singleton(project.getName() + "#1"), getQueuedItems());
         } else {
             AbstractBuild build = (AbstractBuild) project.scheduleBuild2(0).get();
             Assert.assertEquals("Build should fail", Result.FAILURE, build.getResult());
-//            Assert.assertEquals("Expects empty queue", 0, getQueuedItems().size());
+            Assert.assertEquals("Expects empty queue", 0, getQueuedItems().size());
         }
     }
 
@@ -248,5 +258,15 @@ public class GherkinResultsTest extends OctanePluginTestBase {
 
     private String getAttr(Node node, String attrName) {
         return node.getAttributes().getNamedItem(attrName).getNodeValue();
+    }
+
+    private Set<String> getQueuedItems() {
+        Set<String> ret = new HashSet<>();
+        ResultQueue.QueueItem item;
+        while ((item = queue.peekFirst()) != null) {
+            ret.add(item.getProjectName() + "#" + item.getBuildNumber());
+            queue.remove();
+        }
+        return ret;
     }
 }

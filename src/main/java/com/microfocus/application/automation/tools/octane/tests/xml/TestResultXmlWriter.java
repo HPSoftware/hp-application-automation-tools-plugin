@@ -22,6 +22,7 @@
 
 package com.microfocus.application.automation.tools.octane.tests.xml;
 
+import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
 import com.microfocus.application.automation.tools.octane.tests.TestResultContainer;
 import com.microfocus.application.automation.tools.octane.tests.build.BuildDescriptor;
 import com.microfocus.application.automation.tools.octane.tests.build.BuildHandlerUtils;
@@ -92,9 +93,11 @@ public class TestResultXmlWriter {
 
 			writer.writeStartElement("test_result");
 			writer.writeStartElement("build");
-			writer.writeAttribute("server_id", "to-be-filled-in-SDK");
+			writer.writeAttribute("server_id", ConfigurationService.getModel().getIdentity());
 			writer.writeAttribute("job_id", buildDescriptor.getJobId());
+			writer.writeAttribute("job_name", buildDescriptor.getJobName());
 			writer.writeAttribute("build_id", buildDescriptor.getBuildId());
+			writer.writeAttribute("build_name", buildDescriptor.getBuildName());
 			if (!StringUtils.isEmpty(buildDescriptor.getSubType())) {
 				writer.writeAttribute("sub_type", buildDescriptor.getSubType());
 			}

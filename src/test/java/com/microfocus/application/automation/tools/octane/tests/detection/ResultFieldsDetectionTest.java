@@ -22,7 +22,6 @@
 
 package com.microfocus.application.automation.tools.octane.tests.detection;
 
-import com.microfocus.application.automation.tools.octane.OctanePluginTestBase;
 import com.microfocus.application.automation.tools.octane.tests.CopyResourceSCM;
 import com.microfocus.application.automation.tools.octane.tests.ExtensionUtil;
 import com.microfocus.application.automation.tools.octane.tests.TestUtils;
@@ -31,42 +30,46 @@ import hudson.model.AbstractBuild;
 import hudson.model.FreeStyleProject;
 import hudson.tasks.Maven;
 import hudson.tasks.junit.JUnitResultArchiver;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.ToolInstallations;
 import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.FileReader;
-import java.util.UUID;
 
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-public class ResultFieldsDetectionTest  extends OctanePluginTestBase {
+public class ResultFieldsDetectionTest {
+
+	@Rule
+	public final JenkinsRule rule = new JenkinsRule();
 
 	private static FreeStyleProject project;
 
 	private static ResultFieldsDetectionService detectionService;
 
+	private final JenkinsRule.WebClient jClient = rule.createWebClient();
+
 	@Before
 	public void setUp() throws Exception {
 
-		project = rule.createFreeStyleProject("junit - job-" + UUID.randomUUID().toString());
+		project = rule.createFreeStyleProject("junit - job");
 		JUnitExtension junitExtension = ExtensionUtil.getInstance(rule, JUnitExtension.class);
 		detectionService = Mockito.mock(ResultFieldsDetectionService.class);
 		junitExtension._setResultFieldsDetectionService(detectionService);
 
 		Maven.MavenInstallation mavenInstallation = ToolInstallations.configureMaven3();
-		//Maven.MavenInstallation mavenInstallation = new Maven.MavenInstallation("default-system-maven", TestUtils.getMavenHome(), JenkinsRule.NO_PROPERTIES);
+		//Maven.MavenInstallation mavenInstallation = new Maven.MavenInstallation("default-system-maven", System.getenv("MAVEN_HOME"), JenkinsRule.NO_PROPERTIES);
 
-		//project.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" -U test",TestUtils.getMavenHome()), mavenInstallation.getName(), null, null, "-Dmaven.test.failure.ignore=true"));
+		//project.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" -U test",System.getenv("MAVEN_HOME")), mavenInstallation.getName(), null, null, "-Dmaven.test.failure.ignore=true"));
 		project.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" -U test -Dmaven.repo.local=%s\\m2-temp",
-				TestUtils.getMavenHome(),System.getenv("TEMP")), mavenInstallation.getName(), null, null, "-Dmaven.test.failure.ignore=true"));
+				System.getenv("MAVEN_HOME"),System.getenv("TEMP")), mavenInstallation.getName(), null, null, "-Dmaven.test.failure.ignore=true"));
 
 		project.setScm(new CopyResourceSCM("/helloWorldRoot"));
+
+		TestUtils.createDummyConfiguration();
 	}
 
 	@Test
@@ -108,6 +111,8 @@ public class ResultFieldsDetectionTest  extends OctanePluginTestBase {
 		File mqmTestsXml = new File(build.getRootDir(), "mqmTests.xml");
 		ResultFieldsXmlReader xmlReader = new ResultFieldsXmlReader(new FileReader(mqmTestsXml));
 		ResultFields resultFields = xmlReader.readXml().getResultFields();
+		;
+
 		Assert.assertNull(resultFields.getFramework());
 		Assert.assertNull(resultFields.getTestingTool());
 		Assert.assertNull(resultFields.getTestLevel());

@@ -27,92 +27,83 @@ import java.io.Serializable;
 @SuppressWarnings("squid:S2039")
 public interface ResultQueue {
 
-	ResultQueue.QueueItem peekFirst();
+    ResultQueue.QueueItem peekFirst();
 
-	boolean failed();
+    boolean failed();
 
-	void remove();
+    void remove();
 
-	void add(String projectName, int buildNumber);
+    void add(String projectName, int buildNumber);
 
-	void add(String projectName, String type, int buildNumber);
+    void add(String projectName, String type, int buildNumber);
 
-	void add(String projectName, int buildNumber, String workspace);
+    void add(String projectName, int buildNumber, String workspace);
 
-	void add(String instanceId, String projectName, int buildNumber, String workspace);
+    void clear();
 
-	void clear();
+    class QueueItem implements Serializable {
+        private static final long serialVersionUID = 1;
+        public String type;
+        String projectName;
+        int buildNumber;
+        String workspace;
+        int failCount;
 
-	class QueueItem implements Serializable {
-		private static final long serialVersionUID = 1;
-		String instanceId;
-		public String type;
-		String projectName;
-		int buildNumber;
-		String workspace;
-		int failCount;
 
-		public void setInstanceId(String instanceId) {
-			this.instanceId = instanceId;
-		}
+        public void setType(String type) {
+            this.type = type;
+        }
 
-		public void setType(String type) {
-			this.type = type;
-		}
 
-		public QueueItem(String projectName, int buildNumber) {
-			this(projectName, buildNumber, 0);
-		}
+        public QueueItem(String projectName, int buildNumber) {
+            this(projectName, buildNumber, 0);
+        }
 
-		public QueueItem(String projectName, String type, int buildNumber) {
-			this(projectName, buildNumber, 0);
-			this.type = type;
-		}
+        public QueueItem(String projectName, String type, int buildNumber) {
+            this(projectName, buildNumber, 0);
+            this.type = type;
+        }
 
-		public QueueItem(String projectName, int buildNumber, String workspace) {
-			this(projectName, buildNumber, 0);
-			this.workspace = workspace;
-		}
+        public QueueItem(String projectName, int buildNumber, String workspace) {
+            this(projectName, buildNumber, 0);
+            this.workspace = workspace;
+        }
 
-		QueueItem(String projectName, int buildNumber, int failCount) {
-			this.projectName = projectName;
-			this.buildNumber = buildNumber;
-			this.failCount = failCount;
-		}
+        QueueItem(String projectName, int buildNumber, int failCount) {
+            this.projectName = projectName;
+            this.buildNumber = buildNumber;
+            this.failCount = failCount;
+        }
 
-		QueueItem(String projectName, int buildNumber, int failCount, String workspace) {
-			this.projectName = projectName;
-			this.buildNumber = buildNumber;
-			this.failCount = failCount;
-			this.workspace = workspace;
-		}
+        QueueItem(String projectName, int buildNumber, int failCount, String workspace) {
+            this.projectName = projectName;
+            this.buildNumber = buildNumber;
+            this.failCount = failCount;
+            this.workspace = workspace;
+        }
 
-		public String getInstanceId() {
-			return instanceId;
-		}
+        public String getType() {
+            return type;
+        }
 
-		public String getType() {
-			return type;
-		}
+        public int incrementFailCount() {
+            return this.failCount++;
+        }
 
-		public int incrementFailCount() {
-			return this.failCount++;
-		}
+        public int getFailCount() {
+            return failCount;
+        }
 
-		public int getFailCount() {
-			return failCount;
-		}
+        public String getProjectName() {
+            return projectName;
+        }
 
-		public String getProjectName() {
-			return projectName;
-		}
+        public int getBuildNumber(){
+            return buildNumber;
+        }
 
-		public int getBuildNumber() {
-			return buildNumber;
-		}
-
-		public String getWorkspace() {
-			return workspace;
-		}
-	}
+        public String getWorkspace() {
+            return workspace;
+        }
+    }
 }

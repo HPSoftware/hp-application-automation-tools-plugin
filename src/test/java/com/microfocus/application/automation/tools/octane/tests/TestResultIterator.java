@@ -33,6 +33,7 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.Attribute;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
+import java.io.FileNotFoundException;
 import java.io.Reader;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -42,14 +43,14 @@ public class TestResultIterator implements Iterator<JUnitTestResult> {
 
 	private Reader input;
 	private XMLEventReader reader;
-	private LinkedList<JUnitTestResult> items = new LinkedList<>();
+	private LinkedList<JUnitTestResult> items = new LinkedList<JUnitTestResult>();
 	private boolean closed;
 	private String serverId;
 	private String jobId;
 	private String buildId;
 	private String subType;
 
-	public TestResultIterator(Reader input) throws XMLStreamException {
+	public TestResultIterator(Reader input) throws FileNotFoundException, XMLStreamException {
 		this.input = input;
 		reader = XMLInputFactory.newInstance().createXMLEventReader(input);
 	}
@@ -61,7 +62,6 @@ public class TestResultIterator implements Iterator<JUnitTestResult> {
 				if (reader.hasNext()) {
 					XMLEvent event = reader.nextEvent();
 					if (event instanceof StartElement) {
-						Attribute attribute;
 						StartElement element = (StartElement) event;
 						String localName = element.getName().getLocalPart();
 						if ("test_run".equals(localName)) {
@@ -74,21 +74,12 @@ public class TestResultIterator implements Iterator<JUnitTestResult> {
 							long started = Long.valueOf(element.getAttributeByName(new QName("started")).getValue());
 							items.add(new JUnitTestResult(moduleName, packageName, className, testName, status, duration, started, null, null));
 						} else if ("build".equals(localName)) {
-							attribute = element.getAttributeByName(new QName("server_id"));
-							if (attribute != null) {
-								serverId = attribute.getValue();
-							}
-							attribute = element.getAttributeByName(new QName("job_id"));
-							if (attribute != null) {
-								jobId = attribute.getValue();
-							}
-							attribute = element.getAttributeByName(new QName("build_id"));
-							if (attribute != null) {
-								buildId = attribute.getValue();
-							}
-							attribute = element.getAttributeByName(new QName("sub_type"));
-							if (attribute != null) {
-								this.subType = attribute.getValue();
+							serverId = element.getAttributeByName(new QName("server_id")).getValue();
+							jobId = element.getAttributeByName(new QName("job_id")).getValue();
+							buildId = element.getAttributeByName(new QName("build_id")).getValue();
+							Attribute subType = element.getAttributeByName(new QName("sub_type"));
+							if (subType != null) {
+								this.subType = subType.getValue();
 							}
 						}
 					}

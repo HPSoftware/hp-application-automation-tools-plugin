@@ -22,16 +22,13 @@
 
 package com.microfocus.application.automation.tools.octane.actions;
 
-import com.hp.octane.integrations.OctaneClient;
 import com.hp.octane.integrations.OctaneSDK;
+import com.hp.octane.integrations.api.TasksProcessor;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.connectivity.HttpMethod;
 import com.hp.octane.integrations.dto.connectivity.OctaneResultAbridged;
 import com.hp.octane.integrations.dto.connectivity.OctaneTaskAbridged;
-import com.hp.octane.integrations.services.tasking.TasksProcessor;
-import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
 import com.microfocus.application.automation.tools.octane.configuration.ConfigApi;
-import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
 import hudson.Extension;
 import hudson.model.RootAction;
 import org.kohsuke.stapler.StaplerRequest;
@@ -71,20 +68,6 @@ public class PluginActions implements RootAction {
 	}
 
 	public void doDynamic(StaplerRequest req, StaplerResponse res) throws IOException {
-		OctaneClient octaneClient = null;
-		for (OctaneServerSettingsModel settings : ConfigurationService.getAllSettings()) {
-			if (settings.isValid() && (octaneClient = OctaneSDK.getClientByInstanceId(settings.getIdentity())) != null) {
-				break;
-			}
-		}
-
-		if (octaneClient == null) {
-			res.setStatus(500);
-			res.getWriter().write("no OctaneClient available");
-			res.flushBuffer();
-			return;
-		}
-
 		HttpMethod method = null;
 		if ("post".equals(req.getMethod().toLowerCase())) {
 			method = HttpMethod.POST;
@@ -101,7 +84,7 @@ public class PluginActions implements RootAction {
 			octaneTaskAbridged.setMethod(method);
 			octaneTaskAbridged.setUrl(req.getRequestURIWithQueryString());
 			octaneTaskAbridged.setBody(getBody(req.getReader()));
-			TasksProcessor taskProcessor = octaneClient.getTasksProcessor();
+			TasksProcessor taskProcessor = OctaneSDK.getInstance().getTasksProcessor();
 			OctaneResultAbridged result = taskProcessor.execute(octaneTaskAbridged);
 
 			res.setStatus(result.getStatus());

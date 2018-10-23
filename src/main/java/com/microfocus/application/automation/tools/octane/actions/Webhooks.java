@@ -43,7 +43,6 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import java.io.*;
 import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Created with IntelliJ IDEA.
@@ -54,11 +53,11 @@ import java.util.Map;
  */
 
 @Extension
-public class Webhooks implements UnprotectedRootAction {
+public class Webhooks implements UnprotectedRootAction  {
 	private static final Logger logger = LogManager.getLogger(Webhooks.class);
 	// url details
-	public static final String WEBHOOK_PATH = "webhooks";
-	public static final String NOTIFY_METHOD = "/notify";
+	public static final String WEBHOOK_PATH =  "webhooks";
+	public static final String NOTIFY_METHOD =  "/notify";
 
 	// json parameter names
 	private final String PROJECT = "project";
@@ -66,7 +65,7 @@ public class Webhooks implements UnprotectedRootAction {
 	private final String IS_EXPECTING_FILE_NAME = "is_expecting.txt";
 	private final String JOB_NAME_PARAM_NAME = "sonar.analysis.jobName";
 	private final String BUILD_NUMBER_PARAM_NAME = "sonar.analysis.buildNumber";
-	private static final String PROJECT_KEY_HEADER = "X-SonarQube-Project";
+    private static final String PROJECT_KEY_HEADER = "X-SonarQube-Project";
 
 	public String getIconFileName() {
 		return null;
@@ -84,19 +83,19 @@ public class Webhooks implements UnprotectedRootAction {
 		return new ConfigApi();
 	}
 
+
 	@RequirePOST
-	public void doNotify(StaplerRequest req, StaplerResponse res) throws IOException {
-		logger.info("Received POST from " + req.getRemoteHost());
+	public void doNotify(StaplerRequest req, StaplerResponse res) throws IOException { logger.info("Received POST from " + req.getRemoteHost());
 		// legal user, handle request
 		JSONObject inputNotification = (JSONObject) JSONValue.parse(req.getInputStream());
 		Object properties = inputNotification.get("properties");
 		// without build context, could not send octane relevant data
-		if (!req.getHeader(PROJECT_KEY_HEADER).isEmpty() && properties instanceof Map) {
+		if (!req.getHeader(PROJECT_KEY_HEADER).isEmpty() && properties != null && properties instanceof HashMap) {
 			// get relevant parameters
-			Map sonarAttachedProperties = (Map) properties;
+			HashMap sonarAttachedProperties = ((HashMap) properties);
 			// filter notifications from sonar projects, who haven't configured listener parameters
 			if (sonarAttachedProperties.containsKey(BUILD_NUMBER_PARAM_NAME) && sonarAttachedProperties.containsKey(JOB_NAME_PARAM_NAME)) {
-				String buildId = (String) (sonarAttachedProperties.get(BUILD_NUMBER_PARAM_NAME));
+				String buildId = (String)(sonarAttachedProperties.get(BUILD_NUMBER_PARAM_NAME));
 				String jobName = (String) sonarAttachedProperties.get(JOB_NAME_PARAM_NAME);
 				// get sonar details from job configuration
 				TopLevelItem jenkinsJob = Jenkins.getInstance().getItem(jobName);
@@ -115,7 +114,7 @@ public class Webhooks implements UnprotectedRootAction {
 								String sonarProjectKey = (String) project.get(SONAR_PROJECT_KEY_NAME);
 
 								// use SDK to fetch and push data
-								OctaneSDK.getClients().forEach(octaneClient -> octaneClient.getSonarService().enqueueFetchAndPushSonarCoverage(jobName, buildId, sonarProjectKey, action.getServerUrl(), sonarToken));
+								OctaneSDK.getInstance().getSonarService().enqueueFetchAndPushSonarCoverageToOctane(jobName, buildId, sonarProjectKey, action.getServerUrl(), sonarToken);
 								markBuildAsRecievedWebhookCall(build);
 								res.setStatus(HttpStatus.SC_OK); // sonar should get positive feedback for webhook
 							}
@@ -136,9 +135,8 @@ public class Webhooks implements UnprotectedRootAction {
 	 * this method checks if build already got webhook call.
 	 * we are only handling the first call, laters call for the same build
 	 * will be rejected
-	 *
-	 * @param build build
-	 * @return result
+	 * @param build
+	 * @return
 	 */
 	private Boolean isBuildAlreadyGotWebhookCall(AbstractBuild build) {
 		try {
@@ -155,19 +153,22 @@ public class Webhooks implements UnprotectedRootAction {
 
 	/**
 	 * use build action to decide whether we need to get a webhook call from sonarqube
-	 *
-	 * @param build build
+	 * @param build
 	 * @return true or false
 	 */
 	private Boolean isBuildExpectingToGetWebhookCall(AbstractBuild build) {
 		WebhookExpectationAction action = build.getAction(WebhookExpectationAction.class);
-		return action != null && action.getExpectingToGetWebhookCall();
+		if (action != null && action.getExpectingToGetWebhookCall()) {
+			return true;
+		}
+		return false;
 	}
+
 
 	// we may get notifications from sonar project of jobs without sonar configuration
 	// or jobs of other CI servers, using this method, we ignore these notifications
 	private boolean isValidJenkinsJob(TopLevelItem jenkinsJob) {
-		return jenkinsJob instanceof AbstractProject;
+		return jenkinsJob != null && jenkinsJob instanceof AbstractProject;
 	}
 
 	// get build build number and jenkins job
@@ -179,7 +180,6 @@ public class Webhooks implements UnprotectedRootAction {
 		}
 		return null;
 	}
-
 	// we may get notifications from sonar project of jobs without sonar configuration
 	// or jobs of other CI servers, using this method, we ignore these notifications
 	private boolean isValidJenkinsBuildNumber(AbstractProject jenkinsProject, Integer buildNumber) {
@@ -193,9 +193,8 @@ public class Webhooks implements UnprotectedRootAction {
 
 	/**
 	 * this method persist the fact a specific build got webhook call.
-	 *
-	 * @param build build
-	 * @throws IOException exception
+	 * @param build
+	 * @throws IOException
 	 */
 	private void markBuildAsRecievedWebhookCall(AbstractBuild build) throws IOException {
 		if (build == null) {

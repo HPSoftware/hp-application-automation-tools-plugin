@@ -1,4 +1,5 @@
 /*
+ *
  *  Certain versions of software and/or documents (“Material”) accessible here may contain branding from
  *  Hewlett-Packard Company (now HP Inc.) and Hewlett Packard Enterprise Company.  As of September 1, 2017,
  *  the Material is now offered by Micro Focus, a separately owned and operated company.  Any reference to the HP
@@ -16,38 +17,33 @@
  * or editorial errors or omissions contained herein.
  * The information contained herein is subject to change without notice.
  * ___________________________________________________________________
+ *
  */
 
-package com.microfocus.application.automation.tools.octane;
+package com.microfocus.application.automation.tools.octane.events;
 
-import com.hp.octane.integrations.dto.DTOFactory;
-import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
-import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
-import hudson.util.Secret;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.jvnet.hudson.test.JenkinsRule;
+import com.google.inject.Inject;
+import com.microfocus.application.automation.tools.octane.vulnerabilities.VulnerabilitiesListener;
+import hudson.Extension;
+import hudson.model.Run;
+import hudson.model.listeners.RunListener;
 
-import java.util.UUID;
+/**
+ * Created by dshmaya on 25/07/2018
+ * Jenkins events listener to send Security Scan results to octane
+ */
 
-public abstract class OctanePluginTestBase {
-	protected static final DTOFactory dtoFactory = DTOFactory.getInstance();
-	protected static String instanceId = UUID.randomUUID().toString();
-	protected static String ssp = UUID.randomUUID().toString();
+@Extension
+public class SSMListenerImpl extends RunListener<Run> {
 
-	@ClassRule
-	public static final JenkinsRule rule = new JenkinsRule();
-	public static final JenkinsRule.WebClient client = rule.createWebClient();
+    @Inject
+    private VulnerabilitiesListener vulnerabilitiesListener;
 
-	@BeforeClass
-	public static void init() {
+    @Override
+    public void onFinalized(Run run) {
 
-		OctaneServerSettingsModel model = new OctaneServerSettingsModel(
-				"http://localhost:8008/ui/?p=" + ssp,
-				"username",
-				Secret.fromString("password"),
-				"");
-		model.setIdentity(instanceId);
-		ConfigurationService.configurePlugin(model);
-	}
+        vulnerabilitiesListener.processBuild(run);
+    }
+
+
 }

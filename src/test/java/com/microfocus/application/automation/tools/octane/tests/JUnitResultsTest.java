@@ -22,7 +22,7 @@
 
 package com.microfocus.application.automation.tools.octane.tests;
 
-import com.microfocus.application.automation.tools.octane.OctanePluginTestBase;
+import com.microfocus.application.automation.tools.octane.ResultQueue;
 import com.microfocus.application.automation.tools.octane.tests.junit.TestResultStatus;
 import hudson.matrix.*;
 import hudson.maven.MavenModuleSet;
@@ -30,18 +30,15 @@ import hudson.model.AbstractBuild;
 import hudson.model.FreeStyleProject;
 import hudson.tasks.Maven;
 import hudson.tasks.junit.JUnitResultArchiver;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
+import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.ToolInstallations;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 @SuppressWarnings({"squid:S2699","squid:S3658","squid:S2259","squid:S1872","squid:S2925","squid:S109","squid:S1607","squid:S2701","squid:S2698"})
-public class JUnitResultsTest extends OctanePluginTestBase {
+public class JUnitResultsTest {
 
 	private static Set<String> helloWorld2Tests = new HashSet<>();
 
@@ -59,13 +56,30 @@ public class JUnitResultsTest extends OctanePluginTestBase {
 		subFolderHelloWorldTests.add(TestUtils.testSignature("subFolder/helloWorld", "hello", "HelloWorldTest", "testThree", TestResultStatus.SKIPPED));
 	}
 
+	@ClassRule
+	public static final JenkinsRule rule = new JenkinsRule();
 	private static String mavenName;
+
+	private TestQueue queue;
 
 	@BeforeClass
 	public static void prepareClass() throws Exception {
 		rule.jenkins.setNumExecutors(10);
 		Maven.MavenInstallation mavenInstallation = ToolInstallations.configureMaven3();
+
+//		Maven.MavenInstallation mavenInstallation = new Maven.MavenInstallation("default-system-maven", System.getenv("MAVEN_HOME"), JenkinsRule.NO_PROPERTIES);
 		mavenName = mavenInstallation.getName();
+	}
+
+	@Before
+	public void prepareTest() {
+		TestUtils.createDummyConfiguration();
+
+		TestListener testListener = ExtensionUtil.getInstance(rule, TestListener.class);
+		queue = new TestQueue();
+		testListener._setTestResultQueue(queue);
+
+
 	}
 
 	@Test
@@ -74,13 +88,13 @@ public class JUnitResultsTest extends OctanePluginTestBase {
 		FreeStyleProject project = rule.createFreeStyleProject(projectName);
 
 		project.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" clean test -Dmaven.repo.local=%s\\m2-temp",
-				TestUtils.getMavenHome(), System.getenv("TEMP")), mavenName, null, null, "-Dmaven.test.failure.ignore=true"));
+				System.getenv("MAVEN_HOME"),System.getenv("TEMP")), mavenName, null, null, "-Dmaven.test.failure.ignore=true"));
 		project.getPublishersList().add(new JUnitResultArchiver("**/target/surefire-reports/*.xml"));
 		project.setScm(new CopyResourceSCM("/helloWorldRoot"));
 		AbstractBuild build = TestUtils.runAndCheckBuild(project);
 
 		matchTests(build, projectName, TestUtils.helloWorldTests, helloWorld2Tests);
-//		Assert.assertEquals(Collections.singleton(projectName + "#1"), getQueuedItems());
+		Assert.assertEquals(Collections.singleton(projectName + "#1"), getQueuedItems());
 	}
 
 	@Test
@@ -89,13 +103,13 @@ public class JUnitResultsTest extends OctanePluginTestBase {
 		FreeStyleProject project = rule.createFreeStyleProject(projectName);
 
 		project.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" clean test -Dmaven.repo.local=%s\\m2-temp",
-				TestUtils.getMavenHome(), System.getenv("TEMP")), mavenName, "subFolder/helloWorld/pom.xml", null, "-Dmaven.test.failure.ignore=true"));
+				System.getenv("MAVEN_HOME"),System.getenv("TEMP")), mavenName, "subFolder/helloWorld/pom.xml", null, "-Dmaven.test.failure.ignore=true"));
 		project.getPublishersList().add(new JUnitResultArchiver("**/target/surefire-reports/*.xml"));
 		project.setScm(new CopyResourceSCM("/helloWorldRoot", "subFolder"));
 		AbstractBuild build = TestUtils.runAndCheckBuild(project);
 
 		matchTests(build, projectName, subFolderHelloWorldTests);
-//		Assert.assertEquals(Collections.singleton(projectName + "#1"), getQueuedItems());
+		Assert.assertEquals(Collections.singleton(projectName + "#1"), getQueuedItems());
 	}
 
 	@Test
@@ -104,13 +118,13 @@ public class JUnitResultsTest extends OctanePluginTestBase {
 		FreeStyleProject project = rule.createFreeStyleProject(projectName);
 
 		project.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" clean test -Dmaven.repo.local=%s\\m2-temp",
-				TestUtils.getMavenHome(), System.getenv("TEMP")), mavenName, "pom.xml", null, "-Dmaven.test.failure.ignore=true"));
+				System.getenv("MAVEN_HOME"), System.getenv("TEMP")), mavenName, "helloWorld/pom.xml", null, "-Dmaven.test.failure.ignore=true"));
 		project.getPublishersList().add(new JUnitResultArchiver("**/target/surefire-reports/*.xml"));
 		project.setScm(new CopyResourceSCM("/helloWorldRoot"));
 		AbstractBuild build = TestUtils.runAndCheckBuild(project);
 
 		matchTests(build, projectName, TestUtils.helloWorldTests, helloWorld2Tests);
-//		Assert.assertEquals(Collections.singleton(projectName + "#1"), getQueuedItems());
+		Assert.assertEquals(Collections.singleton(projectName + "#1"), getQueuedItems());
 	}
 
 	@Test
@@ -120,14 +134,14 @@ public class JUnitResultsTest extends OctanePluginTestBase {
 		project.runHeadless();
 
 		project.setMaven(mavenName);
-		project.setGoals(String.format("clean test --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=%s\\m2-temp -Dmaven.test.failure.ignore=true",
-				TestUtils.getMavenHome(), System.getenv("TEMP")));
+		project.setGoals(String.format("clean test --settings %s\\conf\\settings.xml -Dmaven.repo.local=%s\\m2-temp -Dmaven.test.failure.ignore=true",
+				System.getenv("MAVEN_HOME"),System.getenv("TEMP")));
 		project.getPublishersList().add(new JUnitResultArchiver("**/target/surefire-reports/*.xml"));
 		project.setScm(new CopyResourceSCM("/helloWorldRoot"));
 		AbstractBuild build = TestUtils.runAndCheckBuild(project);
 
 		matchTests(build, projectName, TestUtils.helloWorldTests, helloWorld2Tests);
-//		Assert.assertEquals(Collections.singleton(projectName + "#1"), getQueuedItems());
+		Assert.assertEquals(Collections.singleton(projectName + "#1"), getQueuedItems());
 	}
 
 	@Test
@@ -137,13 +151,13 @@ public class JUnitResultsTest extends OctanePluginTestBase {
 		project.runHeadless();
 
 		project.setMaven(mavenName);
-		project.setGoals(String.format("clean test --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=%s\\m2-temp -Dmaven.test.failure.ignore=true",
-				TestUtils.getMavenHome(), System.getenv("TEMP")));
+		project.setGoals(String.format("clean test --settings %s\\conf\\settings.xml -Dmaven.repo.local=%s\\m2-temp -Dmaven.test.failure.ignore=true",
+				System.getenv("MAVEN_HOME"),System.getenv("TEMP")));
 		project.setScm(new CopyResourceSCM("/helloWorldRoot"));
 		AbstractBuild build = TestUtils.runAndCheckBuild(project);
 
 		matchTests(build, projectName, TestUtils.helloWorldTests, helloWorld2Tests);
-//		Assert.assertEquals(Collections.singleton(projectName + "#1"), getQueuedItems());
+		Assert.assertEquals(Collections.singleton(projectName + "#1"), getQueuedItems());
 	}
 
 	@Test
@@ -154,14 +168,14 @@ public class JUnitResultsTest extends OctanePluginTestBase {
 
 		project.setMaven(mavenName);
 		project.setRootPOM("subFolder/helloWorld/pom.xml");
-		project.setGoals(String.format("clean test --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=%s\\m2-temp -Dmaven.test.failure.ignore=true",
-				TestUtils.getMavenHome(), System.getenv("TEMP")));
+		project.setGoals(String.format("clean test --settings %s\\conf\\settings.xml -Dmaven.repo.local=%s\\m2-temp -Dmaven.test.failure.ignore=true",
+				System.getenv("MAVEN_HOME"),System.getenv("TEMP")));
 		project.getPublishersList().add(new JUnitResultArchiver("**/target/surefire-reports/*.xml"));
 		project.setScm(new CopyResourceSCM("/helloWorldRoot", "subFolder"));
 		AbstractBuild build = TestUtils.runAndCheckBuild(project);
 
 		matchTests(build, projectName, subFolderHelloWorldTests);
-//		Assert.assertEquals(Collections.singleton(projectName + "#1"), getQueuedItems());
+		Assert.assertEquals(Collections.singleton(projectName + "#1"), getQueuedItems());
 	}
 
 	@Test
@@ -176,7 +190,7 @@ public class JUnitResultsTest extends OctanePluginTestBase {
 		AbstractBuild build = TestUtils.runAndCheckBuild(project);
 
 		matchTests(build, projectName, uftTests);
-//		Assert.assertEquals(Collections.singleton(projectName + "#1"), getQueuedItems());
+		Assert.assertEquals(Collections.singleton(projectName + "#1"), getQueuedItems());
 	}
 
 	@Test
@@ -186,13 +200,13 @@ public class JUnitResultsTest extends OctanePluginTestBase {
 		FreeStyleProject project = rule.createFreeStyleProject(projectName);
 
 		project.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" clean test -Dmaven.repo.local=%s\\m2-temp",
-				TestUtils.getMavenHome(), System.getenv("TEMP")), mavenName, null, null, "-Dmaven.test.failure.ignore=true"));
+				System.getenv("MAVEN_HOME"),System.getenv("TEMP")), mavenName, null, null, "-Dmaven.test.failure.ignore=true"));
 		project.getPublishersList().add(new JUnitResultArchiver("**/target/surefire-reports/*.xml"));
 		project.setScm(new CopyResourceSCM("/helloWorldRoot"));
 		AbstractBuild build = TestUtils.runAndCheckBuild(project);
 
 		matchTests(build, projectName, TestUtils.helloWorldTests, helloWorld2Tests);
-//		Assert.assertEquals(Collections.singleton(projectName + "#1"), getQueuedItems());
+		Assert.assertEquals(Collections.singleton(projectName + "#1"), getQueuedItems());
 	}
 
 	@Test
@@ -202,7 +216,7 @@ public class JUnitResultsTest extends OctanePluginTestBase {
 		matrixProject.setAxes(new AxisList(new Axis("osType", "Linux", "Windows")));
 
         matrixProject.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" clean test -Dmaven.test.failure.ignore=true -Dmaven.repo.local=%s\\m2-temp -X",
-				TestUtils.getMavenHome(), System.getenv("TEMP")), mavenName));
+				System.getenv("MAVEN_HOME"),System.getenv("TEMP")), mavenName));
 
         matrixProject.getPublishersList().add(new JUnitResultArchiver("**/target/surefire-reports/*.xml"));
 		matrixProject.setScm(new CopyResourceSCM("/helloWorldRoot"));
@@ -211,8 +225,18 @@ public class JUnitResultsTest extends OctanePluginTestBase {
 		for (MatrixRun run : build.getExactRuns()) {
 			matchTests(run, projectName, TestUtils.helloWorldTests, helloWorld2Tests);
 		}
-//		Assert.assertEquals(new HashSet<>(Arrays.asList(projectName + "/osType=Windows#1", projectName + "/osType=Linux#1")), getQueuedItems());
+		Assert.assertEquals(new HashSet<>(Arrays.asList(projectName + "/osType=Windows#1", projectName + "/osType=Linux#1")), getQueuedItems());
 		Assert.assertFalse(new File(build.getRootDir(), "mqmTests.xml").exists());
+	}
+
+	private Set<String> getQueuedItems() {
+		Set<String> ret = new HashSet<>();
+		ResultQueue.QueueItem item;
+		while ((item = queue.peekFirst()) != null) {
+			ret.add(item.getProjectName() + "#" + item.getBuildNumber());
+			queue.remove();
+		}
+		return ret;
 	}
 
 	private void matchTests(AbstractBuild build, String projectName, Set<String>... expectedTests) throws FileNotFoundException {

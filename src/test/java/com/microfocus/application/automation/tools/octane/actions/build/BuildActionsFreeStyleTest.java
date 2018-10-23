@@ -27,14 +27,15 @@ import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.causes.CIEventCauseType;
 import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.parameters.CIParameterType;
+import com.hp.octane.integrations.dto.snapshots.SnapshotNode;
 import com.hp.octane.integrations.dto.snapshots.CIBuildResult;
 import com.hp.octane.integrations.dto.snapshots.CIBuildStatus;
-import com.hp.octane.integrations.dto.snapshots.SnapshotNode;
-import com.microfocus.application.automation.tools.octane.OctanePluginTestBase;
 import com.microfocus.application.automation.tools.octane.actions.Utils;
 import hudson.model.*;
 import hudson.plugins.parameterizedtrigger.*;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.jvnet.hudson.test.JenkinsRule;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -51,8 +52,11 @@ import static org.junit.Assert.*;
  * To change this template use File | Settings | File Templates.
  */
 
-public class BuildActionsFreeStyleTest extends OctanePluginTestBase {
+public class BuildActionsFreeStyleTest {
 	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
+
+	@ClassRule
+	public static final JenkinsRule rule = new JenkinsRule();
 
 	//  Snapshot: free-style, no params, no children
 	//
@@ -62,6 +66,7 @@ public class BuildActionsFreeStyleTest extends OctanePluginTestBase {
 		int retries = 0;
 		FreeStyleProject p = rule.createFreeStyleProject(projectName);
 
+		JenkinsRule.WebClient client = rule.createWebClient();
 		Page page;
 		SnapshotNode snapshot;
 
@@ -106,6 +111,7 @@ public class BuildActionsFreeStyleTest extends OctanePluginTestBase {
 		));
 		p.addProperty(params);
 
+		JenkinsRule.WebClient client = rule.createWebClient();
 		Page page;
 		SnapshotNode snapshot;
 		CIParameter tmpParam;
@@ -189,6 +195,7 @@ public class BuildActionsFreeStyleTest extends OctanePluginTestBase {
 		));
 		p.addProperty(params);
 
+		JenkinsRule.WebClient client = rule.createWebClient();
 		Page page;
 		SnapshotNode snapshot;
 

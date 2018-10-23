@@ -23,7 +23,6 @@
 package com.microfocus.application.automation.tools.octane.tests.detection;
 
 import com.google.inject.Inject;
-import com.microfocus.application.automation.tools.octane.OctanePluginTestBase;
 import com.microfocus.application.automation.tools.octane.tests.CopyResourceSCM;
 import com.microfocus.application.automation.tools.octane.tests.TestUtils;
 import hudson.FilePath;
@@ -41,6 +40,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.ToolInstallations;
 
 import javax.xml.stream.XMLStreamException;
@@ -52,7 +52,10 @@ import java.util.Map;
 import java.util.UUID;
 
 @SuppressWarnings({"squid:S2698","squid:S2699","squid:S3658"})
-public class TestNGExtensionTest extends OctanePluginTestBase {
+public class TestNGExtensionTest {
+
+	@ClassRule
+	public static final JenkinsRule rule = new JenkinsRule();
 
 	@ClassRule
 	public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -65,6 +68,7 @@ public class TestNGExtensionTest extends OctanePluginTestBase {
 	@Before
 	public void setUp() throws Exception {
 		mavenName = ToolInstallations.configureMaven3().getName();
+		TestUtils.createDummyConfiguration();
 	}
 
 	@Test
@@ -74,7 +78,7 @@ public class TestNGExtensionTest extends OctanePluginTestBase {
 		FreeStyleProject project = rule.createFreeStyleProject(projectName);
 		project.setScm(new CopyResourceSCM("/helloWorldTestNGRoot"));
 		project.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" test -Dmaven.repo.local=%s\\m2-temp",
-				TestUtils.getMavenHome(),System.getenv("TEMP")), mavenName, null, null, "-Dmaven.test.failure.ignore=true"));
+				System.getenv("MAVEN_HOME"),System.getenv("TEMP")), mavenName, null, null, "-Dmaven.test.failure.ignore=true"));
 		project.getPublishersList().add(new JUnitResultArchiver("helloWorld/target/surefire-reports/TEST*.xml, helloWorld2/target/surefire-reports/TEST*.xml"));
 		AbstractBuild build = TestUtils.runAndCheckBuild(project);
 
@@ -88,7 +92,7 @@ public class TestNGExtensionTest extends OctanePluginTestBase {
 		FreeStyleProject project = rule.createFreeStyleProject(projectName);
 		project.setScm(new CopyResourceSCM("/helloWorldTestNGRoot/helloWorld"));
 		project.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" test -Dmaven.repo.local=%s\\m2-temp",
-				TestUtils.getMavenHome(),System.getenv("TEMP")), mavenName, null, null, "-Dmaven.test.failure.ignore=true"));
+				System.getenv("MAVEN_HOME"),System.getenv("TEMP")), mavenName, null, null, "-Dmaven.test.failure.ignore=true"));
 		project.getPublishersList().add(new JUnitResultArchiver("target/surefire-reports/TEST*.xml"));
 		AbstractBuild build = TestUtils.runAndCheckBuild(project);
 
@@ -102,7 +106,7 @@ public class TestNGExtensionTest extends OctanePluginTestBase {
 		FreeStyleProject project = rule.createFreeStyleProject(projectName);
 		project.setScm(new CopyResourceSCM("/helloWorldTestNGRoot"));
 		project.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" test -P custom-report-location -Dmaven.repo.local=%s\\m2-temp",
-				TestUtils.getMavenHome(),System.getenv("TEMP")), mavenName, null, null, "-Dmaven.test.failure.ignore=true"));
+				System.getenv("MAVEN_HOME"),System.getenv("TEMP")), mavenName, null, null, "-Dmaven.test.failure.ignore=true"));
 		project.getPublishersList().add(new JUnitResultArchiver("**\\custom-report-location/**.xml"));
 		AbstractBuild build = TestUtils.runAndCheckBuild(project);
 
@@ -117,7 +121,7 @@ public class TestNGExtensionTest extends OctanePluginTestBase {
 		mavenProject.runHeadless();
 		mavenProject.setMaven(mavenName);
 		//mavenProject.setGoals("test -Dmaven.test.failure.ignore=true");
-		mavenProject.setGoals(String.format("test --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=\"%s\\m2-temp\" -Dmaven.test.failure.ignore=true",TestUtils.getMavenHome(),System.getenv("TEMP")));
+		mavenProject.setGoals(String.format("test --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=\"%s\\m2-temp\" -Dmaven.test.failure.ignore=true",System.getenv("MAVEN_HOME"),System.getenv("TEMP")));
 		mavenProject.setScm(new CopyResourceSCM("/helloWorldTestNGRoot/helloWorld"));
 		AbstractBuild build = TestUtils.runAndCheckBuild(mavenProject);
 
@@ -133,7 +137,7 @@ public class TestNGExtensionTest extends OctanePluginTestBase {
 		mavenProject.setMaven(mavenName);
 		//mavenProject.setGoals("test -Dmaven.test.failure.ignore=true");
 		mavenProject.setGoals(String.format("test --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=\"%s\\m2-temp\" -Dmaven.test.failure.ignore=true",
-				TestUtils.getMavenHome(),System.getenv("TEMP")));
+				System.getenv("MAVEN_HOME"),System.getenv("TEMP")));
 		mavenProject.setScm(new CopyResourceSCM("/helloWorldTestNGRoot"));
 		MavenModuleSetBuild build = (MavenModuleSetBuild) TestUtils.runAndCheckBuild(mavenProject);
 
@@ -159,7 +163,7 @@ public class TestNGExtensionTest extends OctanePluginTestBase {
 		mavenProject.setMaven(mavenName);
 		//mavenProject.setGoals("test -P custom-report-location -Dmaven.test.failure.ignore=true");
 		mavenProject.setGoals(String.format("test -P custom-report-location --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=\"%s\\m2-temp\" -Dmaven.test.failure.ignore=true",
-				TestUtils.getMavenHome(),System.getenv("TEMP")));
+				System.getenv("MAVEN_HOME"),System.getenv("TEMP")));
 
 		mavenProject.setScm(new CopyResourceSCM("/helloWorldTestNGRoot/helloWorld"));
 		AbstractBuild build = TestUtils.runAndCheckBuild(mavenProject);
@@ -179,7 +183,7 @@ public class TestNGExtensionTest extends OctanePluginTestBase {
 		mavenProject.setMaven(mavenName);
 		//mavenProject.setGoals("test -P custom-report-location -Dmaven.test.failure.ignore=true");
 		mavenProject.setGoals(String.format("test -P custom-report-location --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=\"%s\\m2-temp\" -Dmaven.test.failure.ignore=true",
-				TestUtils.getMavenHome(),System.getenv("TEMP")));
+				System.getenv("MAVEN_HOME"),System.getenv("TEMP")));
 		mavenProject.setScm(new CopyResourceSCM("/helloWorldTestNGRoot"));
 		AbstractBuild build = TestUtils.runAndCheckBuild(mavenProject);
 
@@ -198,7 +202,7 @@ public class TestNGExtensionTest extends OctanePluginTestBase {
 		mavenProject.setMaven(mavenName);
 		//mavenProject.setGoals("test -P custom-report-location -Dmaven.test.failure.ignore=true");
 		mavenProject.setGoals(String.format("test -P custom-report-location --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=\"%s\\m2-temp\" -Dmaven.test.failure.ignore=true",
-				TestUtils.getMavenHome(),System.getenv("TEMP")));
+				System.getenv("MAVEN_HOME"),System.getenv("TEMP")));
 		mavenProject.getPublishersList().add(new JUnitResultArchiver("**/custom-report-location/**.xml"));
 		mavenProject.setScm(new CopyResourceSCM("/helloWorldTestNGRoot"));
 		AbstractBuild build = TestUtils.runAndCheckBuild(mavenProject);
@@ -215,7 +219,7 @@ public class TestNGExtensionTest extends OctanePluginTestBase {
 		mavenProject.setMaven(mavenName);
 		//mavenProject.setGoals("verify");
 		mavenProject.setGoals(String.format("verify --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=\"%s\\m2-temp\" -Dmaven.test.failure.ignore=true",
-				TestUtils.getMavenHome(),System.getenv("TEMP")));
+				System.getenv("MAVEN_HOME"),System.getenv("TEMP")));
 		mavenProject.setScm(new CopyResourceSCM("/helloWorldFailsafe"));
 		AbstractBuild build = TestUtils.runAndCheckBuild(mavenProject);
 
@@ -266,7 +270,7 @@ public class TestNGExtensionTest extends OctanePluginTestBase {
 		mavenProject.setMaven(mavenName);
 
 		//mavenProject.setGoals("test -Dmaven.test.failure.ignore=true");
-		mavenProject.setGoals(String.format("test --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=\"%s\\m2-temp\" -Dmaven.test.failure.ignore=true",TestUtils.getMavenHome(),System.getenv("TEMP")));
+		mavenProject.setGoals(String.format("test --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=\"%s\\m2-temp\" -Dmaven.test.failure.ignore=true",System.getenv("MAVEN_HOME"),System.getenv("TEMP")));
 		mavenProject.setScm(new CopyResourceSCM("/helloWorldRoot/helloWorld"));
 		MavenModuleSetBuild build = (MavenModuleSetBuild) TestUtils.runAndCheckBuild(mavenProject);
 
@@ -297,7 +301,7 @@ public class TestNGExtensionTest extends OctanePluginTestBase {
 		mavenProject.runHeadless();
 		mavenProject.setMaven(mavenName);
 		//mavenProject.setGoals("test -Dmaven.test.failure.ignore=true");
-		mavenProject.setGoals(String.format("test --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=\"%s\\m2-temp\" -Dmaven.test.failure.ignore=true",TestUtils.getMavenHome(),System.getenv("TEMP")));
+		mavenProject.setGoals(String.format("test --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=\"%s\\m2-temp\" -Dmaven.test.failure.ignore=true",System.getenv("MAVEN_HOME"),System.getenv("TEMP")));
 		mavenProject.setScm(new CopyResourceSCM("/helloWorldRoot/helloWorld"));
 		MavenModuleSetBuild build = (MavenModuleSetBuild) TestUtils.runAndCheckBuild(mavenProject);
 

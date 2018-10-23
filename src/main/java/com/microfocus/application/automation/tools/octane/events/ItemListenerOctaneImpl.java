@@ -25,7 +25,6 @@ import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.microfocus.application.automation.tools.octane.model.processors.projects.JobProcessorFactory;
-import com.microfocus.application.automation.tools.settings.OctaneServerSettingsBuilder;
 import hudson.Extension;
 import hudson.model.Item;
 import hudson.model.listeners.ItemListener;
@@ -41,14 +40,9 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
  */
 
 @Extension
-public class GlobalEventsListenerOctaneImpl extends ItemListener {
-	private static final Logger logger = LogManager.getLogger(GlobalEventsListenerOctaneImpl.class);
+public class ItemListenerOctaneImpl extends ItemListener {
+	private static final Logger logger = LogManager.getLogger(ItemListenerOctaneImpl.class);
 	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
-
-	@Override
-	public void onLoaded() {
-		OctaneServerSettingsBuilder.getOctaneSettingsManager().initOctaneClients();
-	}
 
 	@Override
 	public void onDeleted(Item item) {
@@ -59,15 +53,10 @@ public class GlobalEventsListenerOctaneImpl extends ItemListener {
 						.setEventType(CIEventType.DELETED)
 						.setProject(JobProcessorFactory.getFlowProcessor((WorkflowJob) item).getTranslateJobName());
 
-				OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(event));
+				OctaneSDK.getInstance().getEventsService().publishEvent(event);
 			}
 		} catch (Throwable throwable) {
 			logger.error("failed to build and/or dispatch DELETED event for " + item, throwable);
 		}
-	}
-
-	@Override
-	public void onBeforeShutdown() {
-		OctaneSDK.getClients().forEach(OctaneSDK::removeClient);
 	}
 }

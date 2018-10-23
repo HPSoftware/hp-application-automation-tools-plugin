@@ -23,6 +23,7 @@ package com.microfocus.application.automation.tools.octane.events;
 import com.google.inject.Inject;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.DTOFactory;
+
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.MultiBranchType;
@@ -99,7 +100,7 @@ public class WorkflowListenerOctaneImpl implements GraphListener {
 					.setProjectDisplayName(parentRun.getParent().getFullName());
 		}
 
-		OctaneSDK.getClients().forEach(octaneClient -> octaneClient.getEventsService().publishEvent(event));
+		OctaneSDK.getInstance().getEventsService().publishEvent(event);
 	}
 
 	private void sendPipelineFinishedEvent(FlowEndNode flowEndNode) {
@@ -118,7 +119,7 @@ public class WorkflowListenerOctaneImpl implements GraphListener {
 				.setResult(BuildHandlerUtils.translateRunResult(parentRun))
 				.setCauses(CIEventCausesFactory.processCauses(parentRun))
 				.setTestResultExpected(hasTests);
-		OctaneSDK.getClients().forEach(octaneClient -> octaneClient.getEventsService().publishEvent(event));
+		OctaneSDK.getInstance().getEventsService().publishEvent(event);
 	}
 
 	private void sendStageStartedEvent(StepStartNode stepStartNode) {
@@ -133,7 +134,7 @@ public class WorkflowListenerOctaneImpl implements GraphListener {
 				.setNumber(String.valueOf(parentRun.getNumber()))
 				.setStartTime(TimingAction.getStartTime(stepStartNode))
 				.setCauses(CIEventCausesFactory.processCauses(stepStartNode));
-		OctaneSDK.getClients().forEach(octaneClient -> octaneClient.getEventsService().publishEvent(event));
+		OctaneSDK.getInstance().getEventsService().publishEvent(event);
 	}
 
 	private void sendStageFinishedEvent(StepEndNode stepEndNode) {
@@ -150,7 +151,7 @@ public class WorkflowListenerOctaneImpl implements GraphListener {
 				.setDuration(TimingAction.getStartTime(stepEndNode) - TimingAction.getStartTime(stepStartNode))
 				.setResult(extractFlowNodeResult(stepEndNode))
 				.setCauses(CIEventCausesFactory.processCauses(stepEndNode));
-		OctaneSDK.getClients().forEach(octaneClient -> octaneClient.getEventsService().publishEvent(event));
+		OctaneSDK.getInstance().getEventsService().publishEvent(event);
 	}
 
 	private CIBuildResult extractFlowNodeResult(FlowNode node) {

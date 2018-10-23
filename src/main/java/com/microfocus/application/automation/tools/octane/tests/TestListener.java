@@ -20,7 +20,8 @@
 
 package com.microfocus.application.automation.tools.octane.tests;
 
-import com.hp.octane.integrations.OctaneSDK;
+import com.google.inject.Inject;
+import com.microfocus.application.automation.tools.octane.ResultQueue;
 import com.microfocus.application.automation.tools.octane.model.processors.projects.JobProcessorFactory;
 import com.microfocus.application.automation.tools.octane.tests.build.BuildHandlerUtils;
 import com.microfocus.application.automation.tools.octane.tests.detection.UFTExtension;
@@ -48,6 +49,8 @@ public class TestListener {
 	private static final String STORMRUNNER_FUNCTIONAL_TEST_RUNNER_CLASS = "RunFromSrfBuilder";
 	private static final String PERFORMANCE_CENTER_TEST_RUNNER_CLASS = "PcBuilder";
 	public static final String TEST_RESULT_FILE = "mqmTests.xml";
+
+	private ResultQueue queue;
 
 	public boolean processBuild(Run run) {
 		FilePath resultPath = new FilePath(new FilePath(run.getRootDir()), TEST_RESULT_FILE);
@@ -97,8 +100,7 @@ public class TestListener {
 				if (success && hasTests) {
 					String projectFullName = BuildHandlerUtils.getProjectFullName(run);
 					if (projectFullName != null) {
-						OctaneSDK.getClients().forEach(octaneClient ->
-								octaneClient.getTestsService().enqueuePushTestsResult(projectFullName, String.valueOf(run.getNumber())));
+						queue.add(projectFullName, run.getNumber());
 					}
 				}
 			} catch (XMLStreamException xmlse) {
@@ -106,6 +108,18 @@ public class TestListener {
 				logger.error("failed to finalize test results processing", xmlse);
 			}
 		}
-		return success && hasTests;
+		return success && hasTests;//test results expected
+	}
+
+	@Inject
+	public void setTestResultQueue(TestsResultQueue queue) {
+		this.queue = queue;
+	}
+
+	/*
+	 * To be used in tests only.
+	 */
+	public void _setTestResultQueue(ResultQueue queue) {
+		this.queue = queue;
 	}
 }
