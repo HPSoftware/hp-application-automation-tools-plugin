@@ -56,7 +56,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -124,7 +128,19 @@ public class OctaneServerSettingsBuilder extends Builder {
 
 		public OctaneDescriptorImpl() {
 			load();
-			// todo: validate & clean || migrate old config and save
+			if (servers == null) {
+				servers = new OctaneServerSettingsModel[0];
+			}
+
+			//  upgrade flow to add internal ID to configuration
+			boolean shouldSave = false;
+			for (OctaneServerSettingsModel server : servers) {
+				if (server.getInternalId() == null || server.getInternalId().isEmpty()) {
+					server.setInternalId(UUID.randomUUID().toString());
+					shouldSave = true;
+				}
+			}
+			if (shouldSave) save();
 		}
 
 		public void initOctaneClients() {
@@ -142,13 +158,14 @@ public class OctaneServerSettingsBuilder extends Builder {
 		}
 
 		private boolean isInitialConfigValid(OctaneServerSettingsModel[] servers) {
-			if (servers == null) {
+			if (servers.length == 0) {
 				return false;
-			} else if (servers.length > 1) {
+			} else if (servers.length == 1) {
+				OctaneServerSettingsModel innerServerConfiguration = servers[0];
+				return innerServerConfiguration.getLocation() != null && !innerServerConfiguration.getLocation().isEmpty();
+			} else {
 				return true;
 			}
-			OctaneServerSettingsModel innerServerConfiguration = servers[0];
-			return innerServerConfiguration.getLocation() != null && !innerServerConfiguration.getLocation().isEmpty();
 		}
 
 		@Override
@@ -177,11 +194,6 @@ public class OctaneServerSettingsBuilder extends Builder {
 				jsonArray.addAll((JSONArray) data);
 			}
 
-			//	todo: list above contains full list of all configurations
-			//	todo: traverse the list and
-			//		1) apply changes on known instance ID configurations
-			//		2) remove missing configurations
-			//		3) add new configurations
 			handleDeletedConfigurations(jsonArray);
 			for (Object jsonObject : jsonArray) {
 				JSONObject json = (JSONObject) jsonObject;
@@ -224,34 +236,32 @@ public class OctaneServerSettingsBuilder extends Builder {
 				return;
 			}
 
-			Map<String, Integer> index = new HashMap<>();
-			for (int i = 0; i < servers.length; i++) {
-				OctaneServerSettingsModel innerServerConfiguration = servers[i];
+			Set<OctaneServerSettingsModel> serversToRemove = new LinkedHashSet<>();
+			for (OctaneServerSettingsModel server : servers) {
 				boolean configFound = false;
 				for (Object jsonObj : jsonArray) {
-					if (innerServerConfiguration.getInternalId().equals(((JSONObject) jsonObj).getString("internalId"))) {
+					if (server.getInternalId().equals(((JSONObject) jsonObj).getString("internalId"))) {
 						configFound = true;
 						break;
 					}
 				}
 				if (!configFound) {
-					OctaneConfiguration octaneConfiguration = octaneConfigurations.get(innerServerConfiguration.getInternalId());
+					OctaneConfiguration octaneConfiguration = octaneConfigurations.get(server.getInternalId());
 					if (octaneConfiguration != null) {
-						logger.info("Removing client with instance Id: " + innerServerConfiguration.getIdentity());
-						OctaneSDK.removeClient(OctaneSDK.getClientByInstanceId(innerServerConfiguration.getIdentity()));
-						index.put(innerServerConfiguration.getInternalId(), i);
+						logger.info("Removing client with instance Id: " + server.getIdentity());
+						OctaneSDK.removeClient(OctaneSDK.getClientByInstanceId(server.getIdentity()));
+						serversToRemove.add(server);
 					}
 				}
-			}
 
-			for (Map.Entry<String, Integer> entry : index.entrySet()) {
-				System.out.println(entry.getKey() + ":" + entry.getValue());
-				servers = ArrayUtils.remove(servers, entry.getValue().intValue());
-				octaneConfigurations.remove(entry.getKey());
-			}
+				for (OctaneServerSettingsModel serverToRemove : serversToRemove) {
+					servers = ArrayUtils.removeElement(servers, serversToRemove);
+					octaneConfigurations.remove(serverToRemove.getIdentity());
+				}
 
-			if (!index.isEmpty()) {
-				save();
+				if (!serversToRemove.isEmpty()) {
+					save();
+				}
 			}
 		}
 
@@ -269,10 +279,10 @@ public class OctaneServerSettingsBuilder extends Builder {
 			OctaneServerSettingsModel oldModel = getSettingsByInternalId(newModel.getInternalId());
 			//  set identity in new model
 			if (oldModel == null) {
-				if(newModel.getIdentity() == null || newModel.getIdentity().isEmpty()){
+				if (newModel.getIdentity() == null || newModel.getIdentity().isEmpty()) {
 					newModel.setIdentity(UUID.randomUUID().toString());
 				}
-				if(newModel.getIdentityFrom() == null) {
+				if (newModel.getIdentityFrom() == null) {
 					newModel.setIdentityFrom(System.currentTimeMillis());
 				}
 			} else if (oldModel.getIdentity() != null && !oldModel.getIdentity().isEmpty()) {
@@ -318,12 +328,12 @@ public class OctaneServerSettingsBuilder extends Builder {
 			save();
 		}
 
-		private void updateServer(OctaneServerSettingsModel[] servers, OctaneServerSettingsModel newModel,  OctaneServerSettingsModel oldModel) {
+		private void updateServer(OctaneServerSettingsModel[] servers, OctaneServerSettingsModel newModel, OctaneServerSettingsModel oldModel) {
 			if (servers != null) {
 				for (int i = 0; i < servers.length; i++) {
 					if (newModel.getInternalId().equals(servers[i].getInternalId())) {
 						servers[i] = newModel;
-						if(!newModel.getIdentity().equals(oldModel.getIdentity())){
+						if (!newModel.getIdentity().equals(oldModel.getIdentity())) {
 							logger.info("Removing client with instance Id: " + oldModel.getIdentity());
 							OctaneSDK.removeClient(OctaneSDK.getClientByInstanceId(octaneConfigurations.get(oldModel.getInternalId()).getInstanceId()));
 							octaneConfigurations.remove(newModel.getInternalId());
@@ -382,9 +392,6 @@ public class OctaneServerSettingsBuilder extends Builder {
 		}
 
 		public OctaneServerSettingsModel[] getServers() {
-			if (servers == null) {
-				servers = new OctaneServerSettingsModel[]{new OctaneServerSettingsModel()};
-			}
 			return servers;
 		}
 
