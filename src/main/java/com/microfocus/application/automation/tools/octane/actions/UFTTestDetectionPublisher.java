@@ -28,6 +28,7 @@ import com.hp.octane.integrations.dto.entities.Entity;
 import com.hp.octane.integrations.services.entities.EntitiesService;
 import com.hp.octane.integrations.uft.items.UftTestDiscoveryResult;
 import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
+import com.microfocus.application.automation.tools.octane.Messages;
 import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
 import com.microfocus.application.automation.tools.octane.executor.UFTTestDetectionService;
 import hudson.Extension;
@@ -147,7 +148,7 @@ public class UFTTestDetectionPublisher extends Recorder {
 		}
 
 		public String getDisplayName() {
-			return "ALM Octane UFT Tests Discovery";
+			return Messages.UFTTestDetectionPublisherConfigurationLabel();
 		}
 	}
 }
