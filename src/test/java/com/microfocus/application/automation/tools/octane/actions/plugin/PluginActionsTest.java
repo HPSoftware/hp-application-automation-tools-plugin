@@ -80,7 +80,7 @@ public class PluginActionsTest extends OctanePluginTestBase {
 		assertEquals(ConfigurationService.getPluginVersion(), status.getPlugin().getVersion());
 	}
 
-	@Test
+	//@Test
 	public void testPluginActions_REST_Jobs_NoParams() throws IOException, SAXException {
 		String projectName = "root-job-" + UUID.randomUUID().toString();
 		Page page = client.goTo("nga/api/v1/jobs", "application/json");
@@ -105,7 +105,7 @@ public class PluginActionsTest extends OctanePluginTestBase {
 		}
 	}
 
-	@Test
+	//@Test
 	public void testPluginActions_REST_Jobs_WithParams() throws IOException, SAXException {
 		String projectName = "root-job-" + UUID.randomUUID().toString();
 		FreeStyleProject fsp;
