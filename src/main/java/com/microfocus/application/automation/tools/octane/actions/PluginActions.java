@@ -57,6 +57,8 @@ import java.util.UUID;
 @Extension
 public class PluginActions implements RootAction {
 	private String STATUS_REQUEST = "/nga/api/v1/status";
+	private String GET_JOBS_REQUEST = "/nga/api/v1/jobs";
+
 	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
 
 	public String getIconFileName() {
@@ -83,14 +85,15 @@ public class PluginActions implements RootAction {
 			res.setStatus(200);
 			res.getWriter().write(result.toString());
 			return;
+		} else if (req.getRequestURI().toLowerCase().contains(GET_JOBS_REQUEST)) {
+			handleRequestAsTask(req, res);
+			return;
 		} else {
 			res.setStatus(404);
 			res.getWriter().write("");
 			return;
 		}
 
-		//disable task-based requests
-		//handleRequestAsTask(req, res);
 	}
 
 	private void handleRequestAsTask(StaplerRequest req, StaplerResponse res) throws IOException {
