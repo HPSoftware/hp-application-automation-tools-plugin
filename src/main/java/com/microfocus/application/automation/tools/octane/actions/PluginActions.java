@@ -91,54 +91,6 @@ public class PluginActions implements RootAction {
 		}
 	}
 
-	private void handleRequestAsTask(StaplerRequest req, StaplerResponse res) throws IOException {
-		OctaneClient octaneClient = null;
-		for (OctaneServerSettingsModel settings : ConfigurationService.getAllSettings()) {
-			if (settings.isValid() && (octaneClient = OctaneSDK.getClientByInstanceId(settings.getIdentity())) != null) {
-				break;
-			}
-		}
-
-		if (octaneClient == null) {
-			res.setStatus(500);
-			res.getWriter().write("no OctaneClient available");
-			res.flushBuffer();
-			return;
-		}
-
-		HttpMethod method = null;
-		if ("post".equals(req.getMethod().toLowerCase())) {
-			method = HttpMethod.POST;
-		} else if ("get".equals(req.getMethod().toLowerCase())) {
-			method = HttpMethod.GET;
-		} else if ("put".equals(req.getMethod().toLowerCase())) {
-			method = HttpMethod.PUT;
-		} else if ("delete".equals(req.getMethod().toLowerCase())) {
-			method = HttpMethod.DELETE;
-		}
-		if (method != null) {
-			OctaneTaskAbridged octaneTaskAbridged = dtoFactory.newDTO(OctaneTaskAbridged.class);
-			octaneTaskAbridged.setId(UUID.randomUUID().toString());
-			octaneTaskAbridged.setMethod(method);
-			octaneTaskAbridged.setUrl(req.getRequestURIWithQueryString());
-			octaneTaskAbridged.setBody(getBody(req.getReader()));
-			TasksProcessor taskProcessor = octaneClient.getTasksProcessor();
-			OctaneResultAbridged result = taskProcessor.execute(octaneTaskAbridged);
-
-			res.setStatus(result.getStatus());
-			if (result.getBody() != null) {
-				res.getWriter().write(result.getBody());
-			}
-			if (result.getHeaders() != null) {
-				for (Map.Entry<String, String> header : result.getHeaders().entrySet()) {
-					res.setHeader(header.getKey(), header.getValue());
-				}
-			}
-		} else {
-			res.setStatus(501);
-		}
-	}
-
 	private JSONObject getStatusResult() {
 		JSONObject sdkJson = new JSONObject();
 		sdkJson.put("sdkVersion", OctaneSDK.SDK_VERSION);
