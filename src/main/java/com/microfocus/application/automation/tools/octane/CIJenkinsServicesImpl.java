@@ -318,23 +318,15 @@ public class CIJenkinsServicesImpl extends CIPluginServices {
 	}
 
 	@Override
-	public SnapshotNode getSnapshotByNumber(String jobCiId, String buildCiId, boolean subTree) {
+	public SnapshotNode getSnapshotByNumber(String jobId, String buildId, boolean subTree) {
 		SecurityContext securityContext = startImpersonation();
 
 		SnapshotNode result = null;
-		Job job = getJobByRefId(jobCiId);
-
-		Integer buildNumber = null;
-		try {
-			buildNumber = Integer.parseInt(buildCiId);
-		} catch (NumberFormatException nfe) {
-			logger.error("failed to parse build CI ID to build number, " + nfe.getMessage(), nfe);
-		}
-		if (job != null && buildNumber != null) {
-			Run build = job.getBuildByNumber(buildNumber);
-			if (build != null) {
-				result = ModelFactory.createSnapshotItem(build, subTree);
-			}
+		Run run = getRunByRefNames(jobId, buildId);
+		if (run != null) {
+			result = ModelFactory.createSnapshotItem(run, subTree);
+		} else {
+			logger.error("build '" + jobId + " #" + buildId + "' not found");
 		}
 
 		stopImpersonation(securityContext);
@@ -342,38 +334,45 @@ public class CIJenkinsServicesImpl extends CIPluginServices {
 	}
 
 	@Override
-	public InputStream getTestsResult(String jobCiId, String buildCiId) {
-		Job job = (Job) Jenkins.getInstance().getItemByFullName(jobCiId);
-		if (job == null) {
-			logger.warn("job '" + jobCiId + "' no longer exists, its test results won't be pushed to Octane");
-			return null;
-		}
-		Run run = job.getBuildByNumber(Integer.parseInt(buildCiId));
-		if (run == null) {
-			logger.warn("build '" + jobCiId + " #" + buildCiId + "' no longer exists, its test results won't be pushed to Octane");
-			return null;
+	public InputStream getTestsResult(String jobId, String buildId) {
+		SecurityContext originalContext = startImpersonation();
+
+		InputStream result = null;
+		Run run = getRunByRefNames(jobId, buildId);
+		if (run != null) {
+			try {
+				result = new FileInputStream(run.getRootDir() + File.separator + TestListener.TEST_RESULT_FILE);
+			} catch (Exception fnfe) {
+				logger.error("'" + TestListener.TEST_RESULT_FILE + "' file no longer exists, test results of '" + jobId + " #" + buildId + "' won't be pushed to Octane", fnfe);
+			}
+		} else {
+			logger.error("build '" + jobId + " #" + buildId + "' not found");
 		}
 
-		try {
-			return new FileInputStream(run.getRootDir() + File.separator + TestListener.TEST_RESULT_FILE);
-		} catch (Exception fnfe) {
-			logger.error("'" + TestListener.TEST_RESULT_FILE + "' file no longer exists, test results of '" + jobCiId + " #" + buildCiId + "' won't be pushed to Octane", fnfe);
-			return null;
-		}
+		stopImpersonation(originalContext);
+		return result;
 	}
 
 	@Override
-	public InputStream getBuildLog(String jobCiId, String buildCiId) {
-		Run run = getRunByRefNames(jobCiId, buildCiId);
+	public InputStream getBuildLog(String jobId, String buildId) {
+		SecurityContext originalContext = startImpersonation();
+
+		InputStream result = null;
+		Run run = getRunByRefNames(jobId, buildId);
 		if (run != null) {
-			return getOctaneLogFile(run);
+			result = getOctaneLogFile(run);
 		} else {
-			return null;
+			logger.error("build '" + jobId + " #" + buildId + "' not found");
 		}
+
+		stopImpersonation(originalContext);
+		return result;
 	}
 
 	@Override
 	public InputStream getCoverageReport(String jobId, String buildId, String reportFileName) {
+		SecurityContext originalContext = startImpersonation();
+
 		InputStream result = null;
 		Run run = getRunByRefNames(jobId, buildId);
 		if (run != null) {
@@ -385,30 +384,37 @@ public class CIJenkinsServicesImpl extends CIPluginServices {
 					logger.warn("file not found for '" + reportFileName + "' although just verified its existence, concurrency?");
 				}
 			}
+		} else {
+			logger.error("build '" + jobId + " #" + buildId + "' not found");
 		}
+
+		stopImpersonation(originalContext);
 		return result;
 	}
 
 	@Override
 	public SSCProjectConfiguration getSSCProjectConfiguration(String jobId, String buildId) {
+		SecurityContext originalContext = startImpersonation();
+
+		SSCProjectConfiguration result = null;
 		Run run = getRunByRefNames(jobId, buildId);
 		if (run instanceof AbstractBuild) {
 			String sscServerUrl = SSCServerConfigUtil.getSSCServer();
 			String sscAuthToken = ConfigurationService.getSettings(getInstanceId()).getSscBaseToken();
 			SSCServerConfigUtil.SSCProjectVersionPair projectVersionPair = SSCServerConfigUtil.getProjectConfigurationFromBuild((AbstractBuild) run);
 			if (sscServerUrl != null && !sscServerUrl.isEmpty() && projectVersionPair != null) {
-				return dtoFactory.newDTO(SSCProjectConfiguration.class)
+				result = dtoFactory.newDTO(SSCProjectConfiguration.class)
 						.setSSCUrl(sscServerUrl)
 						.setSSCBaseAuthToken(sscAuthToken)
 						.setProjectName(projectVersionPair.project)
 						.setProjectVersion(projectVersionPair.version);
-			} else {
-				return null;
 			}
 		} else {
-			logger.debug("SSC supported on deviations of AbstractProject only");
-			return null;
+			logger.error("build '" + jobId + " #" + buildId + "' (of specific type AbstractBuild) not found");
 		}
+
+		stopImpersonation(originalContext);
+		return result;
 	}
 
 	@Override
@@ -449,7 +455,6 @@ public class CIJenkinsServicesImpl extends CIPluginServices {
 		} finally {
 			stopImpersonation(securityContext);
 		}
-
 	}
 
 	@Override
