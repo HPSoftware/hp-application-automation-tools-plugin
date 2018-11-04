@@ -469,12 +469,10 @@ public class OctaneServerSettingsBuilder extends Builder {
 				ret = FormValidation.error("Failed to parse location.");
 			}
 			for (OctaneServerSettingsModel serverSettingsModel : servers) {
-				if (mqmProject != null) {
-					if (serverSettingsModel.getSharedSpace().equals(mqmProject.getSharedSpace()) &&
-							serverSettingsModel.getLocation().equals(mqmProject.getLocation())) {
-						ret = FormValidation.error("This ALM Octane server configuration was already set.");
-						return ret;
-					}
+				if (mqmProject != null && serverSettingsModel.getSharedSpace().equals(mqmProject.getSharedSpace()) &&
+						serverSettingsModel.getLocation().equals(mqmProject.getLocation())) {
+					ret = FormValidation.error("This ALM Octane server configuration was already set.");
+					return ret;
 				}
 			}
 			return ret;

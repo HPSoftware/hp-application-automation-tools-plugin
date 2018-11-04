@@ -29,7 +29,6 @@ import com.microfocus.application.automation.tools.octane.tests.ExtensionUtil;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import org.eclipse.jetty.server.Request;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -41,8 +40,7 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 @SuppressWarnings({"squid:S2699", "squid:S3658", "squid:S2259", "squid:S1872", "squid:S2925", "squid:S109", "squid:S1607", "squid:S2701", "squid:S2698"})
 public class ConfigurationServiceTest extends OctanePluginTestBase {
@@ -86,9 +84,9 @@ public class ConfigurationServiceTest extends OctanePluginTestBase {
 		String newIdentity = newModel.getIdentity();
 		String newModelInternalId = newModel.getInternalId();
 
-		Assert.assertEquals(newModelInternalId, oldModelInternalId);
-		Assert.assertNotEquals(oldIdentity, newIdentity);
-		Assert.assertEquals(newInstanceId, newIdentity);
+		assertEquals(newModelInternalId, oldModelInternalId);
+		assertNotEquals(oldIdentity, newIdentity);
+		assertEquals(newInstanceId, newIdentity);
 
 		//add new configuration
 		configPage = client.goTo("configure");
@@ -104,7 +102,7 @@ public class ConfigurationServiceTest extends OctanePluginTestBase {
 		((HtmlInput) findInputText(addConfigForm, "_.password", null)).setValueAttribute("password");
 
 		rule.submit(addConfigForm);
-		Assert.assertEquals(2, ConfigurationService.getAllSettings().size());
+		assertEquals(2, ConfigurationService.getAllSettings().size());
 
 		//remove configuration
 		configPage = client.goTo("configure");
@@ -114,7 +112,7 @@ public class ConfigurationServiceTest extends OctanePluginTestBase {
 		deleteConfigForm = configPage.getFormByName("config");
 
 		rule.submit(deleteConfigForm);
-		Assert.assertEquals(1, ConfigurationService.getAllSettings().size());
+		assertEquals(1, ConfigurationService.getAllSettings().size());
 	}
 
 
