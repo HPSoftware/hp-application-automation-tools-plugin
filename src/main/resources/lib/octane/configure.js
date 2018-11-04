@@ -41,6 +41,20 @@ function octane_job_configuration(target, progress, proxy) {
         return left.toLowerCase() === right.toLowerCase();
     }
 
+    function loadJobConfigurationFromServer(sharedspace) {
+        progressFunc("Retrieving configuration from server");
+
+        proxy.loadJobConfigurationFromServer(sharedspace.id, function (t) {
+            progressFunc();
+            var response = t.responseObject();
+            if (response.errors) {
+                response.errors.forEach(renderError);
+            } else {
+                renderConfiguration(response, undefined, sharedspace.id);
+            }
+        });
+    }
+
     function configure() {
         proxy.searchSharedSpaces("", (function (sharedspaces) {
             if(sharedspaces.responseJSON.results.length===1){
@@ -71,20 +85,6 @@ function octane_job_configuration(target, progress, proxy) {
         }));
 
 
-    }
-
-    function loadJobConfigurationFromServer(sharedspace) {
-        progressFunc("Retrieving configuration from server");
-
-        proxy.loadJobConfigurationFromServer(sharedspace.id, function (t) {
-            progressFunc();
-            var response = t.responseObject();
-            if (response.errors) {
-                response.errors.forEach(renderError);
-            } else {
-                renderConfiguration(response, undefined, sharedspace.id);
-            }
-        });
     }
 
     function renderError(error) {

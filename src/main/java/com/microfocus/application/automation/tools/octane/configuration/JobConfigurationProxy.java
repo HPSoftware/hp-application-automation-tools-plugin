@@ -581,10 +581,8 @@ public class JobConfigurationProxy {
 		JSONArray retArray = new JSONArray();
 
 		for (OctaneServerSettingsModel model : ConfigurationService.getAllSettings()) {
-			if (StringUtils.isNotEmpty(term)) {
-				if (!model.getCaption().toLowerCase().contains(term.toLowerCase())) {
-					continue;
-				}
+			if (StringUtils.isNotEmpty(term) && !model.getCaption().toLowerCase().contains(term.toLowerCase())) {
+				continue;
 			}
 			JSONObject relJson = new JSONObject();
 			relJson.put("id", model.getIdentity());
