@@ -453,7 +453,7 @@ public class OctaneServerSettingsBuilder extends Builder {
 
 		public FormValidation doCheckUiLocation(@QueryParameter String value, @QueryParameter(value = "internalId") String internalId) {
 			FormValidation ret = FormValidation.ok();
-
+			//Relevant only for new server configuration (empty internalId)
 			if (!StringUtils.isBlank(internalId)) {
 				return ret;
 			}
@@ -469,10 +469,6 @@ public class OctaneServerSettingsBuilder extends Builder {
 				ret = FormValidation.error("Failed to parse location.");
 			}
 			for (OctaneServerSettingsModel serverSettingsModel : servers) {
-				if (serverSettingsModel.getUiLocation().equalsIgnoreCase(value)) {
-					ret = FormValidation.error("This location was already set.");
-					return ret;
-				}
 				if (mqmProject != null) {
 					if (serverSettingsModel.getSharedSpace().equals(mqmProject.getSharedSpace()) &&
 							serverSettingsModel.getLocation().equals(mqmProject.getLocation())) {
