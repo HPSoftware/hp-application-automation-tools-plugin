@@ -124,8 +124,16 @@ public class OctaneServerSettingsBuilder extends Builder {
 				servers = new OctaneServerSettingsModel[0];
 			}
 
-			//  upgrade flow to add internal ID to configuration
 			boolean shouldSave = false;
+			// defense for non-octane users.Previously, before multi-configuration, octane had only one configuration,
+			// even empty. So after moving to multi-configuration, non-octane users have non-valid configuration and
+			// will fail to save jenkins configuration as missing valid octane configuration
+			if (servers.length == 1 && StringUtils.isEmpty(servers[0].getUiLocation())) {
+				servers = new OctaneServerSettingsModel[0];
+				shouldSave = true;
+			}
+
+			//  upgrade flow to add internal ID to configuration
 			for (OctaneServerSettingsModel server : servers) {
 				if (server.getInternalId() == null || server.getInternalId().isEmpty()) {
 					server.setInternalId(UUID.randomUUID().toString());
