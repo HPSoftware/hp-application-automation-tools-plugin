@@ -132,13 +132,12 @@ public class OctaneServerSettingsBuilder extends Builder {
 					shouldSave = true;
 				}
 			}
-			if (shouldSave) save();
+			if (shouldSave) {
+				save();
+			}
 		}
 
 		public void initOctaneClients() {
-			if (!isInitialConfigValid(servers)) {
-				return;
-			}
 			for (OctaneServerSettingsModel innerServerConfiguration : servers) {
 				OctaneConfiguration octaneConfiguration = new OctaneConfiguration(innerServerConfiguration.getIdentity(), innerServerConfiguration.getLocation(),
 						innerServerConfiguration.getSharedSpace());
@@ -146,17 +145,6 @@ public class OctaneServerSettingsBuilder extends Builder {
 				octaneConfiguration.setSecret(innerServerConfiguration.getPassword().getPlainText());
 				octaneConfigurations.put(innerServerConfiguration.getInternalId(), octaneConfiguration);
 				OctaneSDK.addClient(octaneConfiguration, CIJenkinsServicesImpl.class);
-			}
-		}
-
-		private boolean isInitialConfigValid(OctaneServerSettingsModel[] servers) {
-			if (servers.length == 0) {
-				return false;
-			} else if (servers.length == 1) {
-				OctaneServerSettingsModel innerServerConfiguration = servers[0];
-				return innerServerConfiguration.getLocation() != null && !innerServerConfiguration.getLocation().isEmpty();
-			} else {
-				return true;
 			}
 		}
 
