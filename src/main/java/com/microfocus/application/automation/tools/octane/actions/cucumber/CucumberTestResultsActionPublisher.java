@@ -26,7 +26,10 @@ import com.microfocus.application.automation.tools.octane.Messages;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.*;
+import hudson.model.AbstractProject;
+import hudson.model.Result;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Publisher;
@@ -63,24 +66,21 @@ public class CucumberTestResultsActionPublisher extends Recorder implements Simp
         return glob;
     }
 
-    /*@Override
-    public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
-        CucumberTestResultsAction action = new CucumberTestResultsAction(build, build.getWorkspace(), glob, listener);
-        build.addAction(action);
-        return action.copyResultsToBuildFolder();
-    }*/
+    @Override
+    public void perform(@Nonnull Run<?, ?> run, @Nonnull FilePath workspace, @Nonnull Launcher launcher, @Nonnull TaskListener taskListener) throws InterruptedException, IOException {
+        CucumberTestResultsAction action = new CucumberTestResultsAction(run, workspace, glob, taskListener);
+        run.addAction(action);
+        boolean isSuccessful = action.copyResultsToBuildFolder();
+        if (!isSuccessful) {
+            run.setResult(Result.FAILURE);
+        }
+    }
 
     @Override
     public CucumberTestResultsActionPublisher.Descriptor getDescriptor() {
         return (CucumberTestResultsActionPublisher.Descriptor) super.getDescriptor();
     }
 
-    @Override
-    public void perform(@Nonnull Run<?, ?> run, @Nonnull FilePath workspace, @Nonnull Launcher launcher, @Nonnull TaskListener taskListener) throws InterruptedException, IOException {
-        CucumberTestResultsAction action = new CucumberTestResultsAction(run, workspace, glob, taskListener);
-        run.addAction(action);
-        action.copyResultsToBuildFolder();
-    }
 
     @Symbol("publishGherkinResults")
     @Extension
