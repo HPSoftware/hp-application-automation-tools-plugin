@@ -81,18 +81,24 @@ public class BuildHandlerUtils {
 			return run.getExecutor().getCurrentWorkspace();
 		}
 		if (run instanceof AbstractBuild) {
-			return ((AbstractBuild) run).getWorkspace();
+			FilePath path = ((AbstractBuild) run).getWorkspace();
+			if (path == null) {
+				logger.error("AbstractBuild doesnot contain workspace : " + run);
+			}
+			return path;
 		}
 		if (run instanceof WorkflowRun) {
 			FlowExecution fe = ((WorkflowRun) run).getExecution();
 			if (fe != null) {
 				FlowGraphWalker w = new FlowGraphWalker(fe);
 				for (FlowNode n : w) {
-					if (n instanceof StepStartNode) {
-						WorkspaceAction action = n.getAction(WorkspaceAction.class);
-						if (action != null) {
-							return action.getWorkspace();
+					WorkspaceAction action = n.getAction(WorkspaceAction.class);
+					if (action != null) {
+						if (action.getWorkspace() == null) {
+							logger.error("Found WorkspaceAction without workspace : " + action + "; node : " + n);
+							continue;
 						}
+						return action.getWorkspace();
 					}
 				}
 				logger.error("BuildHandlerUtils.getWorkspace - missing WorkspaceAction on WorkflowRun.");
