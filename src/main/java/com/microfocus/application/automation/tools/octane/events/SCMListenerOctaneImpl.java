@@ -26,6 +26,7 @@ import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.scm.SCMData;
 import com.microfocus.application.automation.tools.octane.CIJenkinsServicesImpl;
 import com.microfocus.application.automation.tools.octane.model.CIEventCausesFactory;
+import com.microfocus.application.automation.tools.octane.model.processors.projects.JobProcessorFactory;
 import com.microfocus.application.automation.tools.octane.model.processors.scm.SCMProcessor;
 import com.microfocus.application.automation.tools.octane.model.processors.scm.SCMProcessors;
 import com.microfocus.application.automation.tools.octane.tests.build.BuildHandlerUtils;
@@ -66,6 +67,11 @@ public class SCMListenerOctaneImpl extends SCMListener {
 			if (scmData != null) {
 				CIEvent event = createSCMEvent(run, scmData);
 				CIJenkinsServicesImpl.publishEventToRelevantClients(event);
+
+				if(run instanceof WorkflowRun &&
+						run.getParent().getParent().getClass().getName().equals(JobProcessorFactory.WORKFLOW_MULTI_BRANCH_JOB_NAME)){
+					run.addAction(ScmEventHolderAction.create(event));
+				}
 			}
 		} catch (Throwable throwable) {
 			logger.error("failed to build and/or dispatch SCM event for " + run, throwable);
