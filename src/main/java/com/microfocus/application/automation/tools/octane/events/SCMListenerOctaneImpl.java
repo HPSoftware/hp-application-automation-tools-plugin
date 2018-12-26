@@ -30,8 +30,6 @@ import hudson.model.TaskListener;
 import hudson.model.listeners.SCMListener;
 import hudson.scm.ChangeLogSet;
 import hudson.scm.SCM;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * Run Listener that handles SCM CI events and dispatches notifications to the Octane server
@@ -40,8 +38,6 @@ import org.apache.logging.log4j.Logger;
 
 @Extension
 public class SCMListenerOctaneImpl extends SCMListener {
-    private static final Logger logger = LogManager.getLogger(SCMListenerOctaneImpl.class);
-
 
     @Override
     public void onChangeLogParsed(Run<?, ?> run, SCM scm, TaskListener listener, ChangeLogSet<?> changelog) throws Exception {
