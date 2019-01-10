@@ -40,10 +40,14 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 /**
  * Factory for creating ci event
  */
-public class CIEventFactory {
+public final class CIEventFactory {
 
     private static final Logger logger = LogManager.getLogger(CIEventFactory.class);
     private static final DTOFactory dtoFactory = DTOFactory.getInstance();
+
+    private CIEventFactory(){
+        //hiding public constructor
+    }
 
     /**
      * Create scm event if exist scm data.
@@ -73,8 +77,8 @@ public class CIEventFactory {
                 return event;
             }
 
-        } catch (Throwable throwable) {
-            logger.error("failed to build SCM event for " + run, throwable);
+        } catch (Exception e) {
+            logger.error("failed to build SCM event for " + run, e);
         }
         return null;
     }
