@@ -28,8 +28,12 @@ import hudson.FilePath;
 import hudson.matrix.MatrixConfiguration;
 import hudson.matrix.MatrixRun;
 import hudson.model.AbstractBuild;
+import hudson.model.Computer;
 import hudson.model.Result;
 import hudson.model.Run;
+import hudson.remoting.VirtualChannel;
+import jenkins.model.Jenkins;
+import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jenkinsci.plugins.workflow.actions.LabelAction;
@@ -44,6 +48,7 @@ import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.graph.FlowStartNode;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 
+import java.io.File;
 import java.io.IOException;
 
 /**
@@ -84,7 +89,7 @@ public class BuildHandlerUtils {
 		if (run instanceof AbstractBuild) {
 			FilePath path = ((AbstractBuild) run).getWorkspace();
 			if (path == null) {
-				logger.error("AbstractBuild doesnot contain workspace : " + run);
+				logger.error("AbstractBuild does not contain workspace : " + run);
 			}
 			return path;
 		}
@@ -95,20 +100,66 @@ public class BuildHandlerUtils {
 				for (FlowNode n : w) {
 					WorkspaceAction action = n.getAction(WorkspaceAction.class);
 					if (action != null) {
-						if (action.getWorkspace() == null) {
+						FilePath workspace = action.getWorkspace();
+						if (workspace == null) {
 							logger.error("Found WorkspaceAction without workspace : " + action + "; node : " + n);
-							continue;
+							logger.error("Node getPath = " + action.getPath());
+							logger.error("Node getNode = " + action.getNode());
+							if (StringUtils.isNotEmpty(action.getPath()) && action.getNode() != null) {
+
+								try {
+									FilePathUtilsFind(action.getNode(), action.getPath());
+								} catch (Exception ex) {
+									logger.error("FilePathUtilsFind exception : type " + ex.getClass().getName() + ", message : " + ex.getMessage());
+								}
+								return new FilePath(new File(action.getPath()));
+							} else {
+								logger.error("Node getPath is empty, return workspace = null");
+								return null;
+							}
 						}
-						return action.getWorkspace();
+						return workspace;
 					}
 				}
-				logger.error("BuildHandlerUtils.getWorkspace - missing WorkspaceAction on WorkflowRun.");
+				logger.error("BuildHandlerUtils.getWorkspace - missing WorkspaceAction with Workspace on WorkflowRun.");
 			}
 		}
 
 		logger.error("BuildHandlerUtils.getWorkspace - run is not handled. Run type : " + run.getClass());
 		return null;
 	}
+
+    private static FilePath FilePathUtilsFind(String node, String path) {
+        logger.error("FilePathUtilsFind : Check FilePathUtils.find");
+        Jenkins j = Jenkins.getInstance();
+        if (j == null) {
+            logger.error("FilePathUtilsFind : Jenkins is null");
+            return null;
+        } else {
+            Computer c = j.getComputer(node);
+            if (c == null) {
+                logger.error("FilePathUtilsFind : Computer is null");
+                return null;
+            } else {
+                VirtualChannel ch = c.getChannel();
+                if (ch == null) {
+                    logger.error("FilePathUtilsFind : VirtualChannel is null");
+                    return null;
+                } else {
+                    FilePath fp = new FilePath(ch, path);
+
+                    if (fp == null) {
+                        logger.error("FilePathUtilsFind : FilePath is null");
+                    } else {
+                        logger.error("FilePathUtilsFind : FilePath is not null");
+                        logger.error("FilePathUtilsFind : FilePath.getRemote : " + fp.getRemote());
+                        logger.error("FilePathUtilsFind : FilePath.getChannel()==null : " + (fp.getChannel() == null));
+                    }
+                    return fp;
+                }
+            }
+        }
+    }
 
 	public static String getBuildCiId(Run run) {
 		return String.valueOf(run.getNumber());
