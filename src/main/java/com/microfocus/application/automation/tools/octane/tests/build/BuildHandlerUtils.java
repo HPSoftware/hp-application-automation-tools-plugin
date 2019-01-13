@@ -101,10 +101,10 @@ public class BuildHandlerUtils {
 					WorkspaceAction action = n.getAction(WorkspaceAction.class);
 					if (action != null) {
 						FilePath workspace = action.getWorkspace();
+						logger.error("Node getPath = " + action.getPath());
+						logger.error("Node getNode = " + action.getNode());
 						if (workspace == null) {
 							logger.error("Found WorkspaceAction without workspace : " + action + "; node : " + n);
-							logger.error("Node getPath = " + action.getPath());
-							logger.error("Node getNode = " + action.getNode());
 							if (StringUtils.isNotEmpty(action.getPath()) && action.getNode() != null) {
 
 								try {
