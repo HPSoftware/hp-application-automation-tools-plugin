@@ -31,7 +31,6 @@ import hudson.model.AbstractBuild;
 import hudson.model.Computer;
 import hudson.model.Result;
 import hudson.model.Run;
-import hudson.remoting.VirtualChannel;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -98,15 +97,7 @@ public class BuildHandlerUtils {
 					if (action != null) {
 						FilePath workspace = action.getWorkspace();
 						if (workspace == null) {
-							logger.error("Found WorkspaceAction without workspace : " + action + "; node : " + n);
-							logger.error("Node getPath = " + action.getPath());
-							logger.error("Node getNode = " + action.getNode());
-
-							if (StringUtils.isNotEmpty(action.getPath()) && action.getNode() != null) {
-								workspace = new FilePath(new File(action.getPath()));
-							} else {
-								logger.error("Node getPath is empty, return workspace = null");
-							}
+							workspace = handleWorkspaceActionWithoutWorkspace(n, action);
 						}
 						return workspace;
 					}
@@ -115,8 +106,39 @@ public class BuildHandlerUtils {
 			}
 		}
 
-		logger.error("BuildHandlerUtils.getWorkspace - run is not handled. Run type : " + run.getClass());
+		logger.error("BuildHandlerUtils.getWorkspace - run is not handled. Run type : " + run.getClass() + " , build : "  + run.getFullDisplayName());
 		return null;
+	}
+
+	private static FilePath handleWorkspaceActionWithoutWorkspace(FlowNode n, WorkspaceAction action) {
+		logger.error("Found WorkspaceAction without workspace : " + action + "; node : " + n);
+		logger.warn("Node getPath = " + action.getPath());
+		logger.warn("Node getNode = " + action.getNode());
+		FilePath workspace = null;
+
+		//check if computer can be found
+		if (StringUtils.isNotEmpty(action.getNode())) {
+			try {
+				Jenkins j = Jenkins.getInstance();
+				Computer c = j.getComputer(action.getNode());
+				if (c != null) {
+					logger.warn("Computer is found : " + c.getDisplayName());
+				} else {
+					logger.warn("Computer is not found");
+				}
+
+			} catch (Exception e) {
+				logger.warn("Failed to find computer : " + e.getMessage() + ", error type : " + e.getClass().getName());
+			}
+		}
+
+		if (StringUtils.isNotEmpty(action.getPath())) {
+			logger.warn("Node getPath is not empty, return getPath as workspace");
+			workspace = new FilePath(new File(action.getPath()));
+		} else {
+			logger.warn("Node getPath is empty, return workspace = null");
+		}
+		return workspace;
 	}
 
 	public static String getBuildCiId(Run run) {
