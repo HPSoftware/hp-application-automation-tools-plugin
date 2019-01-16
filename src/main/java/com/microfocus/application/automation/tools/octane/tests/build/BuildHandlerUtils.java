@@ -87,11 +87,7 @@ public class BuildHandlerUtils {
 			return run.getExecutor().getCurrentWorkspace();
 		}
 		if (run instanceof AbstractBuild) {
-			FilePath path = ((AbstractBuild) run).getWorkspace();
-			if (path == null) {
-				logger.error("AbstractBuild does not contain workspace : " + run);
-			}
-			return path;
+			return ((AbstractBuild) run).getWorkspace();
 		}
 		if (run instanceof WorkflowRun) {
 			FlowExecution fe = ((WorkflowRun) run).getExecution();
@@ -101,21 +97,15 @@ public class BuildHandlerUtils {
 					WorkspaceAction action = n.getAction(WorkspaceAction.class);
 					if (action != null) {
 						FilePath workspace = action.getWorkspace();
-						logger.error("Node getPath = " + action.getPath());
-						logger.error("Node getNode = " + action.getNode());
 						if (workspace == null) {
 							logger.error("Found WorkspaceAction without workspace : " + action + "; node : " + n);
-							if (StringUtils.isNotEmpty(action.getPath()) && action.getNode() != null) {
+							logger.error("Node getPath = " + action.getPath());
+							logger.error("Node getNode = " + action.getNode());
 
-								try {
-									FilePathUtilsFind(action.getNode(), action.getPath());
-								} catch (Exception ex) {
-									logger.error("FilePathUtilsFind exception : type " + ex.getClass().getName() + ", message : " + ex.getMessage());
-								}
-								return new FilePath(new File(action.getPath()));
+							if (StringUtils.isNotEmpty(action.getPath()) && action.getNode() != null) {
+								workspace = new FilePath(new File(action.getPath()));
 							} else {
 								logger.error("Node getPath is empty, return workspace = null");
-								return null;
 							}
 						}
 						return workspace;
@@ -128,38 +118,6 @@ public class BuildHandlerUtils {
 		logger.error("BuildHandlerUtils.getWorkspace - run is not handled. Run type : " + run.getClass());
 		return null;
 	}
-
-    private static FilePath FilePathUtilsFind(String node, String path) {
-        logger.error("FilePathUtilsFind : Check FilePathUtils.find");
-        Jenkins j = Jenkins.getInstance();
-        if (j == null) {
-            logger.error("FilePathUtilsFind : Jenkins is null");
-            return null;
-        } else {
-            Computer c = j.getComputer(node);
-            if (c == null) {
-                logger.error("FilePathUtilsFind : Computer is null");
-                return null;
-            } else {
-                VirtualChannel ch = c.getChannel();
-                if (ch == null) {
-                    logger.error("FilePathUtilsFind : VirtualChannel is null");
-                    return null;
-                } else {
-                    FilePath fp = new FilePath(ch, path);
-
-                    if (fp == null) {
-                        logger.error("FilePathUtilsFind : FilePath is null");
-                    } else {
-                        logger.error("FilePathUtilsFind : FilePath is not null");
-                        logger.error("FilePathUtilsFind : FilePath.getRemote : " + fp.getRemote());
-                        logger.error("FilePathUtilsFind : FilePath.getChannel()==null : " + (fp.getChannel() == null));
-                    }
-                    return fp;
-                }
-            }
-        }
-    }
 
 	public static String getBuildCiId(Run run) {
 		return String.valueOf(run.getNumber());
