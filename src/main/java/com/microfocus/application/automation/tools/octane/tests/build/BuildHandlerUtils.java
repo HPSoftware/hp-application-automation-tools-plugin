@@ -102,7 +102,6 @@ public class BuildHandlerUtils {
 						return workspace;
 					}
 				}
-				logger.error("BuildHandlerUtils.getWorkspace - missing WorkspaceAction with Workspace on WorkflowRun.");
 			}
 		}
 
@@ -111,13 +110,13 @@ public class BuildHandlerUtils {
 	}
 
 	private static FilePath handleWorkspaceActionWithoutWorkspace(FlowNode n, WorkspaceAction action) {
-		logger.error("Found WorkspaceAction without workspace : " + action + "; node : " + n);
+		logger.error("Found WorkspaceAction without workspace");
 		logger.warn("Node getPath = " + action.getPath());
 		logger.warn("Node getNode = " + action.getNode());
 		FilePath workspace = null;
 
-		//check if computer can be found
-		if (StringUtils.isNotEmpty(action.getNode())) {
+		//check if computer can be found - only for diagnostic purpose
+		if (action.getNode() != null) {
 			try {
 				Jenkins j = Jenkins.getInstance();
 				Computer c = j.getComputer(action.getNode());
@@ -126,7 +125,6 @@ public class BuildHandlerUtils {
 				} else {
 					logger.warn("Computer is not found");
 				}
-
 			} catch (Exception e) {
 				logger.warn("Failed to find computer : " + e.getMessage() + ", error type : " + e.getClass().getName());
 			}
