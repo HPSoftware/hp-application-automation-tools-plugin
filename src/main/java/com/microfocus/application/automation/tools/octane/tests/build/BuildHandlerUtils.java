@@ -105,7 +105,7 @@ public class BuildHandlerUtils {
 			}
 		}
 
-		logger.error("BuildHandlerUtils.getWorkspace - run is not handled. Run type : " + run.getClass() + " , build : "  + run.getFullDisplayName());
+		logger.error("BuildHandlerUtils.getWorkspace - run is not handled. Run type : " + run.getClass());
 		return null;
 	}
 
