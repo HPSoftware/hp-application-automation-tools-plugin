@@ -24,6 +24,8 @@ package com.microfocus.application.automation.tools.octane.actions;
 
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.services.vulnerabilities.ToolType;
+import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
+import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
 import com.microfocus.application.automation.tools.octane.model.SonarHelper;
 import com.microfocus.application.automation.tools.octane.configuration.ConfigApi;
 import hudson.Extension;
@@ -74,7 +76,6 @@ public class Webhooks implements UnprotectedRootAction {
     private final String JOB_NAME_PARAM_NAME = "sonar.analysis.jobName";
     private final String BUILD_NUMBER_PARAM_NAME = "sonar.analysis.buildNumber";
     private static final String PROJECT_KEY_HEADER = "X-SonarQube-Project";
-    private static final Integer TIMEOUT_HOURS = 10;
 
     public String getIconFileName() {
         return null;
@@ -127,12 +128,17 @@ public class Webhooks implements UnprotectedRootAction {
                                     OctaneSDK.getClients().forEach(octaneClient -> octaneClient.getSonarService().enqueueFetchAndPushSonarCoverage(jobName, buildId, sonarProjectKey, action.getServerUrl(), sonarToken));
                                 }
                                 if (action.getDataTypeList().contains(SonarHelper.DataType.VULNERABILITIES)){
-                                    Map<String, Object> additionalProperties = new HashMap<>();
+                                    Map<String, String> additionalProperties = new HashMap<>();
                                     additionalProperties.put(PROJECT_KEY_KEY, sonarProjectKey);
                                     additionalProperties.put(SONAR_URL_KEY, action.getServerUrl());
                                     additionalProperties.put(SONAR_TOKEN_KEY, sonarToken);
                                     additionalProperties.put(REMOTE_TAG_KEY, sonarProjectKey);
-                                    OctaneSDK.getClients().forEach(octaneClient -> octaneClient.getVulnerabilitiesService().enqueueRetrieveAndPushVulnerabilities(jobName, buildId, ToolType.SONAR, build.getStartTimeInMillis(), TIMEOUT_HOURS, additionalProperties));
+
+                                    OctaneSDK.getClients().forEach(octaneClient ->{
+                                        String instanceId = octaneClient.getInstanceId();
+                                        OctaneServerSettingsModel settings = ConfigurationService.getSettings(instanceId);
+                                        octaneClient.getVulnerabilitiesService().enqueueRetrieveAndPushVulnerabilities(jobName, buildId, ToolType.SONAR, build.getStartTimeInMillis(), settings.getMaxTimeoutHours(), additionalProperties);
+                                    });
                                 }
 
                                 markBuildAsRecievedWebhookCall(build);
