@@ -58,6 +58,7 @@ public class ExecutorConnectivityService {
 	private static final Logger logger = LogManager.getLogger(ExecutorConnectivityService.class);
 	private static final Map<Permission, String> requirePremissions = initRequirePremissions();
 	private static final Map<Permission, String> credentialsPremissions = initCredentialsPremissions();
+	private static final String PLUGIN_NAME = "Application Automation Tools";
 
 	/**
 	 * Validate that scm repository is valid
@@ -136,7 +137,7 @@ public class ExecutorConnectivityService {
 			jenkinsCredentials = tryGetCredentialsByUsernamePassword(credentialsInfo.getUsername(), credentialsInfo.getPassword());
 			if (jenkinsCredentials == null) {
 				SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
-				String desc = "Created by the Microfocus Application Automation Tools plugin on " + formatter.format(new Date());
+				String desc = String.format("Created by the Microfocus %s plugin on %s", PLUGIN_NAME, formatter.format(new Date()));
 				BaseStandardCredentials c = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, credentialsInfo.getCredentialsId(), desc, credentialsInfo.getUsername(), credentialsInfo.getPassword());
 				CredentialsStore store = new SystemCredentialsProvider.StoreImpl();
 				try {
@@ -165,15 +166,17 @@ public class ExecutorConnectivityService {
 		return null;
 	}
 
-    private static UsernamePasswordCredentialsImpl tryGetCredentialsByUsernamePassword(String username, String password) {
-        List<UsernamePasswordCredentialsImpl> list = CredentialsProvider.lookupCredentials(UsernamePasswordCredentialsImpl.class, (Item) null, null, (DomainRequirement) null);
-        for (UsernamePasswordCredentialsImpl cred : list) {
-            if (StringUtils.equalsIgnoreCase(cred.getUsername(), username) && StringUtils.equals(cred.getPassword().getPlainText(), password)) {
-                return cred;
-            }
-        }
-        return null;
-    }
+	private static UsernamePasswordCredentialsImpl tryGetCredentialsByUsernamePassword(String username, String password) {
+		List<UsernamePasswordCredentialsImpl> list = CredentialsProvider.lookupCredentials(UsernamePasswordCredentialsImpl.class, (Item) null, null, (DomainRequirement) null);
+		for (UsernamePasswordCredentialsImpl cred : list) {
+			if (StringUtils.equalsIgnoreCase(cred.getUsername(), username)
+					&& StringUtils.equals(cred.getPassword().getPlainText(), password)
+					&& cred.getDescription() != null && cred.getDescription().contains(PLUGIN_NAME)) {
+				return cred;
+			}
+		}
+		return null;
+	}
 
 	private static List<String> checkCIPermissions(final Jenkins jenkins, boolean hasCredentials) {
 		List<String> result = new ArrayList<>();
