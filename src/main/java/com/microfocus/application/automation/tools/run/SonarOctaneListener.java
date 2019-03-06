@@ -140,15 +140,11 @@ public class SonarOctaneListener extends Builder implements SimpleBuildStep {
     private void initializeSonarDetails(@Nonnull Run<?, ?> run, TaskListener listener) throws InterruptedException {
         // if one of the properties is empty, need to query sonar plugin from jenkins to get the data
         ExtensionList<GlobalConfiguration> allConfigurations = GlobalConfiguration.all();
-        try {
-            if (allConfigurations != null) {
-                SonarHelper adapter = new SonarHelper(run, listener);
-                // get the most recent sonar server details from  environments variables, and only if there is no details there take the details from the class properties.
-                setSonarServerUrl(StringUtils.isNullOrEmpty(adapter.getServerUrl()) ? sonarServerUrl: adapter.getServerUrl());
-                setSonarToken(StringUtils.isNullOrEmpty(adapter.getServerToken())? sonarToken: adapter.getServerToken());
-            }
-        } catch (Exception e) {
-            throw new InterruptedException("exception occurred while init sonar tracker for job " + run.getDisplayName() + " error message: " + e.getMessage());
+        if (allConfigurations != null) {
+            SonarHelper adapter = new SonarHelper(run, listener);
+            // get the most recent sonar server details from  environments variables, and only if there is no details there take the details from the class properties.
+            setSonarServerUrl(StringUtils.isNullOrEmpty(adapter.getServerUrl()) ? sonarServerUrl : adapter.getServerUrl());
+            setSonarToken(StringUtils.isNullOrEmpty(adapter.getServerToken()) ? sonarToken : adapter.getServerToken());
         }
     }
 
@@ -198,7 +194,7 @@ public class SonarOctaneListener extends Builder implements SimpleBuildStep {
         return (SonarDescriptor) super.getDescriptor();
     }
 
-    @Symbol("addSonarQubeListener")
+    @Symbol("addALMOctaneSonarQubeListener")
     @Extension
     public static class SonarDescriptor extends BuildStepDescriptor<Builder> {
 
