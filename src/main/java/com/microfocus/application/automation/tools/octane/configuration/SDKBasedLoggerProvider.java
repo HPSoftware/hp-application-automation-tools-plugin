@@ -20,6 +20,7 @@
 
 package com.microfocus.application.automation.tools.octane.configuration;
 
+import com.microfocus.application.automation.tools.octane.CIJenkinsServicesImpl;
 import jenkins.model.Jenkins;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -32,16 +33,19 @@ import java.io.File;
  * TODO: this method might become a part of an SPI interface of SDK's plugin services
  */
 public final class SDKBasedLoggerProvider {
-	private static volatile boolean sysParamConfigured = false;
+
+	static {
+		String path = CIJenkinsServicesImpl.getAllowedStorageFile().getAbsolutePath() + File.separator;
+		System.setProperty("octaneAllowedStorage", path);
+	}
 
 	private SDKBasedLoggerProvider(){
 		//CodeClimate  : Add a private constructor to hide the implicit public one.
 	}
+
+
+
 	public static Logger getLogger(Class<?> type) {
-		if (!sysParamConfigured) {
-			System.setProperty("octaneAllowedStorage", new File(Jenkins.get().getRootDir(), "userContent").getAbsolutePath() + File.separator);
-			sysParamConfigured = true;
-		}
 		return LogManager.getLogger(type);
 	}
 }
