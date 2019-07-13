@@ -206,10 +206,23 @@ public class TestsToRunConverterBuilder extends Builder implements SimpleBuildSt
 				@QueryParameter("teststorunconverter.delimiter") String delimiter) {
 
 			try {
+
+				if(StringUtils.isEmpty(rawTests)){
+					throw new IllegalArgumentException("'Tests to run' parameter is missing");
+				}
+
+				if(StringUtils.isEmpty(framework)){
+					throw new IllegalArgumentException("'Framework' parameter is missing");
+				}
+
+				if(StringUtils.isEmpty(format)){
+					throw new IllegalArgumentException("'Format' parameter is missing");
+				}
+
 				Map<String, String> properties = new HashMap();
 
 				TestsToRunFramework testsToRunFramework = TestsToRunFramework.fromValue(framework);
-				if (TestsToRunFramework.Custom.value().equals(testsToRunFramework)) {
+				if (TestsToRunFramework.Custom.equals(testsToRunFramework)) {
 					properties.put(TestsToRunConverter.CONVERTER_FORMAT, format);
 					properties.put(TestsToRunConverter.CONVERTER_DELIMITER, delimiter);
 				}
@@ -217,7 +230,7 @@ public class TestsToRunConverterBuilder extends Builder implements SimpleBuildSt
 				TestsToRunConverterResult convertResult = TestsToRunConvertersFactory.createConverter(testsToRunFramework)
 						.setProperties(properties)
 						.convert(rawTests, TestsToRunConverterBuilder.DEFAULT_EXECUTING_DIRECTORY);
-				return ConfigurationValidator.wrapWithFormValidation(true, "Conversion is successful : " + convertResult.getConvertedTestsString());
+				return ConfigurationValidator.wrapWithFormValidation(true, "Conversion is successful : <div style=\"margin-top:20px\">" + convertResult.getConvertedTestsString() +"</div>");
 			} catch (Exception e) {
 				//String errorMsg = "Validation failed : <ul><li>" + StringUtils.join(fails, "</li><li>") + "</li></ul>";
 				return ConfigurationValidator.wrapWithFormValidation(false, "Failed to convert : " + e.getMessage());
