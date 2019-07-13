@@ -27,6 +27,7 @@ import com.hp.octane.integrations.executor.TestsToRunConvertersFactory;
 import com.hp.octane.integrations.executor.TestsToRunFramework;
 import com.hp.octane.integrations.utils.SdkStringUtils;
 import com.microfocus.application.automation.tools.model.TestsFramework;
+import com.microfocus.application.automation.tools.octane.configuration.ConfigurationValidator;
 import com.microfocus.application.automation.tools.octane.executor.UftConstants;
 import com.microfocus.application.automation.tools.octane.model.processors.projects.JobProcessorFactory;
 import hudson.Extension;
@@ -35,10 +36,12 @@ import hudson.Launcher;
 import hudson.model.*;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
+import hudson.util.FormValidation;
 import jenkins.tasks.SimpleBuildStep;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -54,11 +57,11 @@ public class TestsToRunConverterBuilder extends Builder implements SimpleBuildSt
 
 	private TestsToRunConverterModel framework;
 
-	private final String TESTS_TO_RUN_PARAMETER = "testsToRun";
-	private final String TESTS_TO_RUN_CONVERTED_PARAMETER = "testsToRunConverted";
+	private static final String TESTS_TO_RUN_PARAMETER = "testsToRun";
+	private static final String TESTS_TO_RUN_CONVERTED_PARAMETER = "testsToRunConverted";
 
-	private final String DEFAULT_EXECUTING_DIRECTORY = "${workspace}";
-	private final String CHECKOUT_DIRECTORY_PARAMETER = "testsToRunCheckoutDirectory";
+	private static final String DEFAULT_EXECUTING_DIRECTORY = "${workspace}";
+	private static final String CHECKOUT_DIRECTORY_PARAMETER = "testsToRunCheckoutDirectory";
 
 	public TestsToRunConverterBuilder(String framework) {
 		this.framework = new TestsToRunConverterModel(framework, "", "");
@@ -71,69 +74,76 @@ public class TestsToRunConverterBuilder extends Builder implements SimpleBuildSt
 
 	@Override
 	public void perform(@Nonnull Run<?, ?> build, @Nonnull FilePath filePath, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws InterruptedException, IOException {
-		ParametersAction parameterAction = build.getAction(ParametersAction.class);
-		String rawTests = null;
-		String executingDirectory = DEFAULT_EXECUTING_DIRECTORY;
-		if (parameterAction != null) {
-			ParameterValue suiteIdParameter = parameterAction.getParameter(UftConstants.SUITE_ID_PARAMETER_NAME);
-			if (suiteIdParameter != null) {
-				printToConsole(listener, UftConstants.SUITE_ID_PARAMETER_NAME + " : " + suiteIdParameter.getValue());
-			}
-			ParameterValue suiteRunIdParameter = parameterAction.getParameter(UftConstants.SUITE_RUN_ID_PARAMETER_NAME);
-			if (suiteRunIdParameter != null) {
-				printToConsole(listener, UftConstants.SUITE_RUN_ID_PARAMETER_NAME + " : " + suiteRunIdParameter.getValue());
-			}
-
-			ParameterValue testsParameter = parameterAction.getParameter(TESTS_TO_RUN_PARAMETER);
-			if (testsParameter != null && testsParameter.getValue() instanceof String) {
-				rawTests = (String) testsParameter.getValue();
-				printToConsole(listener, TESTS_TO_RUN_PARAMETER + " found with value : " + rawTests);
-			}
-
-			ParameterValue checkoutDirParameter = parameterAction.getParameter(CHECKOUT_DIRECTORY_PARAMETER);
-			if (checkoutDirParameter != null) {
-				if (testsParameter.getValue() instanceof String && StringUtils.isNotEmpty((String) checkoutDirParameter.getValue())) {
-					executingDirectory = (String) checkoutDirParameter.getValue();//"%" + CHECKOUT_DIRECTORY_PARAMETER + "%";
-					printToConsole(listener, CHECKOUT_DIRECTORY_PARAMETER + " parameter found with value : " + executingDirectory);
-				} else {
-					printToConsole(listener, CHECKOUT_DIRECTORY_PARAMETER + " parameter found, but its value is empty or its type is not String. Using default value.");
+		try {
+			ParametersAction parameterAction = build.getAction(ParametersAction.class);
+			String rawTests = null;
+			String executingDirectory = DEFAULT_EXECUTING_DIRECTORY;
+			if (parameterAction != null) {
+				ParameterValue suiteIdParameter = parameterAction.getParameter(UftConstants.SUITE_ID_PARAMETER_NAME);
+				if (suiteIdParameter != null) {
+					printToConsole(listener, UftConstants.SUITE_ID_PARAMETER_NAME + " : " + suiteIdParameter.getValue());
 				}
+				ParameterValue suiteRunIdParameter = parameterAction.getParameter(UftConstants.SUITE_RUN_ID_PARAMETER_NAME);
+				if (suiteRunIdParameter != null) {
+					printToConsole(listener, UftConstants.SUITE_RUN_ID_PARAMETER_NAME + " : " + suiteRunIdParameter.getValue());
+				}
+
+				ParameterValue testsParameter = parameterAction.getParameter(TESTS_TO_RUN_PARAMETER);
+				if (testsParameter != null && testsParameter.getValue() instanceof String) {
+					rawTests = (String) testsParameter.getValue();
+					printToConsole(listener, TESTS_TO_RUN_PARAMETER + " found with value : " + rawTests);
+				}
+
+				ParameterValue checkoutDirParameter = parameterAction.getParameter(CHECKOUT_DIRECTORY_PARAMETER);
+				if (checkoutDirParameter != null) {
+					if (testsParameter.getValue() instanceof String && StringUtils.isNotEmpty((String) checkoutDirParameter.getValue())) {
+						executingDirectory = (String) checkoutDirParameter.getValue();//"%" + CHECKOUT_DIRECTORY_PARAMETER + "%";
+						printToConsole(listener, CHECKOUT_DIRECTORY_PARAMETER + " parameter found with value : " + executingDirectory);
+					} else {
+						printToConsole(listener, CHECKOUT_DIRECTORY_PARAMETER + " parameter found, but its value is empty or its type is not String. Using default value.");
+					}
+				}
+				printToConsole(listener, "checkout directory : " + executingDirectory);
 			}
-			printToConsole(listener, "checkout directory : " + executingDirectory);
-		}
-		if (StringUtils.isEmpty(rawTests)) {
-			printToConsole(listener, TESTS_TO_RUN_PARAMETER + " is not found or has empty value. Skipping.");
+			if (StringUtils.isEmpty(rawTests)) {
+				printToConsole(listener, TESTS_TO_RUN_PARAMETER + " is not found or has empty value. Skipping.");
+				return;
+			}
+
+			if (framework == null || SdkStringUtils.isEmpty(getFramework())) {
+				printToConsole(listener, "No frameworkModel is selected. Skipping.");
+				return;
+			}
+			String frameworkName = getFramework();
+			String frameworkFormat = getFormat();
+			String frameworkDelimiter = getDelimiter();
+			printToConsole(listener, "Selected framework = " + frameworkName);
+			if (SdkStringUtils.isNotEmpty(frameworkFormat)) {
+				printToConsole(listener, "Using format = " + frameworkFormat);
+				printToConsole(listener, "Using delimiter = " + frameworkDelimiter);
+			}
+
+			TestsToRunFramework testsToRunFramework = TestsToRunFramework.fromValue(frameworkName);
+			TestsToRunConverterResult convertResult = TestsToRunConvertersFactory.createConverter(testsToRunFramework)
+					.setProperties(this.getProperties())
+					.convert(rawTests, executingDirectory);
+			printToConsole(listener, "Found #tests : " + convertResult.getTestsData().size());
+			printToConsole(listener, TESTS_TO_RUN_CONVERTED_PARAMETER + " = " + convertResult.getConvertedTestsString());
+
+			if (JobProcessorFactory.WORKFLOW_RUN_NAME.equals(build.getClass().getName())) {
+				List<ParameterValue> newParams = (parameterAction != null) ? new ArrayList<>(parameterAction.getAllParameters()) : new ArrayList<>();
+				newParams.add(new StringParameterValue(TESTS_TO_RUN_CONVERTED_PARAMETER, convertResult.getConvertedTestsString()));
+				ParametersAction newParametersAction = new ParametersAction(newParams);
+				build.addOrReplaceAction(newParametersAction);
+			} else {
+				VariableInjectionAction via = new VariableInjectionAction(TESTS_TO_RUN_CONVERTED_PARAMETER, convertResult.getConvertedTestsString());
+				build.addAction(via);
+			}
+		} catch (IllegalArgumentException e) {
+			printToConsole(listener, "Failed to convert : " + e.getMessage());
+			build.setResult(Result.FAILURE);
+
 			return;
-		}
-
-		if (framework == null || SdkStringUtils.isEmpty(getFramework())) {
-			printToConsole(listener, "No frameworkModel is selected. Skipping.");
-			return;
-		}
-		String frameworkName = getFramework();
-		String frameworkFormat = getFormat();
-		String frameworkDelimiter = getDelimiter();
-		printToConsole(listener, "Selected framework = " + frameworkName);
-		if (SdkStringUtils.isNotEmpty(frameworkFormat)) {
-			printToConsole(listener, "Using format = " + frameworkFormat);
-			printToConsole(listener, "Using delimiter = " + frameworkDelimiter);
-		}
-
-		TestsToRunFramework testsToRunFramework = TestsToRunFramework.fromValue(frameworkName);
-		TestsToRunConverterResult convertResult = TestsToRunConvertersFactory.createConverter(testsToRunFramework)
-				.setProperties(this.getProperties())
-				.convert(rawTests, executingDirectory);
-		printToConsole(listener, "Found #tests : " + convertResult.getTestsData().size());
-		printToConsole(listener, TESTS_TO_RUN_CONVERTED_PARAMETER + " = " + convertResult.getConvertedTestsString());
-
-		if (JobProcessorFactory.WORKFLOW_RUN_NAME.equals(build.getClass().getName())) {
-			List<ParameterValue> newParams = (parameterAction != null) ? new ArrayList<>(parameterAction.getAllParameters()) : new ArrayList<>();
-			newParams.add(new StringParameterValue(TESTS_TO_RUN_CONVERTED_PARAMETER, convertResult.getConvertedTestsString()));
-			ParametersAction newParametersAction = new ParametersAction(newParams);
-			build.addOrReplaceAction(newParametersAction);
-		} else {
-			VariableInjectionAction via = new VariableInjectionAction(TESTS_TO_RUN_CONVERTED_PARAMETER, convertResult.getConvertedTestsString());
-			build.addAction(via);
 		}
 	}
 
@@ -187,6 +197,31 @@ public class TestsToRunConverterBuilder extends Builder implements SimpleBuildSt
 		@Override
 		public String getDisplayName() {
 			return "Micro Focus ALM Octane testing framework converter";
+		}
+
+		public FormValidation doTestConvert(
+				@QueryParameter("testsToRun") String rawTests,
+				@QueryParameter("teststorunconverter.framework") String framework,
+				@QueryParameter("teststorunconverter.format") String format,
+				@QueryParameter("teststorunconverter.delimiter") String delimiter) {
+
+			try {
+				Map<String, String> properties = new HashMap();
+
+				TestsToRunFramework testsToRunFramework = TestsToRunFramework.fromValue(framework);
+				if (TestsToRunFramework.Custom.value().equals(testsToRunFramework)) {
+					properties.put(TestsToRunConverter.CONVERTER_FORMAT, format);
+					properties.put(TestsToRunConverter.CONVERTER_DELIMITER, delimiter);
+				}
+
+				TestsToRunConverterResult convertResult = TestsToRunConvertersFactory.createConverter(testsToRunFramework)
+						.setProperties(properties)
+						.convert(rawTests, TestsToRunConverterBuilder.DEFAULT_EXECUTING_DIRECTORY);
+				return ConfigurationValidator.wrapWithFormValidation(true, "Conversion is successful : " + convertResult.getConvertedTestsString());
+			} catch (Exception e) {
+				//String errorMsg = "Validation failed : <ul><li>" + StringUtils.join(fails, "</li><li>") + "</li></ul>";
+				return ConfigurationValidator.wrapWithFormValidation(false, "Failed to convert : " + e.getMessage());
+			}
 		}
 
 		/**
