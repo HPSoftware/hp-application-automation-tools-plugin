@@ -22,8 +22,22 @@
     After conversion, result is injected to the "testsToRunConverted" parameter.
 
     <br/><br/>
-    <i><b>Note</b> : In "Advanced" section you can validate correctness of inserted format.</i>
+    <i><b>Note</b> : In "Advanced" section you can validate correctness of the inserted configuration.</i>
     <br/><br/>
+
+
+    Here are properties of the custom configuration
+    <ul style="padding-left: 15px;">
+        <li><b>testPattern</b> - describes pattern for converting single test. It uses reserved words (<b>$package</b>,<b>$class</b>,<b>$testName</b>) that will be
+    replaced by real test data. All other characters  in pattern will appear as is in final result</li>
+        <li><b>testDelimiter</b> - the delimiter used to separate different tests</li>
+        <li><b>prefix</b>  - the prefix for whole conversion result</li>
+        <li><b>suffix</b>  - the suffix for whole conversion result</li>
+        <li><b>testsToRunConvertedParameter</b>  - the parameter name to set conversion result to. Default value is “testsToRunConverted”</li>
+        <li><b>replacements</b>  - the array of replace methods</li>
+
+    </ul>
+
     Minimal configuration is:
     <br/><br/>
     <pre>
@@ -33,16 +47,6 @@
 }
     </pre>
 
-    <ul style="padding-left: 15px;">
-        <li><b>testPattern</b> - describes pattern for converting single test. It uses reserved words (<b>$package</b>,<b>$class</b>,<b>$testName</b>) that will be
-    replaced by real test data and all other characters  in pattern will appear as is in final result</li>
-        <li><b>testDelimiter</b> - the delimiter used to separate different tests</li>
-        <li><b>prefix</b>  - the prefix for whole conversion result</li>
-        <li><b>suffix</b>  - the suffix for whole conversion result</li>
-        <li><b>testsToRunConvertedParameter</b>  - the parameter name to set conversion result to. Default value is “testsToRunConverted”</li>
-        <li><b>replacements</b>  - the array of replace methods</li>
-
-    </ul>
     <br/>For example:<br/><br/>
     The <i>testsToRun</i> parameter received 2 tests separated by a semicolon: <b>v1:myPackage1|myClass1|myTest1<i>;</i>myPackage2|myClass2|myTest2</b><br/>
     The defined <i>testPattern</i> is: <b>$package.$class#$testName</b><br/>

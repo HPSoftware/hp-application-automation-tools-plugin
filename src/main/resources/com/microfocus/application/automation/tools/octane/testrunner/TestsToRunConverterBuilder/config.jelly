@@ -36,10 +36,10 @@
         <f:textbox id="format+${myFramework.name}" value="${myFramework.format}" hidden="hidden"/>
     </j:forEach>
     <f:entry title="Custom configuration" field="format">
-        <textarea id="format" name="teststorunconverter.format" type="text" class="setting-input" style="resize: vertical; min-height:90px;">
+        <textarea id="format" name="teststorunconverter.format" type="text" disabled="disabled" class="setting-input" style="resize: vertical; min-height:90px;">
             ${instance.testsToRunConverterModel.framework.format}
         </textarea>
-        <select id="fillFormat" onchange="insertFormat(this)" style="float: right;position: relative;font-size: smaller;">
+        <select id="fillFormat" onchange="insertFormat(this)" style="visibility: hidden; float: right;position: relative;font-size: smaller;">
                  <f:option value="title">Fill configuration ...</f:option>
                  <f:option value="basic">Minimal configuration</f:option>
                  <f:option value="extended">Extended configuration</f:option>
@@ -56,9 +56,14 @@
     </f:advanced>
 
     <script>
-        init();
         function init(){
-            var isCustom=${instance.isCustom};
+            var isCustom=false;
+            var txtFormat = document.getElementById('format');
+
+            if(txtFormat){
+                var index = txtFormat.selectedIndex;
+                isCustom=true;//${instance.isCustom};
+            }
             enableElements(isCustom);
         }
         function insertFormat(sender){
@@ -67,31 +72,40 @@
             var txtFormat = document.getElementById('format');
 
             if(options[index].value === 'basic'){
-                txtFormat.value = "{\n\t\"testPattern\": \"&#036;package.$class#$testName\",\n\t\"testDelimiter\": \",\"\n}";
+                txtFormat.value = "{\n\t\"testPattern\": \"$$package.$$class#$$testName\",\n\t\"testDelimiter\": \",\"\n}";
             }
             else if(options[index].value === 'extended'){
 
-                var config = {
-                    testPattern :"&#36;package.$class#$testName",
-                    testDelimiter:"",
-                    prefix:"",
-                    suffix:"",
-                    replacements:[
-                    {   type: "replaceString",
-                        target: "$package|$class|$testName",
-                       "string": "aaa",
-                       "replacement": "bbb"
-                       }]
-                }
+                txtFormat.value = "{"+
+                "\n\t\"testPattern\": \"$$package.$$class#$$testName\","+
+                "\n\t\"testDelimiter\": \",\","+
+                "\n\t\"prefix\": \"\","+
+                "\n\t\"suffix\": \"\","+
+                "\n\t\"replacements\": ["+
 
-                var str = JSON.stringify(config, null,"\t");//pretty format
+                "\n\t\{"+
+                "\n\t\t\"type\": \"replaceString\","+
+                "\n\t\t\"target\": \"$$package|$$class|$$testName\","+
+                "\n\t\t\"string\": \"aaa\","+
+                "\n\t\t\"replacement\": \"bbb\""+
+                "\n\t\}"+
 
-                console.log(str);
-                //txtFormat.value = str.replace("\",\"","\",\n\t\"").replace("{","{\n\t").replace("}","\n}");
-                //txtFormat.value = str.replace(/\",\"/g,"\",\n\t\"").replace(/{/g,"{\n\t").replace(/}/g,"\n}");
+                "\n\t\{"+
+                "\n\t\t\"type\": \"replaceRegexFirst\","+
+                "\n\t\t\"target\": \"$$package|$$class|$$testName\","+
+                "\n\t\t\"regex\": \"aaa\","+
+                "\n\t\t\"replacement\": \"bbb\""+
+                "\n\t\}"+
 
-                txtFormat.value = str;
+                "\n\t\{"+
+                "\n\t\t\"type\": \"joinString\","+
+                "\n\t\t\"target\": \"$$package|$$class|$$testName\","+
+                "\n\t\t\"prefix\": \"\","+
+                "\n\t\t\"suffix\": \"\""+
+                "\n\t\}"+
 
+                "\n\t]"+
+                "\n}";
             }
             sender.selectedIndex = 0;
         }
@@ -106,13 +120,23 @@
             txtFormat.value = optionFormat ? optionFormat.value : "";
         }
 
-        function enableElements(isCustom){
-            console.log("enableElements " + isCustom);
+        function enableElements(isCustom, secondTry){
             var txtFormat = document.getElementById('format');
+            if(txtFormat){
+                txtFormat.disabled = !isCustom;
+            }else{
+                if(!secondTry){
+                    setTimeout(function(){ enableElements(isCustom,true); }, 500);
+                    return;
+                }
+            }
+
             var fillFormat = document.getElementById('fillFormat');
-            txtFormat.disabled = !isCustom;
-            fillFormat.style.visibility = isCustom ? "visible" : "hidden";
+            if(fillFormat){
+                fillFormat.style.visibility = isCustom ? "visible" : "hidden";
+            }
         }
+        init();
 
     </script>
 
