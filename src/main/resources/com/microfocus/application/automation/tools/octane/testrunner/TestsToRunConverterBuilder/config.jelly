@@ -36,22 +36,27 @@
         <f:textbox id="format+${myFramework.name}" value="${myFramework.format}" hidden="hidden"/>
     </j:forEach>
 
-
     <j:if test="${instance.testsToRunConverterModel.framework.name == 'custom'}">
-        <f:entry title="Format" field="format" >
-            <textarea id="format" name="teststorunconverter.format" type="text" class="setting-input" style="resize: vertical; min-height:80px;">
-                ${instance.testsToRunConverterModel.framework.format}
-            </textarea>
-        </f:entry>
-
+            <f:entry title="Custom format" field="format">
+                <textarea id="format" name="teststorunconverter.format" type="text" class="setting-input" style="resize: vertical; min-height:90px;">
+                    ${instance.testsToRunConverterModel.framework.format}
+                </textarea>
+                <select id="fillFormat" onchange="insertFormat(this)" style="float: right;position: relative;font-size: smaller;">
+                         <f:option value="title">Fill format ...</f:option>
+                         <f:option value="basic">Minimal format</f:option>
+                 </select>
+            </f:entry>
     </j:if>
     <j:if test="${instance.testsToRunConverterModel.framework.name != 'custom'}">
         <f:entry title="Format" field="format">
-            <textarea id="format" name="teststorunconverter.format" type="text" class="setting-input" disabled="true" style="resize: vertical; min-height:80px;">
+            <textarea id="format" name="teststorunconverter.format" type="text" class="setting-input" disabled="true" style="resize: vertical; min-height:90px;">
                 ${instance.testsToRunConverterModel.framework.format}
             </textarea>
+            <select id="fillFormat" onchange="insertFormat(this)"  style="float: right;position: relative;font-size: smaller;visibility:hidden">
+                         <f:option value="title">Fill format...</f:option>
+                         <f:option value="basic">Minimal format</f:option>
+             </select>
         </f:entry>
-
     </j:if>
 
     <f:advanced>
@@ -66,6 +71,13 @@
     <script>
 
         function insertFormat(sender){
+            var index = sender.selectedIndex;
+            var options = sender.options;
+            var txtFormat = document.getElementById('format');
+            if(options[index].value === 'basic'){
+                txtFormat.value = "{\n\t\"testPattern\": \"$package.$class#$testName\",\n\t\"testDelimiter\": \",\"\n}";
+            }
+            sender.selectedIndex = 0;
 
         }
 
@@ -73,10 +85,13 @@
             var x = sender.selectedIndex;
             var y = sender.options;
             var txtFormat = document.getElementById('format');
+            var fillFormat = document.getElementById('fillFormat');
 
             var bCustom = y[x].value === 'custom' ? true : false;
 
             txtFormat.disabled = !bCustom;
+            fillFormat.style.visibility = bCustom ? "visible" : "hidden";
+
             var optionFormat = document.getElementById('format+' + y[x].value);
             txtFormat.value = optionFormat ? optionFormat.value : "";
         }
