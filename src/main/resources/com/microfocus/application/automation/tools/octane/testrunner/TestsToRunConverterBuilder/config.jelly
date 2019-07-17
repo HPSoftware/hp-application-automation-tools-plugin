@@ -35,29 +35,16 @@
     <j:forEach var="myFramework" items="${descriptor.Frameworks}">
         <f:textbox id="format+${myFramework.name}" value="${myFramework.format}" hidden="hidden"/>
     </j:forEach>
-
-    <j:if test="${instance.testsToRunConverterModel.framework.name == 'custom'}">
-            <f:entry title="Custom format" field="format">
-                <textarea id="format" name="teststorunconverter.format" type="text" class="setting-input" style="resize: vertical; min-height:90px;">
-                    ${instance.testsToRunConverterModel.framework.format}
-                </textarea>
-                <select id="fillFormat" onchange="insertFormat(this)" style="float: right;position: relative;font-size: smaller;">
-                         <f:option value="title">Fill format ...</f:option>
-                         <f:option value="basic">Minimal format</f:option>
-                 </select>
-            </f:entry>
-    </j:if>
-    <j:if test="${instance.testsToRunConverterModel.framework.name != 'custom'}">
-        <f:entry title="Format" field="format">
-            <textarea id="format" name="teststorunconverter.format" type="text" class="setting-input" disabled="true" style="resize: vertical; min-height:90px;">
-                ${instance.testsToRunConverterModel.framework.format}
-            </textarea>
-            <select id="fillFormat" onchange="insertFormat(this)"  style="float: right;position: relative;font-size: smaller;visibility:hidden">
-                         <f:option value="title">Fill format...</f:option>
-                         <f:option value="basic">Minimal format</f:option>
-             </select>
-        </f:entry>
-    </j:if>
+    <f:entry title="Custom configuration" field="format">
+        <textarea id="format" name="teststorunconverter.format" type="text" class="setting-input" style="resize: vertical; min-height:90px;">
+            ${instance.testsToRunConverterModel.framework.format}
+        </textarea>
+        <select id="fillFormat" onchange="insertFormat(this)" style="float: right;position: relative;font-size: smaller;">
+                 <f:option value="title">Fill configuration ...</f:option>
+                 <f:option value="basic">Minimal configuration</f:option>
+                 <f:option value="extended">Extended configuration</f:option>
+         </select>
+    </f:entry>
 
     <f:advanced>
     <f:section title="Test conversion"/>
@@ -69,31 +56,62 @@
     </f:advanced>
 
     <script>
-
+        init();
+        function init(){
+            var isCustom=${instance.isCustom};
+            enableElements(isCustom);
+        }
         function insertFormat(sender){
             var index = sender.selectedIndex;
             var options = sender.options;
             var txtFormat = document.getElementById('format');
+
             if(options[index].value === 'basic'){
-                txtFormat.value = "{\n\t\"testPattern\": \"$package.$class#$testName\",\n\t\"testDelimiter\": \",\"\n}";
+                txtFormat.value = "{\n\t\"testPattern\": \"&#036;package.$class#$testName\",\n\t\"testDelimiter\": \",\"\n}";
+            }
+            else if(options[index].value === 'extended'){
+
+                var config = {
+                    testPattern :"&#36;package.$class#$testName",
+                    testDelimiter:"",
+                    prefix:"",
+                    suffix:"",
+                    replacements:[
+                    {   type: "replaceString",
+                        target: "$package|$class|$testName",
+                       "string": "aaa",
+                       "replacement": "bbb"
+                       }]
+                }
+
+                var str = JSON.stringify(config, null,"\t");//pretty format
+
+                console.log(str);
+                //txtFormat.value = str.replace("\",\"","\",\n\t\"").replace("{","{\n\t").replace("}","\n}");
+                //txtFormat.value = str.replace(/\",\"/g,"\",\n\t\"").replace(/{/g,"{\n\t").replace(/}/g,"\n}");
+
+                txtFormat.value = str;
+
             }
             sender.selectedIndex = 0;
-
         }
 
         function selectionChanged(sender) {
             var x = sender.selectedIndex;
             var y = sender.options;
+            var bCustom = y[x].value === 'custom' ? true : false;
+            enableElements(bCustom);
+            var optionFormat = document.getElementById('format+' + y[x].value);
+            var txtFormat = document.getElementById('format');
+            txtFormat.value = optionFormat ? optionFormat.value : "";
+        }
+
+        function enableElements(isCustom){
+            console.log("enableElements " + isCustom);
             var txtFormat = document.getElementById('format');
             var fillFormat = document.getElementById('fillFormat');
-
-            var bCustom = y[x].value === 'custom' ? true : false;
-
-            txtFormat.disabled = !bCustom;
-            fillFormat.style.visibility = bCustom ? "visible" : "hidden";
-
-            var optionFormat = document.getElementById('format+' + y[x].value);
-            txtFormat.value = optionFormat ? optionFormat.value : "";
+            txtFormat.disabled = !isCustom;
+            fillFormat.style.visibility = isCustom ? "visible" : "hidden";
         }
 
     </script>

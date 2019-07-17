@@ -18,7 +18,7 @@
   ~ ___________________________________________________________________
   -->
 <div>
-    The format is json that describes how to convert tests in raw format to the format of your testing framework.
+    Custom configuration is json that describes how to convert tests in raw format to the format of your testing framework.
     After conversion, result is injected to the "testsToRunConverted" parameter.
 
     <br/><br/>
@@ -59,7 +59,7 @@
     There is possibility to alter values that received from ALM Octane, for example set lower case to the testName,replace spaces by '_', and so on.
 
     <br>Here are examples of available replace methods. Each replace method contains "target" property that define what parts of the test pattern are affected by replace method,
-    available values are $package,$class,$testName. Its possible to put several values separated by '|'.
+    available values are $package,$class,$testName. Its possible to put several values separated by '|'. The replacements are executed in the order they appear in configuration json.
     <pre>
 "replacements": [
 {

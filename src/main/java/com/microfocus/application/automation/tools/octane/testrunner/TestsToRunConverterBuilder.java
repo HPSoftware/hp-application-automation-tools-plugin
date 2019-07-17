@@ -161,8 +161,8 @@ public class TestsToRunConverterBuilder extends Builder implements SimpleBuildSt
         return framework.getFramework().getFormat();
     }
 
-    public boolean getIsNotCustom(){
-        return !TestsToRunFramework.Custom.value().equals(framework.getFramework().getName());
+    public boolean getIsCustom(){
+        return TestsToRunFramework.Custom.value().equals(framework.getFramework().getName());
     }
 
     private void printToConsole(TaskListener listener, String msg) {
