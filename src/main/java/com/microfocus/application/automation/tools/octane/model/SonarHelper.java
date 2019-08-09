@@ -113,9 +113,9 @@ public class SonarHelper {
                 throw new NoSuchMethodException();
             } else if (method.getParameterCount() == 1) {//2.9+
                 result = (String) method.invoke(sonarInstallation, run);
-            } else if (method.getReturnType().getCanonicalName().equals(String.class.getCanonicalName())) {
+            } else if (method.getReturnType().equals(String.class)) {
                 result = (String) method.invoke(sonarInstallation);//2.6.1 version
-            } else if (method.getReturnType().getCanonicalName().equals(Secret.class.getCanonicalName())) {
+            } else if (method.getReturnType().equals(Secret.class)) {
                 Secret secret = (Secret) method.invoke(sonarInstallation);//2.8.1 version
                 result = Secret.toString(secret);
             }
