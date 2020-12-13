@@ -393,10 +393,6 @@ public class OctaneServerSettingsBuilder extends Builder {
 
 
 
-
-
-
-
             try {
                 octaneUrlParser = ConfigurationValidator.parseUiLocation(StringUtils.trim(uiLocation));
             } catch (FormValidation fv) {
