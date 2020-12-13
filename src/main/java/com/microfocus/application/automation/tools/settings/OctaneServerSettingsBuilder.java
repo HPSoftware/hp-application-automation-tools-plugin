@@ -390,6 +390,13 @@ public class OctaneServerSettingsBuilder extends Builder {
             String myImpersonatedUser = StringUtils.trim(impersonatedUser);
             String myUsername = StringUtils.trim(username);
             OctaneUrlParser octaneUrlParser;
+
+
+
+
+
+
+
             try {
                 octaneUrlParser = ConfigurationValidator.parseUiLocation(StringUtils.trim(uiLocation));
             } catch (FormValidation fv) {
