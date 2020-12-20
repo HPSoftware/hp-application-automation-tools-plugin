@@ -22,7 +22,7 @@
   -->
 
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt" xmlns:p="/lib/hudson/project" xmlns:s="/lib/samples">
-  <l:layout title="ALM Octane Pull Request Fetch Report">
+  <l:layout title="ALM Octane Branch Collect Report">
     <style type="text/css">
 
     .myTable {
@@ -64,48 +64,67 @@
     <st:include it="${it.build}" page="sidepanel.jelly" />
     <l:main-panel>
        <p>
-       <h1><u>ALM Octane Pull Request Report</u></h1>
+       <h1><u>ALM Octane Branch Report</u></h1>
        </p>
        <br/>
        <br/>
        <div>
             <div>repositoryUrl : ${it.repositoryUrl}</div>
-            <div>minUpdateDate : ${it.minUpdateTime} - ${it.getFormattedDate(it.minUpdateTime)}</div>
-            <div>sourceBranchFilter : ${it.sourceBranchFilter}</div>
-            <div>targetBranchFilter : ${it.targetBranchFilter}</div>
+            <div>filter : ${it.filter}</div>
        </div>
 
+        Update : ${it.branchSyncResult.getUpdated().size()};
+        Created : ${it.branchSyncResult.getCreated().size()};
+        Deleted : ${it.branchSyncResult.getDeleted().size()};
 
        <table class = "myTable" frame="vsides above bottom" >
-        <caption>Pull requests</caption>
+        <caption>Branches</caption>
         <thead>
 
          <tr>
-             <th >Id</th>
-             <th>Title</th>
-             <th>State</th>
-             <th>IsMerged</th>
-             <th>Author</th>
-             <th>Updated Time</th>
-             <th>Source</th>
-             <th>Target</th>
-             <th>#Commits</th>
+             <th>Octane Id</th>
+             <th>Branch</th>
+             <th>Last Commit Revision</th>
+             <th>Last updated</th>
+             <th>Last updater</th>
+             <th>Merged</th>
+             <td >Status</td>
          </tr>
          </thead>
 
          <tbody>
-          <j:forEach var="s" items="${it.pullRequests}">
+          <j:forEach var="s" items="${it.branchSyncResult.getUpdated()}">
                 <tr>
-                    <td ><a target="_blank" href="${s.selfUrl}">${s.id}</a></td>
-                    <td >${s.title}</td>
-                    <td >${s.state}</td>
-                    <td >${s.merged}</td>
-                    <td title="${s.authorEmail}">${s.authorName}</td>
-                    <td title="${s.updatedTime}">${it.getFormattedDate(s.updatedTime)}</td>
-                    <td >${s.sourceRepository.url} : ${s.sourceRepository.branch}</td>
-                    <td >${s.targetRepository.url} : ${s.targetRepository.branch}</td>
-                    <td title="${it.getTopCommits(s)}">${s.commits.size()}</td>
+                    <td >${s.octaneId}</td>
+                    <td >${s.name}</td>
+                    <td >${s.lastCommitSHA}</td>
+                    <td >${s.lastCommitTime}</td>
+                    <td >${s.lastCommiterName}(${s.lastCommiterEmail})</td>
+                    <td >${s.isMerged}</td>
+                    <td >Updated</td>
                 </tr>
+          </j:forEach>
+           <j:forEach var="s" items="${it.branchSyncResult.getCreated()}">
+                  <tr>
+                      <td ></td>
+                      <td >${s.name}</td>
+                      <td >${s.lastCommitSHA}</td>
+                      <td >${s.lastCommitTime}</td>
+                      <td >${s.lastCommiterName}(${s.lastCommiterEmail})</td>
+                      <td >${s.isMerged}</td>
+                      <td >Created</td>
+                  </tr>
+           </j:forEach>
+           <j:forEach var="s" items="${it.branchSyncResult.getDeleted()}">
+                 <tr>
+                     <td >${s.octaneId}</td>
+                     <td >${s.name}</td>
+                     <td ></td>
+                     <td ></td>
+                     <td ></td>
+                     <td ></td>
+                     <td >Deleted</td>
+                 </tr>
           </j:forEach>
 
           </tbody>

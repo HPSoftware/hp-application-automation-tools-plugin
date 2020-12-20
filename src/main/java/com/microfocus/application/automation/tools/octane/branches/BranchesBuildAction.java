@@ -20,22 +20,20 @@
 
 package com.microfocus.application.automation.tools.octane.branches;
 
-import com.hp.octane.integrations.services.pullrequestsandbranches.bitbucketserver.pojo.Branch;
-import com.microfocus.application.automation.tools.octane.Messages;
+import com.hp.octane.integrations.services.pullrequestsandbranches.BranchSyncResult;
 import hudson.model.Action;
 import hudson.model.Run;
 
 import javax.annotation.CheckForNull;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
 import java.util.TimeZone;
 
 public class BranchesBuildAction implements Action {
 
     private final Run<?, ?> build;
 
-    private final List<Branch> branches;
+    private final BranchSyncResult branchSyncResult;
     private final String filter;
     private final String repositoryUrl;
 
@@ -48,9 +46,9 @@ public class BranchesBuildAction implements Action {
         return "notepad.png";
     }
 
-    public BranchesBuildAction(final Run<?, ?> build, List<Branch> branches, String repositoryUrl, String filter) {
+    public BranchesBuildAction(final Run<?, ?> build, BranchSyncResult branchSyncResult, String repositoryUrl, String filter) {
         this.build = build;
-        this.branches = branches;
+        this.branchSyncResult = branchSyncResult;
         this.filter = filter;
         this.repositoryUrl = repositoryUrl;
     }
@@ -58,17 +56,17 @@ public class BranchesBuildAction implements Action {
     @CheckForNull
     @Override
     public String getDisplayName() {
-        return Messages.PullRequestActionConfigurationLabel();
+        return ""/*Messages.BranchActionConfigurationLabel()*/;
     }
 
     @CheckForNull
     @Override
     public String getUrlName() {
-        return "pull-request-report";
+        return "branch-report";
     }
 
-    public List<Branch> getBranches() {
-        return branches;
+    public BranchSyncResult getBranchSyncResult () {
+        return branchSyncResult;
     }
 
     @SuppressWarnings("squid:S1452")

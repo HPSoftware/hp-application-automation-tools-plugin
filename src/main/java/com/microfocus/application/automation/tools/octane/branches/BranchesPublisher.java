@@ -24,12 +24,10 @@ import com.cloudbees.plugins.credentials.CredentialsMatcher;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
-import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.hp.octane.integrations.OctaneSDK;
-import com.hp.octane.integrations.dto.scm.Branch;
+import com.hp.octane.integrations.services.pullrequestsandbranches.BranchSyncResult;
 import com.hp.octane.integrations.services.pullrequestsandbranches.factory.BranchFetchParameters;
 import com.hp.octane.integrations.services.pullrequestsandbranches.factory.FetchFactory;
 import com.hp.octane.integrations.services.pullrequestsandbranches.factory.FetchHandler;
@@ -40,13 +38,12 @@ import com.hp.octane.integrations.services.pullrequestsandbranches.rest.authenti
 import com.hp.octane.integrations.services.pullrequestsandbranches.rest.authentication.PATStrategy;
 import com.microfocus.application.automation.tools.octane.GeneralUtils;
 import com.microfocus.application.automation.tools.octane.JellyUtils;
+import com.microfocus.application.automation.tools.octane.pullrequests.PullRequestBuildAction;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.*;
-import hudson.model.queue.Tasks;
-import hudson.security.ACL;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Publisher;
@@ -64,7 +61,6 @@ import org.kohsuke.stapler.QueryParameter;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -136,10 +132,13 @@ public class BranchesPublisher extends Recorder implements SimpleBuildStep {
         try {
             //GET BRANCHES FROM CI SERVER
             FetchHandler fetchHandler = FetchFactory.getHandler(ScmTool.fromValue(myScmTool), authenticationStrategy);
-            List<Branch> ciServerBranches = fetchHandler.fetchBranches(fp, logConsumer::printLog);
 
-            OctaneSDK.getClientByInstanceId(myConfigurationId).getPullRequestAndBranchService()
-                    .syncBranchesToOctane(ciServerBranches, fp, Long.parseLong(myWorkspaceId), GeneralUtils::getUserIdForCommit, logConsumer::printLog);
+            BranchSyncResult result = OctaneSDK.getClientByInstanceId(myConfigurationId).getPullRequestAndBranchService()
+                    .syncBranchesToOctane(fetchHandler, fp, Long.parseLong(myWorkspaceId), GeneralUtils::getUserIdForCommit, logConsumer::printLog);
+
+            BranchesBuildAction buildAction = new BranchesBuildAction(run, result, fp.getRepoUrl(), fp.getFilter());
+            run.addAction(buildAction);
+
 
         } catch (Exception e) {
             logConsumer.printLog("Failed to fetch branches : " + e.getMessage());
@@ -205,7 +204,7 @@ public class BranchesPublisher extends Recorder implements SimpleBuildStep {
         }
 
         public void printLog(String msg) {
-            ps.println("PullRequestPublisher : " + msg);
+            ps.println("BranchPublisher : " + msg);
         }
     }
 
@@ -282,19 +281,7 @@ public class BranchesPublisher extends Recorder implements SimpleBuildStep {
         public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item project,
                                                      @QueryParameter String credentialsId) {
 
-            if (project == null || !project.hasPermission(Item.CONFIGURE)) {
-                return new StandardUsernameListBoxModel().includeCurrentValue(credentialsId);
-            }
-
-            return new StandardListBoxModel()
-                    .includeEmptyValue()
-                    .includeMatchingAs(
-                            project instanceof Queue.Task ? Tasks.getAuthenticationOf((Queue.Task) project) : ACL.SYSTEM,
-                            project,
-                            StandardCredentials.class,
-                            URIRequirementBuilder.create().build(),
-                            CREDENTIALS_MATCHER)
-                    .includeCurrentValue(credentialsId);
+            return JellyUtils.fillCredentialsIdItems(project, credentialsId, CREDENTIALS_MATCHER);
         }
 
         public ListBoxModel doFillScmToolItems() {

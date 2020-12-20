@@ -32,8 +32,6 @@ import com.cloudbees.plugins.credentials.CredentialsMatcher;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
-import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.hp.octane.integrations.OctaneSDK;
@@ -53,8 +51,6 @@ import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.*;
-import hudson.model.queue.Tasks;
-import hudson.security.ACL;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Publisher;
@@ -319,20 +315,7 @@ public class PullRequestPublisher extends Recorder implements SimpleBuildStep {
 
         public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item project,
                                                      @QueryParameter String credentialsId) {
-
-            if (project == null || !project.hasPermission(Item.CONFIGURE)) {
-                return new StandardUsernameListBoxModel().includeCurrentValue(credentialsId);
-            }
-
-            return new StandardListBoxModel()
-                    .includeEmptyValue()
-                    .includeMatchingAs(
-                            project instanceof Queue.Task ? Tasks.getAuthenticationOf((Queue.Task) project) : ACL.SYSTEM,
-                            project,
-                            StandardCredentials.class,
-                            URIRequirementBuilder.create().build(),
-                            CREDENTIALS_MATCHER)
-                    .includeCurrentValue(credentialsId);
+            return JellyUtils.fillCredentialsIdItems(project,credentialsId, CREDENTIALS_MATCHER);
         }
 
         public ListBoxModel doFillScmToolItems() {
