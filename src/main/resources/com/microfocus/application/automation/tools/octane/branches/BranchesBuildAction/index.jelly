@@ -98,7 +98,7 @@
                     <td >${s.octaneId}</td>
                     <td >${s.name}</td>
                     <td >${s.lastCommitSHA}</td>
-                    <td >${s.lastCommitTime}</td>
+                    <td >${it.getFormattedDate(s.lastCommitTime)}</td>
                     <td >${s.lastCommiterName}(${s.lastCommiterEmail})</td>
                     <td >${s.isMerged}</td>
                     <td >Updated</td>
@@ -109,7 +109,7 @@
                       <td ></td>
                       <td >${s.name}</td>
                       <td >${s.lastCommitSHA}</td>
-                      <td >${s.lastCommitTime}</td>
+                      <td >${it.getFormattedDate(s.lastCommitTime)}</td>
                       <td >${s.lastCommiterName}(${s.lastCommiterEmail})</td>
                       <td >${s.isMerged}</td>
                       <td >Created</td>

@@ -21,6 +21,7 @@
 package com.microfocus.application.automation.tools.octane.branches;
 
 import com.hp.octane.integrations.services.pullrequestsandbranches.BranchSyncResult;
+import com.microfocus.application.automation.tools.octane.Messages;
 import hudson.model.Action;
 import hudson.model.Run;
 
@@ -56,7 +57,7 @@ public class BranchesBuildAction implements Action {
     @CheckForNull
     @Override
     public String getDisplayName() {
-        return ""/*Messages.BranchActionConfigurationLabel()*/;
+        return Messages.BranchActionConfigurationLabel();
     }
 
     @CheckForNull
