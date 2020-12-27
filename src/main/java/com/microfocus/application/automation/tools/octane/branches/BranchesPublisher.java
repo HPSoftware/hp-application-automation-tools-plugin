@@ -38,7 +38,6 @@ import com.hp.octane.integrations.services.pullrequestsandbranches.rest.authenti
 import com.hp.octane.integrations.services.pullrequestsandbranches.rest.authentication.PATStrategy;
 import com.microfocus.application.automation.tools.octane.GeneralUtils;
 import com.microfocus.application.automation.tools.octane.JellyUtils;
-import com.microfocus.application.automation.tools.octane.pullrequests.PullRequestBuildAction;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
