@@ -165,7 +165,7 @@ public class BranchesPublisher extends Recorder implements SimpleBuildStep {
         if (parameterAction != null) {
             fp.setPageSize(getIntegerValueParameter(parameterAction, "branches_page_size"));
             fp.setActiveBranchDays(getIntegerValueParameter(parameterAction, "branches_active_branch_days"));
-            fp.setActiveBranchDays(getIntegerValueParameter(parameterAction, "branches_max_branches_to_fill"));
+            fp.setMaxBranchesToFill(getIntegerValueParameter(parameterAction, "branches_max_branches_to_fill"));
         }
 
         logConsumer.accept("Repository URL       : " + fp.getRepoUrl());

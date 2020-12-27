@@ -21,20 +21,17 @@
 <div>
     This step is responsible for collecting branches from the SCM tool and injecting them to ALM Octane.
     <br>
-    Every time pull requests are sent to ALM Octane the last update time is saved. The next time, only pull requests and commits that were updated after this time will be sent to ALM Octane.
-
     <br>
     <br>
-    Supported version of ALM Octane: 15.0.49 and later.
+    Supported version of ALM Octane: 15.1.61 and later.
 
 
     <br>
     <br>
     You can change the behaviour of this step by adding the following parameters to the job:
     <ul>
-        <li><b>pullrequests_min_update_time</b>: Use this parameter to override the last update time that is updated after each successful injection to ALM Octane.</li><br>
-        <li><b>pullrequests_max_pr_to_collect</b>: Max number of pull requests to collect. Default is 100.</li><br>
-        <li><b>pullrequests_max_commits_to_collect</b>: Max number of commits to collect for each pull request. Default is 100.</li><br>
+        <li><b>branches_active_branch_days</b>: Only active branches can be added/update to ALM Octane. Default is 180 days.</li><br>
+        <li><b>branches_max_branches_to_fill</b>: Relevant for GitHub repository only. Max branches to fetch info. Branch for which info is not fetched, cannot be added to ALM Octane. Default is 1000.</li><br>
     </ul>
 
     <br>
