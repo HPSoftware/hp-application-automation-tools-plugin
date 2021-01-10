@@ -28,6 +28,7 @@ import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredenti
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.hp.octane.integrations.OctaneClient;
 import com.hp.octane.integrations.OctaneSDK;
+import com.hp.octane.integrations.exceptions.OctaneValidationException;
 import com.hp.octane.integrations.services.pullrequestsandbranches.BranchSyncResult;
 import com.hp.octane.integrations.services.pullrequestsandbranches.PullRequestAndBranchService;
 import com.hp.octane.integrations.services.pullrequestsandbranches.factory.BranchFetchParameters;
@@ -135,7 +136,8 @@ public class BranchesPublisher extends Recorder implements SimpleBuildStep {
             FetchHandler fetchHandler = FetchFactory.getHandler(ScmTool.fromValue(myScmTool), authenticationStrategy);
 
             OctaneClient octaneClient = OctaneSDK.getClientByInstanceId(myConfigurationId);
-            octaneClient.validateOctaneIsActiveAndSupportVersion("15.1.74" /*PullRequestAndBranchService.BRANCH_COLLECTION_SUPPORTED_VERSION*/);
+            logConsumer.printLog("ALM Octane " + octaneClient.getConfigurationService().getConfiguration().geLocationForLog());
+            octaneClient.validateOctaneIsActiveAndSupportVersion(PullRequestAndBranchService.BRANCH_COLLECTION_SUPPORTED_VERSION);
             BranchSyncResult result = OctaneSDK.getClientByInstanceId(myConfigurationId).getPullRequestAndBranchService()
                     .syncBranchesToOctane(fetchHandler, fp, Long.parseLong(myWorkspaceId), GeneralUtils::getUserIdForCommit, logConsumer::printLog);
 
@@ -145,7 +147,10 @@ public class BranchesPublisher extends Recorder implements SimpleBuildStep {
 
         } catch (Exception e) {
             logConsumer.printLog("ALM Octane branch collector failed : " + e.getMessage());
-            e.printStackTrace(taskListener.getLogger());
+            if(!(e instanceof OctaneValidationException)){
+                e.printStackTrace(taskListener.getLogger());
+            }
+
             run.setResult(Result.FAILURE);
         }
     }

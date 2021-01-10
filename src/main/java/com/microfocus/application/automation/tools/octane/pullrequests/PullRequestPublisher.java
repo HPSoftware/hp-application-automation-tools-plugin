@@ -34,8 +34,11 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import com.hp.octane.integrations.OctaneClient;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.scm.PullRequest;
+import com.hp.octane.integrations.exceptions.OctaneValidationException;
+import com.hp.octane.integrations.services.pullrequestsandbranches.PullRequestAndBranchService;
 import com.hp.octane.integrations.services.pullrequestsandbranches.factory.FetchFactory;
 import com.hp.octane.integrations.services.pullrequestsandbranches.factory.FetchHandler;
 import com.hp.octane.integrations.services.pullrequestsandbranches.factory.PullRequestFetchParameters;
@@ -141,17 +144,22 @@ public class PullRequestPublisher extends Recorder implements SimpleBuildStep {
 
         FetchHandler fetchHandler = FetchFactory.getHandler(ScmTool.fromValue(myScmTool), authenticationStrategy);
         try {
+            OctaneClient octaneClient = OctaneSDK.getClientByInstanceId(myConfigurationId);
+            logConsumer.printLog("ALM Octane " + octaneClient.getConfigurationService().getConfiguration().geLocationForLog());
+            octaneClient.validateOctaneIsActiveAndSupportVersion(PullRequestAndBranchService.PULL_REQUEST_COLLECTION_SUPPORTED_VERSION);
             List<PullRequest> pullRequests = fetchHandler.fetchPullRequests(fp, GeneralUtils.getUserIdForCommit, logConsumer::printLog);
             PullRequestBuildAction buildAction = new PullRequestBuildAction(run, pullRequests, fp.getRepoUrl(), fp.getMinUpdateTime(),
                     fp.getSourceBranchFilter(), fp.getTargetBranchFilter());
             run.addAction(buildAction);
 
             if (!pullRequests.isEmpty()) {
-                OctaneSDK.getClientByInstanceId(myConfigurationId).getPullRequestAndBranchService().sendPullRequests(pullRequests, myWorkspaceId, fp, logConsumer::printLog);
+                octaneClient.getPullRequestAndBranchService().sendPullRequests(pullRequests, myWorkspaceId, fp, logConsumer::printLog);
             }
         } catch (Exception e) {
             logConsumer.printLog("ALM Octane pull request collector failed : " + e.getMessage());
-            e.printStackTrace(taskListener.getLogger());
+            if (!(e instanceof OctaneValidationException)) {
+                e.printStackTrace(taskListener.getLogger());
+            }
             run.setResult(Result.FAILURE);
         }
     }
@@ -315,7 +323,7 @@ public class PullRequestPublisher extends Recorder implements SimpleBuildStep {
 
         public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item project,
                                                      @QueryParameter String credentialsId) {
-            return JellyUtils.fillCredentialsIdItems(project,credentialsId, CREDENTIALS_MATCHER);
+            return JellyUtils.fillCredentialsIdItems(project, credentialsId, CREDENTIALS_MATCHER);
         }
 
         public ListBoxModel doFillScmToolItems() {
