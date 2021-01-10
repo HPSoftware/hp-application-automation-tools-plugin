@@ -150,7 +150,7 @@ public class PullRequestPublisher extends Recorder implements SimpleBuildStep {
                 OctaneSDK.getClientByInstanceId(myConfigurationId).getPullRequestAndBranchService().sendPullRequests(pullRequests, myWorkspaceId, fp, logConsumer::printLog);
             }
         } catch (Exception e) {
-            logConsumer.printLog("Failed to fetch pull requests : " + e.getMessage());
+            logConsumer.printLog("ALM Octane pull request collector failed : " + e.getMessage());
             e.printStackTrace(taskListener.getLogger());
             run.setResult(Result.FAILURE);
         }
